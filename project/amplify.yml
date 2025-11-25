@@ -1,0 +1,26 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # If app root is set to root directory, uncomment the next line:
+        # - cd project
+        - npm ci
+        - npx prisma generate
+        # Run database migrations (uncomment if you want automatic migrations)
+        # - npx prisma migrate deploy
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    # If app root is set to root directory, use: baseDirectory: project
+    # If app root is set to project directory, use: baseDirectory: .
+    baseDirectory: .
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
+      - .prisma/**/*
+

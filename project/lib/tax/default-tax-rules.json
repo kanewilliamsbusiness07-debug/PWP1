@@ -1,0 +1,135 @@
+{
+  "version": "2024-25",
+  "effectiveDate": "2024-07-01",
+  "taxYear": "2024-25",
+  "lastUpdated": "2024-07-01T00:00:00Z",
+  "source": "Australian Taxation Office",
+  "notes": "IMPORTANT: These tax rules must be updated regularly to reflect current ATO guidelines. See README.md for update instructions.",
+  
+  "incomeTaxBrackets": [
+    {
+      "min": 0,
+      "max": 18200,
+      "rate": 0,
+      "baseAmount": 0,
+      "description": "Tax-free threshold"
+    },
+    {
+      "min": 18201,
+      "max": 45000,
+      "rate": 0.19,
+      "baseAmount": 0,
+      "description": "19% marginal tax rate"
+    },
+    {
+      "min": 45001,
+      "max": 120000,
+      "rate": 0.325,
+      "baseAmount": 5092,
+      "description": "32.5% marginal tax rate"
+    },
+    {
+      "min": 120001,
+      "max": 180000,
+      "rate": 0.37,
+      "baseAmount": 29467,
+      "description": "37% marginal tax rate"
+    },
+    {
+      "min": 180001,
+      "max": null,
+      "rate": 0.45,
+      "baseAmount": 51667,
+      "description": "45% top marginal tax rate"
+    }
+  ],
+  
+  "medicareLevy": {
+    "rate": 0.02,
+    "threshold": 24276,
+    "singleThreshold": 24276,
+    "familyThreshold": 40939,
+    "description": "2% Medicare Levy on taxable income above threshold"
+  },
+  
+  "hecsThresholds": [
+    { "min": 51550, "max": 59518, "rate": 0.01, "description": "1% repayment rate" },
+    { "min": 59519, "max": 65000, "rate": 0.02, "description": "2% repayment rate" },
+    { "min": 65001, "max": 71999, "rate": 0.025, "description": "2.5% repayment rate" },
+    { "min": 72000, "max": 79999, "rate": 0.03, "description": "3% repayment rate" },
+    { "min": 80000, "max": 89999, "rate": 0.035, "description": "3.5% repayment rate" },
+    { "min": 90000, "max": 100000, "rate": 0.04, "description": "4% repayment rate" },
+    { "min": 100001, "max": 109999, "rate": 0.045, "description": "4.5% repayment rate" },
+    { "min": 110000, "max": 124999, "rate": 0.05, "description": "5% repayment rate" },
+    { "min": 125000, "max": 139999, "rate": 0.055, "description": "5.5% repayment rate" },
+    { "min": 140000, "max": null, "rate": 0.10, "description": "10% repayment rate" }
+  ],
+  
+  "negativeGearing": {
+    "allowed": true,
+    "depreciationRate": 0.025,
+    "capitalWorksDeduction": 0.025,
+    "description": "Negative gearing allowed for investment properties with 2.5% depreciation"
+  },
+  
+  "capitalGainsTax": {
+    "discountRate": 0.5,
+    "indexationAllowed": false,
+    "description": "50% CGT discount for assets held >12 months (individuals and trusts)"
+  },
+  
+  "superannuation": {
+    "contributionCap": 30000,
+    "carryForwardYears": 5,
+    "preservationAge": 60,
+    "contributionTaxRate": 0.15,
+    "earningsTaxRate": 0.15,
+    "description": "Superannuation contribution caps and tax rates"
+  },
+  
+  "deductionCategories": {
+    "work-related": {
+      "maxAmount": null,
+      "requiresReceipts": true,
+      "description": "Work-related expenses including tools, uniforms, training"
+    },
+    "investment": {
+      "maxAmount": null,
+      "requiresReceipts": true,
+      "description": "Investment property expenses, interest, management fees"
+    },
+    "professional": {
+      "maxAmount": null,
+      "requiresReceipts": true,
+      "description": "Professional development, memberships, subscriptions"
+    },
+    "charitable": {
+      "maxAmount": null,
+      "requiresReceipts": true,
+      "minimumAmount": 2,
+      "description": "Donations to registered charities (minimum $2)"
+    },
+    "other": {
+      "maxAmount": 300,
+      "requiresReceipts": false,
+      "description": "Other deductions up to $300 without receipts"
+    }
+  },
+  
+  "franking": {
+    "corporateRate": 0.30,
+    "smallBusinessRate": 0.25,
+    "description": "Franking credit rates for dividend income"
+  },
+  
+  "updateInstructions": {
+    "frequency": "Annually before July 1",
+    "sources": [
+      "https://www.ato.gov.au/rates/income-tax-for-individuals/",
+      "https://www.ato.gov.au/rates/medicare-levy/",
+      "https://www.ato.gov.au/rates/study-and-training-support-loans/"
+    ],
+    "process": "Update this file with current rates and deploy via Admin UI or CI/CD pipeline",
+    "verification": "Test calculations against ATO tax calculator before deployment"
+  }
+}
