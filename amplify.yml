@@ -5,9 +5,19 @@ applications:
       phases:
         preBuild:
           commands:
+            # Set Node version
+            - nvm use 18 || nvm install 18
+            - node --version
+            - npm --version
+            # Install dependencies
             - npm ci
+            # Generate Prisma client (required before build)
+            - npx prisma generate
+            # Verify environment variables are available (non-blocking in Amplify)
+            - node scripts/validate-env.js || echo "Warning: Some environment variables may be missing. Amplify will inject them at runtime."
         build:
           commands:
+            # Build Next.js application
             - npm run build
       artifacts:
         baseDirectory: .next
@@ -17,3 +27,4 @@ applications:
         paths:
           - node_modules/**/*
           - .next/cache/**/*
+          - .prisma/**/*
