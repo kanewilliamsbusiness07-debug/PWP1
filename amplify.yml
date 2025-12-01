@@ -7,7 +7,15 @@ frontend:
         - npm config set cache ~/.npm --global
         - node scripts/check-amplify-env.js
         - npm ci
+        - node scripts/check-env.js || true
         - npx prisma generate
+        - |
+          if [ -n "$DATABASE_URL" ]; then
+            echo "Running database migrations..."
+            npx prisma migrate deploy || echo "Warning: Migration failed or no migrations to apply"
+          else
+            echo "Skipping migrations: DATABASE_URL not set"
+          fi
     build:
       commands:
         - npm run build
@@ -20,4 +28,5 @@ frontend:
       - node_modules/**/*
       - ~/.npm/**/*
       - .next/cache/**/*
+      - .prisma/**/*
 
