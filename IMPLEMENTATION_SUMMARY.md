@@ -68,10 +68,9 @@ This document summarizes all the new features and changes implemented to extend 
 
 ## 📋 Database Migration
 
-Run the following to apply database changes:
+Run the following to apply database changes from the repository root:
 
 ```bash
-cd project
 npx prisma migrate dev --name add_crm_features
 npx prisma generate
 ```
