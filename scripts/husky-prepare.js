@@ -1,6 +1,9 @@
 const { spawnSync } = require('child_process');
 
-const skip = process.env.CI === 'true' || Boolean(process.env.AMPLIFY_APP_ID);
+// Skip husky in CI/CD environments (same detection logic as check-env.js)
+const runningInAmplify = Boolean(process.env.AMPLIFY_APP_ID);
+const runningInCI = process.env.CI === 'true' || Boolean(process.env.CODEBUILD_BUILD_ID);
+const skip = runningInAmplify || runningInCI;
 
 if (skip) {
   console.log('Skipping husky install in CI/Amplify environment.');
