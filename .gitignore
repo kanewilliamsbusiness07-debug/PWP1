@@ -67,7 +67,11 @@ logs
 *.log
 
 # AWS Amplify
-amplify/
+# Allow amplify metadata files, but ignore generated files
+amplify/#cloudformation-template
+amplify/#current-cloud-backend
+amplify/backend/amplify-meta.json
+amplify/backend/.temp/
 .amplify-hosting/
 
 # Docker

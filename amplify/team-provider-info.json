@@ -1,0 +1,37 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-fincalcpro-dev-authRole",
+      "UnauthRoleName": "amplify-fincalcpro-dev-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-fincalcpro-dev-authRole",
+      "UnauthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-fincalcpro-dev-unauthRole",
+      "Region": "us-east-1"
+    },
+    "categories": {
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d3ry622jxpwz6",
+          "type": "manual"
+        }
+      }
+    }
+  },
+  "prod": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-fincalcpro-prod-authRole",
+      "UnauthRoleName": "amplify-fincalcpro-prod-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-fincalcpro-prod-authRole",
+      "UnauthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-fincalcpro-prod-unauthRole",
+      "Region": "us-east-1"
+    },
+    "categories": {
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d3ry622jxpwz6",
+          "type": "manual"
+        }
+      }
+    }
+  }
+}
+
