@@ -5,6 +5,7 @@ frontend:
       commands:
         - mkdir -p ~/.npm
         - npm config set cache ~/.npm --global
+        - node scripts/check-amplify-env.js
         - npm ci
         - npx prisma generate
     build:
