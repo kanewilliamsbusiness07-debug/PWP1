@@ -68,17 +68,18 @@ Update the environment variables in `.env.local`:
 ```bash
 # Required Configuration
 DATABASE_URL="postgresql://user:password@localhost:5432/fincalc_pro"
+NEXTAUTH_SECRET="your-32-character-nextauth-secret"
+NEXTAUTH_URL="http://localhost:3000"
 JWT_SECRET="your-32-character-jwt-secret"
 ENCRYPTION_KEY="your-32-character-encryption-key"
+CRON_SECRET="your-cron-secret-key"
 
 # Email Configuration
 SMTP_HOST="smtp.sendgrid.net"
-SMTP_USER="apikey"  
+SMTP_USER="apikey"
 SMTP_PASSWORD="your-sendgrid-api-key"
 SMTP_FROM="noreply@yourdomain.com"
-
-# Cron Job Configuration (for appointment reminders)
-CRON_SECRET="your-cron-secret-key"
+SMTP_PORT="587"
 ```
 
 ### 3. Database Setup

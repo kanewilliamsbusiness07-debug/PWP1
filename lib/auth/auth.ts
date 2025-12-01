@@ -7,6 +7,21 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { verifyPassword } from '@/lib/auth/password';
 import prisma from '@/lib/prisma';
 
+const nextAuthSecret = process.env.NEXTAUTH_SECRET ?? process.env.JWT_SECRET;
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (!nextAuthSecret) {
+  throw new Error(
+    'NEXTAUTH_SECRET is not set. Define it in your environment (Amplify console or .env.local) so credential login works.'
+  );
+}
+
+if (isProduction && !process.env.NEXTAUTH_URL) {
+  throw new Error(
+    'NEXTAUTH_URL is not set. Define it to the deployed Amplify domain so NextAuth can issue correct redirects.'
+  );
+}
+
 interface ExtendedUser extends User {
   id: string;
   role: string;
@@ -116,7 +131,8 @@ export const authConfig = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   debug: process.env.NODE_ENV === 'development',
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: nextAuthSecret,
+  trustHost: true,
   pages: {
     signIn: '/auth/login',
   }
