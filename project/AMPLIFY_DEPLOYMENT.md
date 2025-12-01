@@ -42,6 +42,7 @@ Amplify should automatically detect the `amplify.yml` file. Configure the app ro
 If your Next.js app is in the `project` directory:
 1. Set **App root** to `project` in Amplify Console
 2. Use the `amplify.yml` file in the `project` directory (already configured)
+3. Leave **Backend environment** empty (this repo does not contain an Amplify backend)
 
 ### Option B: App Root = Root Directory
 
@@ -96,6 +97,20 @@ openssl rand -base64 32
 ```
 AMPLIFY_HOSTING=true  # Set to true if using Amplify Hosting (managed Next.js)
 ```
+
+### Using AWS Systems Manager Parameter Store
+
+Amplify Hosting automatically attempts to load secrets from SSM. If you prefer SSM over plain environment variables:
+
+1. For each variable (e.g. `DATABASE_URL`), create a parameter at:
+
+```
+/amplify/<AMPLIFY_APP_ID>/<BRANCH_NAME>/DATABASE_URL
+```
+
+2. The parameter **name must match** the exact environment variable key.
+3. The Amplify service role needs `ssm:GetParametersByPath` permission.
+4. If you do **not** use SSM, Amplify still builds successfully—just make sure every variable is defined in the Amplify Console so the fetch attempt does not block the build.
 
 ## Step 5: Database Migrations
 
