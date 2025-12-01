@@ -5,6 +5,7 @@
   "description": "Professional financial planning application for Australian advisors",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/validate-env.js",
     "build": "next build",
     "start": "next start -p $PORT",
     "lint": "next lint",

@@ -35,31 +35,34 @@ Use any PostgreSQL database provider (e.g., Supabase, Neon, Railway).
 
 ## Step 3: Configure Build Settings
 
-Amplify should automatically detect the root-level `amplify.yml`. Set **App root** to `/` and keep **Backend environment** empty (no Amplify CLI backend in this repo). **Important:** use branch names that map cleanly to Amplify environment slugs—only letters, numbers, hyphens, and underscores. Names such as `fix/amplify-deploy` or `feature/foo` will be rejected by Amplify and produce the log line `BackendEnvironment name <branch> is invalid`. Rename the branch to something like `fix-amplify-deploy` before connecting it to Amplify.
+Amplify should automatically detect the root-level `amplify.yml`. Set **App root** to `/`. The backend environment name is hard-coded to `prod` in the configuration.
 
 **Build settings (already committed):**
 ```yaml
 version: 1
-frontend:
-  phases:
-    preBuild:
-      commands:
-        - mkdir -p ~/.npm
-        - npm config set cache ~/.npm --global
-        - npm ci
-        - npx prisma generate
-    build:
-      commands:
-        - npm run build
-  artifacts:
-    baseDirectory: .next
-    files:
-      - '**/*'
-  cache:
-    paths:
-      - node_modules/**/*
-      - ~/.npm/**/*
-      - .next/cache/**/*
+applications:
+  - appRoot: .
+    backend:
+      phases:
+        build:
+          commands:
+            - amplifyInit --envName prod
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+          - .next/cache/**/*
 ```
 
 ## Step 4: Configure Environment Variables
@@ -91,32 +94,22 @@ AMPLIFY_HOSTING=true  # Set to true if using Amplify Hosting (managed Next.js)
 
 Amplify Hosting automatically injects the environment variables you define in the console UI. Only configure SSM if you explicitly want to source secrets from Parameter Store:
 
-1. Create parameters at `/amplify/<AMPLIFY_APP_ID>/<BRANCH_NAME>/YOUR_KEY`.
+1. Create parameters at `/amplify/d3ry622jxpwz6/prod/YOUR_KEY` (hard-coded prod path).
 2. Ensure the Amplify service role has `ssm:GetParametersByPath`.
-3. Leave `AMPLIFY_SSM_PATH` empty unless SSM paths really exist—otherwise Amplify will log 404s while trying to write the environment cache.
+3. The SSM path is hard-coded to `/amplify/d3ry622jxpwz6/prod/` for the prod environment.
 
 ## Step 5: Database Migrations
 
 ### Initial Setup
 
-Before the first deployment, run migrations manually or add to build:
+Before the first deployment, run migrations manually:
 
-1. **Option A: Manual Migration**
-   ```bash
-   # Connect to your database and run:
-   npx prisma migrate deploy
-   ```
+```bash
+# Connect to your database and run:
+npx prisma migrate deploy
+```
 
-2. **Option B: Add to Build (Recommended)**
-   
-   Update `amplify.yml` to include:
-   ```yaml
-   backend:
-     phases:
-       build:
-         commands:
-           - npx prisma migrate deploy
-   ```
+**Note:** Database migrations should be run manually before the first deployment. The build process will generate the Prisma client but will not run migrations automatically.
 
 ### Seed Database (Optional)
 
@@ -163,23 +156,17 @@ npx prisma db seed
 - Increase build timeout in Amplify settings
 - Optimize build process (cache node_modules, .next, .prisma)
 
-## Environment-Specific Configuration
+## Environment Configuration
 
-### Development Branch
+The application uses a single production environment (`prod`). Configure the following environment variables in Amplify Console:
 
-Use development database and settings:
-```
-DATABASE_URL=postgresql://dev-user:dev-pass@dev-host:5432/dev-db
-NEXTAUTH_URL=https://dev-branch.amplifyapp.com
-NODE_ENV=development
-```
-
-### Production Branch
-
-Use production database:
 ```
 DATABASE_URL=postgresql://prod-user:prod-pass@prod-host:5432/prod-db
 NEXTAUTH_URL=https://yourdomain.com
+NEXTAUTH_SECRET=your-secret-key-minimum-32-characters
+JWT_SECRET=your-jwt-secret-minimum-32-characters
+ENCRYPTION_KEY=your-encryption-key-32-characters
+CRON_SECRET=your-cron-secret
 NODE_ENV=production
 ```
 
