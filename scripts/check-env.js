@@ -28,8 +28,23 @@ if (missing.length || missingProd.length) {
   if (missingProd.length) {
     messages.push(`Missing production env vars: ${missingProd.join(', ')}`);
   }
-  console.error(`❌ ${messages.join(' | ')}`);
-  process.exit(1);
+
+  const guidance =
+    'Add the variables in AWS Amplify → App settings → Environment variables. See AMPLIFY_DEPLOYMENT.md for details.';
+
+  if (runningInAmplify) {
+    console.warn(
+      [
+        `⚠️ [Amplify] ${messages.join(' | ')}`,
+        'Amplify injects env vars from the console UI or Parameter Store.',
+        'The build will continue so you can finish configuring the app, but runtime requests will fail until the secrets are provided.',
+        guidance
+      ].join(' ')
+    );
+  } else {
+    console.error(`❌ ${messages.join(' | ')}\n${guidance}`);
+    process.exit(1);
+  }
 }
 
 const smtpKeys = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_FROM'];
