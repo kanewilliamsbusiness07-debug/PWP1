@@ -47,7 +47,6 @@ applications:
         preBuild:
           commands:
             - npm ci
-            - npm run build:prepare || true
         build:
           commands:
             - npm run build
