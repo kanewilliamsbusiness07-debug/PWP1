@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p $PORT",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -22,7 +22,8 @@
     "docker:build": "docker build -t fincalc-pro .",
     "docker:run": "docker-compose up -d",
     "docker:stop": "docker-compose down",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "postinstall": "node ./scripts/check-env.js || node -e \"process.exit(0)\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

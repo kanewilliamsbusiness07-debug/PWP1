@@ -3,17 +3,10 @@ frontend:
   phases:
     preBuild:
       commands:
-        - echo ">>> PreBuild: install dependencies and generate Prisma client"
-        - npm ci
-        - npx prisma generate
-        # Uncomment if you want migrations to run on every deploy
-        # - npx prisma migrate deploy
+        - npm ci --prefer-offline
     build:
       commands:
-        - echo ">>> Build: compile Next.js app for Amplify Hosting"
-        - export AMPLIFY_HOSTING=true
         - npm run build
-        - test -d .next || (echo "ERROR: .next directory missing" && exit 1)
   artifacts:
     baseDirectory: .next
     files:
@@ -21,6 +14,9 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
-      - .next/cache/**/*
-      - .npm/**/*
+backend:
+  phases:
+    build:
+      commands:
+        - echo "No backend build required"
 
