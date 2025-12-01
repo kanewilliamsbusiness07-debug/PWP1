@@ -35,7 +35,7 @@ Use any PostgreSQL database provider (e.g., Supabase, Neon, Railway).
 
 ## Step 3: Configure Build Settings
 
-Amplify should automatically detect the root-level `amplify.yml`. Set **App root** to `/` and keep **Backend environment** empty (no Amplify CLI backend in this repo). Valid branch/environment names are short slugs such as `dev`, `staging`, or `prod`.
+Amplify should automatically detect the root-level `amplify.yml`. Set **App root** to `/` and keep **Backend environment** empty (no Amplify CLI backend in this repo). **Important:** use branch names that map cleanly to Amplify environment slugs—only letters, numbers, hyphens, and underscores. Names such as `fix/amplify-deploy` or `feature/foo` will be rejected by Amplify and produce the log line `BackendEnvironment name <branch> is invalid`. Rename the branch to something like `fix-amplify-deploy` before connecting it to Amplify.
 
 **Build settings (already committed):**
 ```yaml
