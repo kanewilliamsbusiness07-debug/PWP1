@@ -1,4 +1,4 @@
-# AOK Perpetual Group - Professional Financial Planning Application
+# Perpetual Wealth Partners - Professional Financial Planning Application
 
 A comprehensive financial planning platform designed for Australian financial advisors, built with Next.js, TypeScript, and PostgreSQL. Helping clients improve their financial position and plan for retirement.
 
@@ -420,12 +420,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- Documentation: [https://docs.aokperpetual.com](https://docs.aokperpetual.com)
-- Issues: [GitHub Issues](https://github.com/yourusername/aok-perpetual-group/issues)
-- Email: support@aokperpetual.com
+- Documentation: [https://docs.perpetualwealthpartners.com](https://docs.perpetualwealthpartners.com)
+- Issues: [GitHub Issues](https://github.com/yourusername/perpetual-wealth-partners/issues)
+- Email: support@perpetualwealthpartners.com
 
 ---
 
 **⚠️ Important Security Notice**: This application handles sensitive financial data. Ensure all environment variables are properly configured, use HTTPS in production, and regularly update tax rules to maintain compliance with current Australian taxation laws.
 
-*AOK Perpetual Group - Building wealth. Securing futures. Creating legacies.*
+*Perpetual Wealth Partners - Building wealth. Securing futures. Creating legacies.*

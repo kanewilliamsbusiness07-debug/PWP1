@@ -47,14 +47,14 @@ export async function POST(req: NextRequest) {
             <p><strong>Retirement Status:</strong> ${summaryData.isRetirementDeficit ? 'Deficit' : 'Surplus'}</p>
           ` : ''}
         </div>
-        <p>This is an automated email from AOK Perpetual Group Financial Planning System.</p>
+        <p>This is an automated email from Perpetual Wealth Partners Financial Planning System.</p>
       </div>
     `;
 
     // Send email
     await sendEmail(session.user.id, {
       to: recipients,
-      subject: subject || 'Your Financial Planning Report - AOK Perpetual Group',
+      subject: subject || 'Your Financial Planning Report - Perpetual Wealth Partners',
       html
     });
 
