@@ -36,7 +36,7 @@ if (missing.length || missingProd.length) {
     console.warn(
       [
         `⚠️ [Amplify] ${messages.join(' | ')}`,
-        'Amplify injects env vars from the console UI or Parameter Store.',
+        'Amplify injects env vars from the console UI.',
         'The build will continue so you can finish configuring the app, but runtime requests will fail until the secrets are provided.',
         guidance
       ].join(' ')
