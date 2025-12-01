@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // For AWS Amplify, use 'standalone' for custom deployments
-  // For Amplify Hosting (managed), remove this line
-  output: process.env.AMPLIFY_HOSTING ? undefined : 'standalone',
+  // For AWS Amplify Hosting (managed Next.js), do not use standalone output
+  // Standalone mode is only for Docker/container deployments
+  // AWS Amplify Hosting automatically handles Next.js server
+  output: process.env.AMPLIFY_HOSTING === 'true' ? undefined : (process.env.STANDALONE === 'true' ? 'standalone' : undefined),
   eslint: {
     ignoreDuringBuilds: true,
   },
