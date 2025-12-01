@@ -35,23 +35,19 @@ Use any PostgreSQL database provider (e.g., Supabase, Neon, Railway).
 
 ## Step 3: Configure Build Settings
 
-Amplify should automatically detect the root-level `amplify.yml`. Set **App root** to `/`. The backend environment name is hard-coded to `prod` in the configuration.
+Amplify should automatically detect the root-level `amplify.yml`. Set **App root** to `/`.
 
 **Build settings (already committed):**
 ```yaml
 version: 1
 applications:
   - appRoot: .
-    backend:
-      phases:
-        build:
-          commands:
-            - amplifyInit --envName prod
     frontend:
       phases:
         preBuild:
           commands:
             - npm ci
+            - npm run build:prepare || true
         build:
           commands:
             - npm run build

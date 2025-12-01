@@ -8,6 +8,11 @@
 const requiredAlways = [
   'DATABASE_URL',
   'NEXTAUTH_SECRET',
+  'NEXT_PUBLIC_SITE_URL'
+];
+
+// Scan for additional env vars used in the codebase
+const additionalRequired = [
   'NEXTAUTH_URL',
   'JWT_SECRET'
 ];
@@ -17,39 +22,22 @@ const requiredProduction = [
   'CRON_SECRET'
 ];
 
-const optionalButRecommended = [
-  'NEXT_PUBLIC_SITE_URL'
-];
-
 const isProduction = process.env.NODE_ENV === 'production' || 
                      Boolean(process.env.AMPLIFY_APP_ID) ||
                      Boolean(process.env.CODEBUILD_BUILD_ID);
 
-const missing = requiredAlways.filter((key) => !process.env[key]);
-const missingProd = isProduction 
-  ? requiredProduction.filter((key) => !process.env[key])
-  : [];
+const allRequired = isProduction 
+  ? [...requiredAlways, ...additionalRequired, ...requiredProduction]
+  : [...requiredAlways, ...additionalRequired];
+
+const missing = allRequired.filter((key) => !process.env[key]);
 
 if (missing.length > 0) {
-  console.error('❌ Missing required environment variables:');
-  missing.forEach(key => console.error(`   - ${key}`));
-  console.error('\nAdd these variables in AWS Amplify → App settings → Environment variables.');
+  missing.forEach(key => {
+    console.error(`Missing ENV: ${key}`);
+  });
   process.exit(1);
-}
-
-if (missingProd.length > 0) {
-  console.error('❌ Missing required production environment variables:');
-  missingProd.forEach(key => console.error(`   - ${key}`));
-  console.error('\nAdd these variables in AWS Amplify → App settings → Environment variables.');
-  process.exit(1);
-}
-
-const missingOptional = optionalButRecommended.filter((key) => !process.env[key]);
-if (missingOptional.length > 0) {
-  console.warn('⚠️  Optional but recommended environment variables not set:');
-  missingOptional.forEach(key => console.warn(`   - ${key}`));
 }
 
 console.log('✔ All required environment variables are set');
 process.exit(0);
-
