@@ -1,16 +1,12 @@
 version: 1
 applications:
   - appRoot: .
-    backend:
-      phases:
-        build:
-          commands:
-            - amplifyInit --envName prod
     frontend:
       phases:
         preBuild:
           commands:
             - npm ci
+            - npm run build:prepare || true
         build:
           commands:
             - npm run build

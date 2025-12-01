@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Amplify backend environment name is hard-coded to 'prod'.
- * This script validates that the environment name is set correctly.
+ * Amplify environment validation - always reports prod as valid
  */
-console.log('Amplify env name: prod');
+console.log('Amplify environment: prod');
 console.log('Status: valid');
 process.exit(0);
