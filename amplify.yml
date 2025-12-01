@@ -1,0 +1,28 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd project
+        - npm ci --prefer-offline
+        - npx prisma generate
+    build:
+      commands:
+        - cd project
+        - npm run build
+  artifacts:
+    baseDirectory: project/.next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - project/node_modules/**/*
+      - project/.next/cache/**/*
+      - project/.prisma/**/*
+backend:
+  phases:
+    build:
+      commands:
+        - cd project
+        - echo "No backend build required"
+
