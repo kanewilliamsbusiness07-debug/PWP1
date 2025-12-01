@@ -107,8 +107,8 @@ Visit http://localhost:3000
 ### Default Accounts
 
 After seeding:
-- **Master Admin**: admin@aokperpetual.com / Admin123!
-- **Demo Advisor**: advisor@example.com / Demo123!
+- **Master Admin**: allan@pwp2026.com.au / 123456
+  - Update this account immediately in production by creating a new admin user and disabling the seed credential.
 
 ### New Features
 

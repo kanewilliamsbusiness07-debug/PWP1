@@ -1,31 +1,27 @@
 import { PrismaClient } from '@prisma/client';
-import * as crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-// Simple password hashing for development
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
 async function main() {
-  // Create mock user
-  const hashedPassword = hashPassword('1');
-  
+  const defaultEmail = 'allan@pwp2026.com.au';
+  const defaultPassword = '123456';
+  const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+
   await prisma.user.upsert({
-    where: { email: '1@1' },
+    where: { email: defaultEmail },
     update: {},
     create: {
-      email: '1@1',
+      email: defaultEmail,
       passwordHash: hashedPassword,
-      name: 'Test User',
+      name: 'Allan Chambers',
       role: 'ADVISOR',
       isMasterAdmin: true,
       isActive: true
-    },
+    }
   });
 
-  console.log('Mock user created successfully');
+  console.log(`Default Perpetual Wealth Partners admin ready: ${defaultEmail}`);
 }
 
 main()

@@ -106,7 +106,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="advisor@perpetualwealthpartners.com"
+                  placeholder="allan@pwp2026.com.au"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
