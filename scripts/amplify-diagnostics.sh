@@ -10,11 +10,8 @@ git rev-parse --abbrev-ref HEAD >> "${DIAG_DIR}/git.txt" 2>&1
 
 echo "=== AWS SSM CHECK ===" > "${DIAG_DIR}/ssm.txt"
 
-# Only attempt to read Parameter Store when a valid path is configured.
-# Amplify injects environment variables directly, so we skip SSM unless an
-# explicit path (AMPLIFY_SSM_PATH) is configured. Falling back to derived paths
-# caused 404 errors whenever the Parameter Store tree did not exist.
-SSM_PATH="${AMPLIFY_SSM_PATH:-}"
+# Hard-coded SSM path for prod environment
+SSM_PATH="/amplify/d3ry622jxpwz6/prod/"
 
 if [[ -n "${SSM_PATH}" ]]; then
   if command -v aws >/dev/null 2>&1; then
@@ -32,4 +29,3 @@ fi
 echo "=== NODE & NPM ===" > "${DIAG_DIR}/node.txt"
 node -v >> "${DIAG_DIR}/node.txt"
 npm -v >> "${DIAG_DIR}/node.txt"
-
