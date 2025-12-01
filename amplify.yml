@@ -4,34 +4,15 @@ frontend:
   phases:
     preBuild:
       commands:
-        # AWS Amplify defaults to Node 22, which breaks Webpack + Next.js SSR
-        # This file forces Node 18, which is fully supported
-        - nvm install 18
-        - nvm use 18
+        # Use Node 20 for Next.js 15, Supabase, and Vite compatibility
+        - nvm install 20
+        - nvm use 20
         - corepack enable
         - npm ci
-        # Determine Amplify environment name from branch
-        - |
-          export AMPLIFY_ENV=$(node scripts/get-amplify-env.js)
-          echo "Detected Amplify environment: $AMPLIFY_ENV"
-        # Load secrets from SSM Parameter Store (if available)
-        - |
-          if [ -f "scripts/load-ssm-secrets.sh" ]; then
-            chmod +x scripts/load-ssm-secrets.sh
-            bash scripts/load-ssm-secrets.sh || echo "SSM secrets not available, using Amplify Console environment variables"
-          fi
-        # Pull backend environment configuration
-        - |
-          if command -v amplify >/dev/null 2>&1; then
-            export AMPLIFY_ENV=$(node scripts/get-amplify-env.js)
-            amplify env checkout $AMPLIFY_ENV --yes || echo "Backend environment checkout skipped (using manual hosting)"
-          else
-            echo "Amplify CLI not available, skipping backend environment checkout"
-          fi
     build:
       commands:
-        # Must not use custom build outputs
         # Amplify handles SSR automatically as long as .next is the output directory
+        # Environment variables are automatically injected from Amplify Console
         - npm run build
   artifacts:
     baseDirectory: .next

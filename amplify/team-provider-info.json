@@ -33,12 +33,12 @@
       }
     }
   },
-  "fixamplifydeploy": {
+  "pwp": {
     "awscloudformation": {
-      "AuthRoleName": "amplify-fincalcpro-fixamplifydeploy-authRole",
-      "UnauthRoleName": "amplify-fincalcpro-fixamplifydeploy-unauthRole",
-      "AuthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-fincalcpro-fixamplifydeploy-authRole",
-      "UnauthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-fincalcpro-fixamplifydeploy-unauthRole",
+      "AuthRoleName": "amplify-fincalcpro-pwp-authRole",
+      "UnauthRoleName": "amplify-fincalcpro-pwp-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-fincalcpro-pwp-authRole",
+      "UnauthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-fincalcpro-pwp-unauthRole",
       "Region": "us-east-1"
     },
     "categories": {
