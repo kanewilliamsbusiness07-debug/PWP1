@@ -76,15 +76,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
+        {/* Brand */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="bg-gradient-gold px-4 py-2 mr-2">
-              <span className="text-2xl font-bold text-black">PWP</span>
-            </div>
-            <span className="text-2xl font-bold text-transparent bg-clip-text gradient-gold">Perpetual Wealth Partners</span>
-          </div>
-          <p className="text-gray-600">Financial Planning Portal</p>
+          <span className="text-3xl font-extrabold text-transparent bg-clip-text gradient-gold block">
+            Perpetual Wealth Partners
+          </span>
+          <p className="text-gray-600 mt-2">Financial Planning Portal</p>
         </div>
 
         <Card className="bg-white border-gray-200 shadow-lg">
@@ -164,12 +161,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
         </Card>
-
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Demo Accounts:</p>
-          <p>Master Admin: ADMIN / ADMIN</p>
-          <p>Advisor: advisor@aokperpetual.com / Demo123!</p>
-        </div>
+        
       </div>
     </div>
   );
