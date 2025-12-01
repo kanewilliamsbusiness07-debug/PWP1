@@ -467,10 +467,10 @@ export default function TaxOptimizationPage() {
                     <TabsContent value="income" className="space-y-4">
                       <FormField
                         control={taxForm.control}
-                        name="currentIncome"
+                        name="grossIncome"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Current Income</FormLabel>
+                            <FormLabel>Gross Income</FormLabel>
                             <FormControl>
                               <Input
                                 type="text"
