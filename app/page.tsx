@@ -1,5 +1,5 @@
 /**
- * AOK Perpetual Group - Redirect to Login
+ * Perpetual Wealth Partners - Redirect to Login
  */
 
 'use client';

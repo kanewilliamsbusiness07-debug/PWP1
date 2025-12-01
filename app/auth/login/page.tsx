@@ -80,9 +80,9 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <div className="bg-gradient-gold px-4 py-2 mr-2">
-              <span className="text-2xl font-bold text-black">AOK</span>
+              <span className="text-2xl font-bold text-black">PWP</span>
             </div>
-            <span className="text-2xl font-bold text-transparent bg-clip-text gradient-gold">Perpetual Group</span>
+            <span className="text-2xl font-bold text-transparent bg-clip-text gradient-gold">Perpetual Wealth Partners</span>
           </div>
           <p className="text-gray-600">Financial Planning Portal</p>
         </div>
@@ -106,7 +106,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="advisor@aokperpetual.com"
+                  placeholder="advisor@perpetualwealthpartners.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

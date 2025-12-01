@@ -66,7 +66,7 @@ export default function SummaryPage() {
     resolver: zodResolver(emailSchema),
     defaultValues: {
       recipientEmail: '',
-      subject: 'Your Financial Planning Report - AOK Perpetual Group',
+      subject: 'Your Financial Planning Report - Perpetual Wealth Partners',
       message: 'Please find attached your comprehensive financial planning report. If you have any questions, please don\'t hesitate to contact us.'
     }
   });
@@ -622,7 +622,7 @@ export default function SummaryPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center text-sm text-muted-foreground">
-                <p className="font-medium mb-1">AOK Perpetual Group</p>
+                <p className="font-medium mb-1">Perpetual Wealth Partners</p>
                 <p>Professional Financial Planning</p>
                 <p className="mt-2">Report generated on {new Date().toLocaleDateString()}</p>
               </div>

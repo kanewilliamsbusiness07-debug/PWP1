@@ -10,7 +10,7 @@ const merriweather = Merriweather({
 });
 
 export const metadata: Metadata = {
-  title: 'AOK Perpetual Group - Financial Planning & Retirement Solutions',
+  title: 'Perpetual Wealth Partners - Financial Planning & Retirement Solutions',
   description: 'Professional financial planning services to improve your financial position and secure your retirement future.',
 };
 

@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* AOK Perpetual Group Light & Gold Theme */
+    /* Perpetual Wealth Partners Light & Gold Theme */
     --background: 0 0% 98%;
     --foreground: 0 0% 15%;
     --card: 0 0% 100%;
@@ -33,7 +33,7 @@
   }
 
   .dark {
-    /* AOK Perpetual Group Dark & Gold Theme */
+    /* Perpetual Wealth Partners Dark & Gold Theme */
     --background: 0 0% 15%;
     --foreground: 0 0% 100%;
     --card: 0 0% 20%;
@@ -69,20 +69,20 @@
     @apply bg-background text-foreground;
   }
   
-  /* AOK Perpetual Group Custom Styles */
-  .aok-gold {
+  /* Perpetual Wealth Partners Custom Styles */
+  .pwp-gold {
     color: #FFD700;
   }
   
-  .aok-gold-bg {
+  .pwp-gold-bg {
     background-color: #FFD700;
   }
   
-  .aok-black {
+  .pwp-black {
     color: #2a2a2a;
   }
   
-  .aok-black-bg {
+  .pwp-black-bg {
     background-color: #f8f9fa;
   }
   

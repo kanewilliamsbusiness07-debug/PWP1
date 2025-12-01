@@ -72,9 +72,9 @@ export default function DashboardLayout({
           <div className="flex flex-col h-full">
             <div className="flex items-center px-6 py-4 border-b border-border bg-card">
               <div className="bg-accent px-2 py-1 mr-2">
-                <span className="text-lg font-bold text-black">AOK</span>
+                <span className="text-lg font-bold text-black">PWP</span>
               </div>
-              <span className="text-lg font-bold text-white">Perpetual Group</span>
+              <span className="text-lg font-bold text-white">Perpetual Wealth Partners</span>
             </div>
             <nav className="flex-1 px-4 py-4 space-y-1">
               {navigation.map((item) => {
@@ -101,9 +101,9 @@ export default function DashboardLayout({
         <div className="flex flex-col flex-grow pt-5 bg-card border-r border-border overflow-y-auto">
           <div className="flex items-center flex-shrink-0 px-6">
             <div className="bg-accent px-2 py-1 mr-2">
-              <span className="text-lg font-bold text-accent-foreground">AOK</span>
+              <span className="text-lg font-bold text-accent-foreground">PWP</span>
             </div>
-            <span className="text-lg font-bold text-accent">Perpetual Group</span>
+            <span className="text-lg font-bold text-accent">Perpetual Wealth Partners</span>
           </div>
           <div className="mt-8 flex-grow flex flex-col">
             <nav className="flex-1 px-4 space-y-1">
