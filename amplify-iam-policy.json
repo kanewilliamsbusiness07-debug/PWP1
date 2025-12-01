@@ -1,0 +1,58 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParametersByPath"
+      ],
+      "Resource": [
+        "arn:aws:ssm:*:*:parameter/amplify/d3ry622jxpwz6/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kms:Decrypt"
+      ],
+      "Resource": [
+        "arn:aws:kms:*:*:key/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "ssm.*.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::amplify-*/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::amplify-*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "*"
+          ]
+        }
+      }
+    }
+  ]
+}
+

@@ -10,6 +10,24 @@ frontend:
         - nvm use 18
         - corepack enable
         - npm ci
+        # Determine Amplify environment name from branch
+        - |
+          export AMPLIFY_ENV=$(node scripts/get-amplify-env.js)
+          echo "Detected Amplify environment: $AMPLIFY_ENV"
+        # Load secrets from SSM Parameter Store (if available)
+        - |
+          if [ -f "scripts/load-ssm-secrets.sh" ]; then
+            chmod +x scripts/load-ssm-secrets.sh
+            bash scripts/load-ssm-secrets.sh || echo "SSM secrets not available, using Amplify Console environment variables"
+          fi
+        # Pull backend environment configuration
+        - |
+          if command -v amplify >/dev/null 2>&1; then
+            export AMPLIFY_ENV=$(node scripts/get-amplify-env.js)
+            amplify env checkout $AMPLIFY_ENV --yes || echo "Backend environment checkout skipped (using manual hosting)"
+          else
+            echo "Amplify CLI not available, skipping backend environment checkout"
+          fi
     build:
       commands:
         # Must not use custom build outputs

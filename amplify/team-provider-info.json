@@ -32,6 +32,22 @@
         }
       }
     }
+  },
+  "fixamplifydeploy": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-fincalcpro-fixamplifydeploy-authRole",
+      "UnauthRoleName": "amplify-fincalcpro-fixamplifydeploy-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-fincalcpro-fixamplifydeploy-authRole",
+      "UnauthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-fincalcpro-fixamplifydeploy-unauthRole",
+      "Region": "us-east-1"
+    },
+    "categories": {
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d3ry622jxpwz6",
+          "type": "manual"
+        }
+      }
+    }
   }
 }
-
