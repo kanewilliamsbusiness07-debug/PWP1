@@ -3,36 +3,24 @@ frontend:
   phases:
     preBuild:
       commands:
-        # If app root is set to root directory, uncomment the next line:
-        # - cd project
-        - echo "Starting preBuild phase..."
+        - echo ">>> PreBuild: install dependencies and generate Prisma client"
         - npm ci
         - npx prisma generate
-        # Run database migrations (uncomment if you want automatic migrations)
+        # Uncomment if you want migrations to run on every deploy
         # - npx prisma migrate deploy
     build:
       commands:
-        # Set AMPLIFY_HOSTING to ensure Next.js outputs to .next (not standalone)
-        # AWS Amplify Hosting manages the Next.js server automatically
-        - echo "Starting build phase..."
+        - echo ">>> Build: compile Next.js app for Amplify Hosting"
         - export AMPLIFY_HOSTING=true
         - npm run build
-        # Verify build output exists
-        - echo "Verifying build output..."
-        - ls -la .next || (echo "ERROR: .next directory not found after build" && exit 1)
-        - echo "Build completed successfully. .next directory exists."
-        - echo "Current directory contents:"
-        - ls -la
+        - test -d .next || (echo "ERROR: .next directory missing" && exit 1)
   artifacts:
-    # For AWS Amplify Hosting with Next.js, use project root as baseDirectory
-    # Amplify will automatically detect and use the .next directory
-    # The entire project structure is needed for Next.js to run properly
-    baseDirectory: .
+    baseDirectory: .next
     files:
       - '**/*'
   cache:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
-      - .prisma/**/*
+      - .npm/**/*
 
