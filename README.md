@@ -60,10 +60,10 @@ npm install
 ### 2. Environment Setup
 
 ```bash
-cp .env.example .env
+cp env.example .env.local
 ```
 
-Update the environment variables in `.env`:
+Update the environment variables in `.env.local`:
 
 ```bash
 # Required Configuration
@@ -82,6 +82,16 @@ CRON_SECRET="your-cron-secret-key"
 ```
 
 ### 3. Database Setup
+
+If you're using the Prisma Data Platform database that was shared (`postgres://bbe2e42e19dff62fe30b7dc49ade4c9d4aed1a0e40f0d9e7aeae0c6926939076:sk_PM1PUWqfLR-n8PQbULdgr@db.prisma.io:5432/postgres?sslmode=require`), paste that value into `DATABASE_URL` in `.env.local` before running any Prisma commands:
+
+```bash
+cp env.example .env.local   # if you haven't created one yet
+# edit .env.local and set DATABASE_URL to the hosted connection string
+npx prisma migrate deploy   # or prisma db seed / npm run dev
+```
+
+For local Docker-based Postgres, use the instructions below.
 
 ```bash
 # Start PostgreSQL (if using Docker)
