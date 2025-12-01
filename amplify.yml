@@ -1,28 +1,20 @@
 version: 1
+
 frontend:
   phases:
     preBuild:
       commands:
-        - 'echo "Node version:"'
-        - 'node --version'
-        - 'echo "NPM version:"'
-        - 'npm --version'
-        - 'echo "Installing dependencies..."'
-        - 'npm ci'
-        - 'echo "Generating Prisma client..."'
-        - 'npx prisma generate'
-        - 'echo "Validating environment variables..."'
-        - 'node scripts/validate-env.js || echo "Warning: Some environment variables may be missing. Amplify will inject them at runtime."'
+        # AWS Amplify defaults to Node 22, which breaks Webpack + Next.js SSR
+        # This file forces Node 18, which is fully supported
+        - nvm install 18
+        - nvm use 18
+        - corepack enable
+        - npm ci
     build:
       commands:
-        - 'echo "Building Next.js application..."'
-        - 'npm run build'
-        - 'echo "Build completed successfully"'
-    postBuild:
-      commands:
-        - 'echo "Post-build phase completed"'
-        - 'echo "Artifacts directory: .next"'
-        - 'ls -la .next 2>/dev/null || echo "Build artifacts directory not found"'
+        # Must not use custom build outputs
+        # Amplify handles SSR automatically as long as .next is the output directory
+        - npm run build
   artifacts:
     baseDirectory: .next
     files:
@@ -31,4 +23,3 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
-      - .prisma/**/*

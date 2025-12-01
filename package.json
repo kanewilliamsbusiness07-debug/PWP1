@@ -5,11 +5,8 @@
   "description": "Professional financial planning application for Australian advisors",
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/validate-env.js",
-    "prebuild:ci": "node scripts/validate-yaml.js",
-    "build:prepare": "npx prisma generate",
     "build": "next build",
-    "start": "next start -p $PORT",
+    "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -153,8 +150,7 @@
     }
   },
   "engines": {
-    "node": ">=20.0.0",
-    "npm": ">=9.0.0"
+    "node": "18.x"
   },
   "repository": {
     "type": "git",
