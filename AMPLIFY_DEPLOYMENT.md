@@ -35,42 +35,31 @@ Use any PostgreSQL database provider (e.g., Supabase, Neon, Railway).
 
 ## Step 3: Configure Build Settings
 
-Amplify should automatically detect the `amplify.yml` file. Configure the app root based on your repository structure:
+Amplify should automatically detect the root-level `amplify.yml`. Set **App root** to `/` and keep **Backend environment** empty (no Amplify CLI backend in this repo). Valid branch/environment names are short slugs such as `dev`, `staging`, or `prod`.
 
-### Option A: App Root = `project` (Recommended)
-
-If your Next.js app is in the `project` directory:
-1. Set **App root** to `project` in Amplify Console
-2. Use the `amplify.yml` file in the `project` directory (already configured)
-3. Leave **Backend environment** empty (this repo does not contain an Amplify backend)
-
-### Option B: App Root = Root Directory
-
-If you want to set the app root to the repository root:
-1. Set **App root** to `/` (root) in Amplify Console
-2. Copy `amplify.yml.root` from the `project` directory to the root and rename it to `amplify.yml`
-
-**Build settings (if configuring manually):**
+**Build settings (already committed):**
 ```yaml
 version: 1
 frontend:
   phases:
     preBuild:
       commands:
+        - mkdir -p ~/.npm
+        - npm config set cache ~/.npm --global
         - npm ci
         - npx prisma generate
     build:
       commands:
         - npm run build
   artifacts:
-    baseDirectory: .
+    baseDirectory: .next
     files:
       - '**/*'
   cache:
     paths:
       - node_modules/**/*
+      - ~/.npm/**/*
       - .next/cache/**/*
-      - .prisma/**/*
 ```
 
 ## Step 4: Configure Environment Variables
@@ -98,19 +87,13 @@ openssl rand -base64 32
 AMPLIFY_HOSTING=true  # Set to true if using Amplify Hosting (managed Next.js)
 ```
 
-### Using AWS Systems Manager Parameter Store
+### Using AWS Systems Manager Parameter Store (Optional)
 
-Amplify Hosting automatically attempts to load secrets from SSM. If you prefer SSM over plain environment variables:
+Amplify Hosting automatically injects the environment variables you define in the console UI. Only configure SSM if you explicitly want to source secrets from Parameter Store:
 
-1. For each variable (e.g. `DATABASE_URL`), create a parameter at:
-
-```
-/amplify/<AMPLIFY_APP_ID>/<BRANCH_NAME>/DATABASE_URL
-```
-
-2. The parameter **name must match** the exact environment variable key.
-3. The Amplify service role needs `ssm:GetParametersByPath` permission.
-4. If you do **not** use SSM, Amplify still builds successfully—just make sure every variable is defined in the Amplify Console so the fetch attempt does not block the build.
+1. Create parameters at `/amplify/<AMPLIFY_APP_ID>/<BRANCH_NAME>/YOUR_KEY`.
+2. Ensure the Amplify service role has `ssm:GetParametersByPath`.
+3. Leave `AMPLIFY_SSM_PATH` empty unless SSM paths really exist—otherwise Amplify will log 404s while trying to write the environment cache.
 
 ## Step 5: Database Migrations
 
