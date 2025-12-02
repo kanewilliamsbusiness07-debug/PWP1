@@ -117,9 +117,10 @@ Visit http://localhost:3000
 
 ### Default Accounts
 
-After seeding:
-- **Master Admin**: allan@pwp2026.com.au / 123456
-  - Update this account immediately in production by creating a new admin user and disabling the seed credential.
+After seeding, a default admin account is created. **IMPORTANT**: Change the default seed account credentials immediately in production by:
+1. Creating a new admin user with secure credentials
+2. Disabling or deleting the seed account
+3. Never committing seed account credentials to the repository
 
 ### New Features
 
