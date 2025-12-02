@@ -84,13 +84,16 @@ SMTP_PORT="587"
 
 ### 3. Database Setup
 
-If you're using the Prisma Data Platform database that was shared (`postgres://bbe2e42e19dff62fe30b7dc49ade4c9d4aed1a0e40f0d9e7aeae0c6926939076:sk_PM1PUWqfLR-n8PQbULdgr@db.prisma.io:5432/postgres?sslmode=require`), paste that value into `DATABASE_URL` in `.env.local` before running any Prisma commands:
+Set up your PostgreSQL database connection string in `.env.local` before running any Prisma commands:
 
 ```bash
 cp env.example .env.local   # if you haven't created one yet
-# edit .env.local and set DATABASE_URL to the hosted connection string
+# edit .env.local and set DATABASE_URL to your database connection string
+# Example: DATABASE_URL="postgresql://username:password@host:5432/database?sslmode=require"
 npx prisma migrate deploy   # or prisma db seed / npm run dev
 ```
+
+**Note:** Never commit actual database credentials to the repository. Use environment variables or secure secret management.
 
 For local Docker-based Postgres, use the instructions below.
 
