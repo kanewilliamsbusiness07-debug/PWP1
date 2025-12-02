@@ -512,7 +512,7 @@ export default function TaxOptimizationPage() {
 
                         <FormField
                           control={taxForm.control}
-                          name="otherIncome"
+                          name="capitalGains"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Capital Gains</FormLabel>
@@ -656,7 +656,7 @@ export default function TaxOptimizationPage() {
                     <TabsContent value="other" className="space-y-4">
                       <FormField
                         control={taxForm.control}
-                          name="helpDebt"
+                          name="hecsBalance"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>HECS/HELP Balance</FormLabel>
