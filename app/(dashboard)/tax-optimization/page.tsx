@@ -109,6 +109,7 @@ export default function TaxOptimizationPage() {
       employmentIncome: financialStore.employmentIncome,
       investmentIncome: financialStore.investmentIncome,
       rentalIncome: financialStore.rentalIncome,
+      otherIncome: financialStore.otherIncome || 0,
       workRelatedExpenses: financialStore.workRelatedExpenses,
       investmentExpenses: financialStore.investmentExpenses,
       rentalExpenses: financialStore.rentalExpenses
@@ -122,7 +123,7 @@ export default function TaxOptimizationPage() {
       employmentIncome: financialStore.employmentIncome || 0,
       investmentIncome: financialStore.investmentIncome || 0,
       rentalIncome: financialStore.rentalIncome || 0,
-      otherIncome: 0,
+      otherIncome: financialStore.otherIncome || 0,
       frankedDividends: 0,
       capitalGains: 0,
       workRelatedExpenses: financialStore.workRelatedExpenses || 0,
@@ -213,7 +214,7 @@ export default function TaxOptimizationPage() {
     const frankedCredits = data.frankedDividends * 0.3; // 30% franking credit
     
     let taxableIncome = data.grossIncome - totalDeductions - negativeGearing + 
-                       data.frankedDividends + frankedCredits + data.capitalGains;
+                       data.frankedDividends + frankedCredits + data.capitalGains + data.otherIncome;
     taxableIncome = Math.max(0, taxableIncome);
     
     const incomeTax = Math.max(0, calculateIncomeTax(taxableIncome) - frankedCredits);
@@ -516,6 +517,25 @@ export default function TaxOptimizationPage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Capital Gains</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="text"
+                                  placeholder="0"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={taxForm.control}
+                          name="otherIncome"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Other Income</FormLabel>
                               <FormControl>
                                 <Input
                                   type="text"
