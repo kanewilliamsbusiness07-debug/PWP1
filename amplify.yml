@@ -9,23 +9,23 @@ frontend:
         - nvm use 20
         - corepack enable
         # Debug: Show current directory and verify package.json exists
-        - echo "Current directory: $(pwd)"
+        - 'echo "Current directory: $(pwd)"'
         - echo "Checking for package.json..."
-        - ls -la package.json || echo "ERROR: package.json not found!"
+        - 'ls -la package.json || echo "ERROR: package.json not found!"'
         # Verify autoprefixer and postcss are in package.json
         - echo "Checking package.json for required dependencies..."
-        - grep -q "autoprefixer" package.json && echo "✓ autoprefixer found in package.json" || echo "✗ autoprefixer NOT found in package.json"
-        - grep -q '"postcss"' package.json && echo "✓ postcss found in package.json" || echo "✗ postcss NOT found in package.json"
-        - grep -q "tailwindcss" package.json && echo "✓ tailwindcss found in package.json" || echo "✗ tailwindcss NOT found in package.json"
+        - 'grep -q "autoprefixer" package.json && echo "✓ autoprefixer found in package.json" || echo "✗ autoprefixer NOT found in package.json"'
+        - 'grep -q "postcss" package.json && echo "✓ postcss found in package.json" || echo "✗ postcss NOT found in package.json"'
+        - 'grep -q "tailwindcss" package.json && echo "✓ tailwindcss found in package.json" || echo "✗ tailwindcss NOT found in package.json"'
         # Clean install with verbose output
         - echo "Running npm ci..."
         - npm ci --verbose
         # Verify packages are actually installed
         - echo "Verifying installed packages..."
-        - npm list autoprefixer postcss tailwindcss || echo "WARNING: Some packages may not be installed"
+        - 'npm list autoprefixer postcss tailwindcss || echo "WARNING: Some packages may not be installed"'
         # Verify postcss.config.js exists
         - echo "Checking for postcss.config.js..."
-        - ls -la postcss.config.js && echo "✓ postcss.config.js found" || echo "✗ postcss.config.js NOT found"
+        - 'ls -la postcss.config.js && echo "✓ postcss.config.js found" || echo "✗ postcss.config.js NOT found"'
     build:
       commands:
         # Amplify handles SSR automatically as long as .next is the output directory
