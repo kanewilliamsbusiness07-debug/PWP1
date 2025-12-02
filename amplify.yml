@@ -12,6 +12,10 @@ frontend:
         - npm ci
         # Generate Prisma Client (required before build)
         - npx prisma generate
+        # Run database migrations (safe to run on every build - only applies pending migrations)
+        - npx prisma migrate deploy || echo "Warning: Database migrations failed or database not accessible"
+        # Seed database (safe to run - uses upsert, won't overwrite existing data)
+        - npx prisma db seed || echo "Warning: Database seeding failed (this is non-fatal)"
     build:
       commands:
         # Amplify handles SSR automatically as long as .next is the output directory
