@@ -93,7 +93,18 @@ export default function InvestmentPropertiesPage() {
     }
   });
 
-    const financialStore = useFinancialStore();
+  // Subscribe to specific store values to ensure re-renders
+  const grossIncome = useFinancialStore((state) => state.grossIncome);
+  const totalDebt = useFinancialStore((state) => state.totalDebt);
+  const cashSavings = useFinancialStore((state) => state.cashSavings);
+  const rentalIncome = useFinancialStore((state) => state.rentalIncome);
+  const financialStore = useFinancialStore();
+    
+    // Subscribe to specific store values to ensure re-renders
+    const grossIncome = useFinancialStore((state) => state.grossIncome);
+    const totalDebt = useFinancialStore((state) => state.totalDebt);
+    const cashSavings = useFinancialStore((state) => state.cashSavings);
+    const rentalIncome = useFinancialStore((state) => state.rentalIncome);
   
   const calculateLoanPayment = (principal: number, rate: number, years: number): number => {
     if (rate === 0) return principal / (years * 12);
@@ -105,36 +116,42 @@ export default function InvestmentPropertiesPage() {
   const serviceabilityForm = useForm<ServiceabilityData>({
     resolver: zodResolver(serviceabilitySchema),
     defaultValues: {
-      grossIncome: financialStore.grossIncome || 0,
+      grossIncome: grossIncome || 0,
       monthlyExpenses: 0,
-      existingDebtPayments: financialStore.totalDebt ? calculateLoanPayment(financialStore.totalDebt, 0.065, 30) : 0,
+      existingDebtPayments: totalDebt ? calculateLoanPayment(totalDebt, 0.065, 30) : 0,
       targetPropertyPrice: 0,
-      deposit: financialStore.cashSavings || 0,
+      deposit: cashSavings || 0,
       annualPropertyExpenses: 0,
       depreciationAmount: 0,
       marginalTaxRate: 32.5,
       interestRate: 6.5,
       loanTerm: 30,
-      expectedRent: financialStore.rentalIncome ? (financialStore.rentalIncome / 52) : 0
+      expectedRent: rentalIncome ? (rentalIncome / 52) : 0
     }
   });
 
-  // Watch store and update form when store changes
+  // Watch store and update form when store changes (use setValue to avoid disrupting user input)
   useEffect(() => {
-    serviceabilityForm.reset({
-      grossIncome: financialStore.grossIncome || 0,
-      monthlyExpenses: serviceabilityForm.getValues('monthlyExpenses'),
-      existingDebtPayments: financialStore.totalDebt ? calculateLoanPayment(financialStore.totalDebt, 0.065, 30) : 0,
-      targetPropertyPrice: serviceabilityForm.getValues('targetPropertyPrice'),
-      deposit: financialStore.cashSavings || 0,
-      annualPropertyExpenses: serviceabilityForm.getValues('annualPropertyExpenses'),
-      depreciationAmount: serviceabilityForm.getValues('depreciationAmount'),
-      marginalTaxRate: serviceabilityForm.getValues('marginalTaxRate'),
-      interestRate: serviceabilityForm.getValues('interestRate'),
-      loanTerm: serviceabilityForm.getValues('loanTerm'),
-      expectedRent: financialStore.rentalIncome ? (financialStore.rentalIncome / 52) : serviceabilityForm.getValues('expectedRent')
-    });
-  }, [financialStore.grossIncome, financialStore.totalDebt, financialStore.cashSavings, financialStore.rentalIncome, serviceabilityForm]);
+    const currentValues = serviceabilityForm.getValues();
+    const storeGrossIncome = grossIncome || 0;
+    const storeDeposit = cashSavings || 0;
+    const storeExistingDebtPayments = totalDebt ? calculateLoanPayment(totalDebt, 0.065, 30) : 0;
+    const storeExpectedRent = rentalIncome ? (rentalIncome / 52) : currentValues.expectedRent;
+    
+    // Only update if values differ
+    if (currentValues.grossIncome !== storeGrossIncome) {
+      serviceabilityForm.setValue('grossIncome', storeGrossIncome, { shouldDirty: false });
+    }
+    if (currentValues.deposit !== storeDeposit) {
+      serviceabilityForm.setValue('deposit', storeDeposit, { shouldDirty: false });
+    }
+    if (Math.abs((currentValues.existingDebtPayments || 0) - storeExistingDebtPayments) > 0.01) {
+      serviceabilityForm.setValue('existingDebtPayments', storeExistingDebtPayments, { shouldDirty: false });
+    }
+    if (Math.abs((currentValues.expectedRent || 0) - storeExpectedRent) > 0.01) {
+      serviceabilityForm.setValue('expectedRent', storeExpectedRent, { shouldDirty: false });
+    }
+  }, [grossIncome, totalDebt, cashSavings, rentalIncome, serviceabilityForm]);
 
   const analyzeProperty = (property: Property): PropertyAnalysis => {
     const monthlyLoanPayment = calculateLoanPayment(property.loanAmount, property.interestRate, property.loanTerm);

@@ -51,7 +51,24 @@ export default function FinancialPositionPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
+  // Subscribe to specific store values to ensure re-renders
   const store = useFinancialStore();
+  const grossIncome = useFinancialStore((state) => state.grossIncome);
+  const rentalIncome = useFinancialStore((state) => state.rentalIncome);
+  const investmentIncome = useFinancialStore((state) => state.investmentIncome);
+  const frankedDividends = useFinancialStore((state) => state.frankedDividends);
+  const otherIncome = useFinancialStore((state) => state.otherIncome);
+  const capitalGains = useFinancialStore((state) => state.capitalGains);
+  const cashSavings = useFinancialStore((state) => state.cashSavings);
+  const investments = useFinancialStore((state) => state.investments);
+  const superBalance = useFinancialStore((state) => state.superBalance);
+  const totalDebt = useFinancialStore((state) => state.totalDebt);
+  const activeClient = useFinancialStore((state) => state.activeClient);
+  const clientA = useFinancialStore((state) => state.clientA);
+  const clientB = useFinancialStore((state) => state.clientB);
+  
+  // Get current client data
+  const currentClient = activeClient ? (activeClient === 'A' ? clientA : clientB) : null;
   
   type AssetsFormValues = {
     [key: string]: {
@@ -98,95 +115,130 @@ export default function FinancialPositionPage() {
   const incomeForm = useForm<Income>({
     resolver: zodResolver(incomeSchema),
     defaultValues: {
-      grossSalary: store?.grossIncome ?? 0,
-      rentalIncome: store?.rentalIncome ?? 0,
+      grossSalary: grossIncome ?? 0,
+      rentalIncome: rentalIncome ?? 0,
       dividends: 0,
-      otherIncome: store?.otherIncome ?? 0,
-      frankedDividends: store?.frankedDividends ?? 0,
-      capitalGains: store?.capitalGains ?? 0
+      otherIncome: otherIncome ?? 0,
+      frankedDividends: frankedDividends ?? 0,
+      capitalGains: capitalGains ?? 0
     }
   });
 
-  // Watch store and update income form when store changes
+  // Watch store and update income form when store changes (use setValue to avoid disrupting user input)
   useEffect(() => {
-    if (!store) return;
+    // Only update if the form values differ from store to avoid infinite loops
+    const currentValues = incomeForm.getValues();
+    const storeGrossSalary = grossIncome ?? 0;
+    const storeRentalIncome = rentalIncome ?? 0;
+    const storeDividends = (investmentIncome ?? 0) - (frankedDividends ?? 0);
+    const storeOtherIncome = otherIncome ?? 0;
+    const storeFrankedDividends = frankedDividends ?? 0;
+    const storeCapitalGains = capitalGains ?? 0;
     
-    incomeForm.reset({
-      grossSalary: store.grossIncome ?? 0,
-      rentalIncome: store.rentalIncome ?? 0,
-      dividends: (store.investmentIncome ?? 0) - (store.frankedDividends ?? 0),
-      otherIncome: store.otherIncome ?? 0,
-      frankedDividends: store.frankedDividends ?? 0,
-      capitalGains: store.capitalGains ?? 0
-    });
-  }, [store?.grossIncome, store?.rentalIncome, store?.investmentIncome, store?.frankedDividends, store?.otherIncome, store?.capitalGains, incomeForm]);
-
-  useEffect(() => {
-    if (!store) {
-      setIsLoading(false);
-      return;
+    if (currentValues.grossSalary !== storeGrossSalary) {
+      incomeForm.setValue('grossSalary', storeGrossSalary, { shouldDirty: false });
     }
+    if (currentValues.rentalIncome !== storeRentalIncome) {
+      incomeForm.setValue('rentalIncome', storeRentalIncome, { shouldDirty: false });
+    }
+    if (Math.abs(currentValues.dividends - storeDividends) > 0.01) {
+      incomeForm.setValue('dividends', storeDividends, { shouldDirty: false });
+    }
+    if (currentValues.otherIncome !== storeOtherIncome) {
+      incomeForm.setValue('otherIncome', storeOtherIncome, { shouldDirty: false });
+    }
+    if (Math.abs(currentValues.frankedDividends - storeFrankedDividends) > 0.01) {
+      incomeForm.setValue('frankedDividends', storeFrankedDividends, { shouldDirty: false });
+    }
+    if (Math.abs(currentValues.capitalGains - storeCapitalGains) > 0.01) {
+      incomeForm.setValue('capitalGains', storeCapitalGains, { shouldDirty: false });
+    }
+  }, [grossIncome, rentalIncome, investmentIncome, frankedDividends, otherIncome, capitalGains, incomeForm]);
 
+  // Watch store and update assets/liabilities when they change
+  useEffect(() => {
     try {
-      const storedAssets: Asset[] = [
+      // Use client data assets/liabilities if available, otherwise use store values
+      const clientAssets = currentClient?.assets || [];
+      const clientLiabilities = currentClient?.liabilities || [];
+      
+      const storedAssets: Asset[] = clientAssets.length > 0 ? clientAssets.map((asset: any) => ({
+        id: asset.id,
+        name: asset.name,
+        currentValue: asset.currentValue,
+        type: asset.type
+      })) : [
         {
           id: 'cash',
           name: 'Cash Savings',
-          currentValue: store.cashSavings ?? 0,
+          currentValue: cashSavings ?? 0,
           type: 'savings'
         },
         {
           id: 'investments',
           name: 'Investments',
-          currentValue: store.investments ?? 0,
+          currentValue: investments ?? 0,
           type: 'shares'
         },
         {
           id: 'super',
           name: 'Superannuation',
-          currentValue: store.superBalance ?? 0,
+          currentValue: superBalance ?? 0,
           type: 'super'
         }
       ];
       
-      const storedLiabilities: Liability[] = [
+      const storedLiabilities: Liability[] = clientLiabilities.length > 0 ? clientLiabilities.map((liab: any) => ({
+        id: liab.id,
+        name: liab.name,
+        balance: liab.balance,
+        monthlyPayment: liab.monthlyPayment,
+        interestRate: liab.interestRate,
+        type: liab.type
+      })) : [
         {
           id: 'total-debt',
           name: 'Total Debt',
-          balance: store.totalDebt ?? 0,
+          balance: totalDebt ?? 0,
           monthlyPayment: 0,
           interestRate: store.interestRate ?? 0,
           type: 'other'
         }
       ];
       
-      setAssets(storedAssets);
-      setLiabilities(storedLiabilities);
+      // Only update if values actually changed
+      const assetsChanged = JSON.stringify(assets) !== JSON.stringify(storedAssets);
+      const liabilitiesChanged = JSON.stringify(liabilities) !== JSON.stringify(storedLiabilities);
       
-      // Reset form values
-      assetsForm.reset(
-        storedAssets.reduce((acc, asset) => ({
-          ...acc,
-          [asset.id]: {
-            name: asset.name,
-            currentValue: asset.currentValue,
-            type: asset.type
-          }
-        }), {})
-      );
+      if (assetsChanged) {
+        setAssets(storedAssets);
+        assetsForm.reset(
+          storedAssets.reduce((acc, asset) => ({
+            ...acc,
+            [asset.id]: {
+              name: asset.name,
+              currentValue: asset.currentValue,
+              type: asset.type
+            }
+          }), {})
+        );
+      }
       
-      liabilitiesForm.reset(
-        storedLiabilities.reduce((acc, liability) => ({
-          ...acc,
-          [liability.id]: {
-            name: liability.name,
-            balance: liability.balance,
-            monthlyPayment: liability.monthlyPayment,
-            interestRate: liability.interestRate,
-            type: liability.type
-          }
-        }), {})
-      );
+      if (liabilitiesChanged) {
+        setLiabilities(storedLiabilities);
+        liabilitiesForm.reset(
+          storedLiabilities.reduce((acc, liability) => ({
+            ...acc,
+            [liability.id]: {
+              name: liability.name,
+              balance: liability.balance,
+              monthlyPayment: liability.monthlyPayment,
+              interestRate: liability.interestRate,
+              type: liability.type
+            }
+          }), {})
+        );
+      }
     } catch (error) {
       console.error('Error initializing financial position:', error);
       toast({
@@ -197,7 +249,7 @@ export default function FinancialPositionPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [store, toast, assetsForm, liabilitiesForm]);
+  }, [cashSavings, investments, superBalance, totalDebt, currentClient?.assets, currentClient?.liabilities, store.interestRate, toast, assetsForm, liabilitiesForm, assets, liabilities]);
 
   const debouncedUpdateStore = useDebounce((field: string, value: number) => {
     if (store?.updateField) {

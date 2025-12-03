@@ -153,21 +153,44 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     }
   });
 
-  // Watch form values and auto-save to store (debounced)
+  // Watch form values and auto-save to store in real-time (immediate for financial fields)
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
+    const previousValues = React.useRef<Partial<ClientFormData>>({});
     
     const subscription = form.watch((value) => {
       // Clear previous timeout
       clearTimeout(timeoutId);
       
-      // Debounce the save to avoid too many updates
+      // Critical financial fields that need immediate sync across pages
+      const criticalFields = [
+        'grossSalary', 'rentalIncome', 'employmentIncome', 
+        'currentSavings', 'currentShares', 'currentSuper',
+        'dividends', 'frankedDividends', 'capitalGains', 'otherIncome',
+        'workRelatedExpenses', 'investmentExpenses', 'rentalExpenses',
+        'monthlyRentalIncome', 'monthlyDebtPayments'
+      ];
+      
+      // Check if any critical field changed by comparing with previous values
+      const hasCriticalChange = criticalFields.some(key => {
+        const currentValue = value[key as keyof typeof value];
+        const previousValue = previousValues.current[key as keyof typeof previousValues.current];
+        const changed = currentValue !== previousValue;
+        if (changed) {
+          previousValues.current[key as keyof typeof previousValues.current] = currentValue;
+        }
+        return changed;
+      });
+      
+      // Update immediately for critical fields, 100ms debounce for others
+      const debounceTime = hasCriticalChange ? 0 : 100;
+      
       timeoutId = setTimeout(() => {
         financialStore.setClientData(clientSlot, {
           ...value,
           dateOfBirth: value.dob,
         } as any);
-      }, 300);
+      }, debounceTime);
     });
     
     return () => {

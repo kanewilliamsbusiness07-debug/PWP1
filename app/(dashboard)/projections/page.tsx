@@ -60,9 +60,18 @@ export default function ProjectionsPage() {
   const [results, setResults] = useState<ProjectionResults | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const { toast } = useToast();
-  const financialStore = useFinancialStore();
-  const activeClient = financialStore.activeClient;
-  const clientData = activeClient ? (activeClient === 'A' ? financialStore.clientA : financialStore.clientB) : null;
+  
+  // Subscribe to specific store values to ensure re-renders
+  const activeClient = useFinancialStore((state) => state.activeClient);
+  const clientA = useFinancialStore((state) => state.clientA);
+  const clientB = useFinancialStore((state) => state.clientB);
+  const grossIncome = useFinancialStore((state) => state.grossIncome);
+  const superBalance = useFinancialStore((state) => state.superBalance);
+  const cashSavings = useFinancialStore((state) => state.cashSavings);
+  const investments = useFinancialStore((state) => state.investments);
+  const rentalIncome = useFinancialStore((state) => state.rentalIncome);
+  
+  const clientData = activeClient ? (activeClient === 'A' ? clientA : clientB) : null;
 
   const projectionForm = useForm<ProjectionData>({
     resolver: zodResolver(projectionSchema),
@@ -79,27 +88,51 @@ export default function ProjectionsPage() {
     }
   });
 
-  // Watch store and client data, update form when they change
+  // Watch store and client data, update form when they change (use setValue to avoid disrupting user input)
   useEffect(() => {
     if (!activeClient) return;
     
-    projectionForm.reset({
-      currentAge: clientData?.currentAge ?? 0,
-      retirementAge: clientData?.retirementAge ?? 0,
-      currentSalary: financialStore.grossIncome ?? 0,
-      currentSuper: financialStore.superBalance ?? 0,
-      currentSavings: financialStore.cashSavings ?? 0,
-      currentShares: financialStore.investments ?? 0,
-      propertyEquity: clientData?.propertyEquity ?? 0,
-      monthlyDebtPayments: clientData?.monthlyDebtPayments ?? 0,
-      monthlyRentalIncome: clientData?.monthlyRentalIncome ?? (financialStore.rentalIncome ? financialStore.rentalIncome / 12 : 0)
-    });
+    const currentValues = projectionForm.getValues();
+    const storeCurrentSalary = grossIncome ?? 0;
+    const storeCurrentSuper = superBalance ?? 0;
+    const storeCurrentSavings = cashSavings ?? 0;
+    const storeCurrentShares = investments ?? 0;
+    const storeMonthlyRentalIncome = clientData?.monthlyRentalIncome ?? (rentalIncome ? rentalIncome / 12 : 0);
+    
+    // Only update if values differ
+    if (currentValues.currentSalary !== storeCurrentSalary) {
+      projectionForm.setValue('currentSalary', storeCurrentSalary, { shouldDirty: false });
+    }
+    if (currentValues.currentSuper !== storeCurrentSuper) {
+      projectionForm.setValue('currentSuper', storeCurrentSuper, { shouldDirty: false });
+    }
+    if (currentValues.currentSavings !== storeCurrentSavings) {
+      projectionForm.setValue('currentSavings', storeCurrentSavings, { shouldDirty: false });
+    }
+    if (currentValues.currentShares !== storeCurrentShares) {
+      projectionForm.setValue('currentShares', storeCurrentShares, { shouldDirty: false });
+    }
+    if (Math.abs((currentValues.monthlyRentalIncome || 0) - storeMonthlyRentalIncome) > 0.01) {
+      projectionForm.setValue('monthlyRentalIncome', storeMonthlyRentalIncome, { shouldDirty: false });
+    }
+    if (currentValues.currentAge !== (clientData?.currentAge ?? 0)) {
+      projectionForm.setValue('currentAge', clientData?.currentAge ?? 0, { shouldDirty: false });
+    }
+    if (currentValues.retirementAge !== (clientData?.retirementAge ?? 0)) {
+      projectionForm.setValue('retirementAge', clientData?.retirementAge ?? 0, { shouldDirty: false });
+    }
+    if (currentValues.propertyEquity !== (clientData?.propertyEquity ?? 0)) {
+      projectionForm.setValue('propertyEquity', clientData?.propertyEquity ?? 0, { shouldDirty: false });
+    }
+    if (currentValues.monthlyDebtPayments !== (clientData?.monthlyDebtPayments ?? 0)) {
+      projectionForm.setValue('monthlyDebtPayments', clientData?.monthlyDebtPayments ?? 0, { shouldDirty: false });
+    }
   }, [
-    financialStore.grossIncome,
-    financialStore.superBalance,
-    financialStore.cashSavings,
-    financialStore.investments,
-    financialStore.rentalIncome,
+    grossIncome,
+    superBalance,
+    cashSavings,
+    investments,
+    rentalIncome,
     clientData?.currentAge,
     clientData?.retirementAge,
     clientData?.propertyEquity,
@@ -122,19 +155,34 @@ export default function ProjectionsPage() {
     }
   });
 
-  // Watch client data and update assumptions form when it changes
+  // Watch client data and update assumptions form when it changes (use setValue to avoid disrupting user input)
   useEffect(() => {
     if (!activeClient) return;
     
-    assumptionsForm.reset({
-      inflationRate: clientData?.inflationRate ?? 0,
-      salaryGrowthRate: clientData?.salaryGrowthRate ?? 0,
-      superReturn: clientData?.superReturn ?? 0,
-      shareReturn: clientData?.shareReturn ?? 0,
-      propertyGrowthRate: clientData?.propertyGrowthRate ?? 0,
-      withdrawalRate: clientData?.withdrawalRate ?? 0,
-      rentGrowthRate: clientData?.rentGrowthRate ?? 0
-    });
+    const currentValues = assumptionsForm.getValues();
+    
+    // Only update if values differ
+    if (Math.abs((currentValues.inflationRate || 0) - (clientData?.inflationRate ?? 0)) > 0.01) {
+      assumptionsForm.setValue('inflationRate', clientData?.inflationRate ?? 0, { shouldDirty: false });
+    }
+    if (Math.abs((currentValues.salaryGrowthRate || 0) - (clientData?.salaryGrowthRate ?? 0)) > 0.01) {
+      assumptionsForm.setValue('salaryGrowthRate', clientData?.salaryGrowthRate ?? 0, { shouldDirty: false });
+    }
+    if (Math.abs((currentValues.superReturn || 0) - (clientData?.superReturn ?? 0)) > 0.01) {
+      assumptionsForm.setValue('superReturn', clientData?.superReturn ?? 0, { shouldDirty: false });
+    }
+    if (Math.abs((currentValues.shareReturn || 0) - (clientData?.shareReturn ?? 0)) > 0.01) {
+      assumptionsForm.setValue('shareReturn', clientData?.shareReturn ?? 0, { shouldDirty: false });
+    }
+    if (Math.abs((currentValues.propertyGrowthRate || 0) - (clientData?.propertyGrowthRate ?? 0)) > 0.01) {
+      assumptionsForm.setValue('propertyGrowthRate', clientData?.propertyGrowthRate ?? 0, { shouldDirty: false });
+    }
+    if (Math.abs((currentValues.withdrawalRate || 0) - (clientData?.withdrawalRate ?? 0)) > 0.01) {
+      assumptionsForm.setValue('withdrawalRate', clientData?.withdrawalRate ?? 0, { shouldDirty: false });
+    }
+    if (Math.abs((currentValues.rentGrowthRate || 0) - (clientData?.rentGrowthRate ?? 0)) > 0.01) {
+      assumptionsForm.setValue('rentGrowthRate', clientData?.rentGrowthRate ?? 0, { shouldDirty: false });
+    }
   }, [
     clientData?.inflationRate,
     clientData?.salaryGrowthRate,
