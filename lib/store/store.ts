@@ -125,6 +125,8 @@ interface ClientData {
 
   // Financial Position - Income
   grossSalary?: number;
+  grossIncome?: number; // Legacy field - kept for backward compatibility
+  annualIncome?: number; // Canonical field name
   rentalIncome?: number;
   dividends?: number;
   frankedDividends?: number;
