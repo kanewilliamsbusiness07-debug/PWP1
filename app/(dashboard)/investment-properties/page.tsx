@@ -98,13 +98,6 @@ export default function InvestmentPropertiesPage() {
   const totalDebt = useFinancialStore((state) => state.totalDebt);
   const cashSavings = useFinancialStore((state) => state.cashSavings);
   const rentalIncome = useFinancialStore((state) => state.rentalIncome);
-  const financialStore = useFinancialStore();
-    
-    // Subscribe to specific store values to ensure re-renders
-    const grossIncome = useFinancialStore((state) => state.grossIncome);
-    const totalDebt = useFinancialStore((state) => state.totalDebt);
-    const cashSavings = useFinancialStore((state) => state.cashSavings);
-    const rentalIncome = useFinancialStore((state) => state.rentalIncome);
   
   const calculateLoanPayment = (principal: number, rate: number, years: number): number => {
     if (rate === 0) return principal / (years * 12);
