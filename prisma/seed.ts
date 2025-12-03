@@ -30,7 +30,7 @@ async function main() {
       create: {
         email: defaultEmail,
         passwordHash: hashedPassword,
-        name: 'Allan Chambers',
+        name: 'Allan Katup',
         role: 'ADVISOR',
         isMasterAdmin: true,
         isActive: true,

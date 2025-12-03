@@ -28,6 +28,7 @@ model User {
   recentClientAccess RecentClientAccess[]
   emailTemplates     EmailTemplate[]
   inboundEmails     InboundEmail[]
+  pdfExports         PdfExport[]
 }
 
 model Client {
@@ -151,6 +152,7 @@ model Client {
   appointments      Appointment[]
   recentAccess      RecentClientAccess[]
   inboundEmails     InboundEmail[]
+  pdfExports        PdfExport[]
 
   @@index([userId])
   @@index([email])
@@ -257,4 +259,22 @@ model FieldMapping {
   updatedAt         DateTime  @updatedAt
 
   @@index([canonicalField])
+}
+
+model PdfExport {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId          String
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fileName          String
+  filePath          String    // Path to stored PDF file
+  fileSize          Int?      // File size in bytes
+  mimeType          String    @default("application/pdf")
+  metadata          String?   // JSON string for additional metadata
+  createdAt         DateTime  @default(now())
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([createdAt])
 }

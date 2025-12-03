@@ -65,7 +65,7 @@ The database hasn't been seeded. You need to run the seed script:
      'clx1234567890',
      'allan@pwp2026.com.au',
      '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyY5Y5Y5Y5Y5Y', -- hash for '123456'
-     'Allan Chambers',
+     'Allan Katup',
      'ADVISOR',
      true,
      true,
