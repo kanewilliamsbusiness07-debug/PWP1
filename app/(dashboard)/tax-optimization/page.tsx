@@ -28,8 +28,8 @@ import { Progress } from '@/components/ui/progress';
 
 const taxFormSchema = z.object({
   // Income
-  grossIncome: z.number().min(0, { message: 'Gross income must be a positive number' }),
-  employmentIncome: z.number().min(0),
+  annualIncome: z.number().min(0, { message: 'Annual income must be a positive number' }),
+  employmentIncome: z.number().min(0), // Kept for backward compatibility
   investmentIncome: z.number().min(0),
   rentalIncome: z.number().min(0),
   otherIncome: z.number().min(0),
@@ -65,7 +65,7 @@ interface ChartDataItem {
 }
 
 interface TaxCalculationResult {
-  grossIncome: number;
+  annualIncome: number; // Canonical field name (was grossIncome)
   taxableIncome: number;
   incomeTax: number;
   medicareLevy: number;
@@ -114,7 +114,7 @@ export default function TaxOptimizationPage() {
   const taxForm = useForm<TaxFormData>({
     resolver: zodResolver(taxFormSchema),
     defaultValues: {
-      grossIncome: grossIncome || 0,
+      annualIncome: grossIncome || 0,
       employmentIncome: employmentIncome || 0,
       investmentIncome: investmentIncome || 0,
       rentalIncome: rentalIncome || 0,
@@ -148,8 +148,8 @@ export default function TaxOptimizationPage() {
     // Only update if values differ to avoid disrupting user input
     const updates: Partial<TaxFormData> = {};
     
-    if (currentValues.grossIncome !== grossIncome) {
-      updates.grossIncome = grossIncome;
+    if (currentValues.annualIncome !== grossIncome) {
+      updates.annualIncome = grossIncome;
     }
     if (currentValues.employmentIncome !== employmentIncome) {
       updates.employmentIncome = employmentIncome;
@@ -309,21 +309,24 @@ export default function TaxOptimizationPage() {
                            data.charityDonations + data.otherDeductions;    const negativeGearing = Math.max(0, data.rentalExpenses - data.rentalIncome);
     const frankedCredits = data.frankedDividends * 0.3; // 30% franking credit
     
-    let taxableIncome = data.grossIncome - totalDeductions - negativeGearing + 
+    // Use annualIncome (canonical) or fall back to grossIncome for backward compatibility
+    const income = data.annualIncome ?? (data as any).grossIncome ?? 0;
+    
+    let taxableIncome = income - totalDeductions - negativeGearing + 
                        data.frankedDividends + frankedCredits + data.capitalGains + data.otherIncome;
     taxableIncome = Math.max(0, taxableIncome);
     
     const incomeTax = Math.max(0, calculateIncomeTax(taxableIncome) - frankedCredits);
     const medicareLevy = calculateMedicareLevy(taxableIncome, data.privateHealthInsurance);
-    const hecsRepayment = calculateHecsRepayment(data.grossIncome, data.hecsBalance);
+    const hecsRepayment = calculateHecsRepayment(income, data.hecsBalance);
     
     const totalTax = incomeTax + medicareLevy + hecsRepayment;
-    const afterTaxIncome = data.grossIncome - totalTax;
+    const afterTaxIncome = income - totalTax;
     const marginalTaxRate = calculateMarginalTaxRate(taxableIncome);
-    const averageTaxRate = data.grossIncome > 0 ? (totalTax / data.grossIncome) * 100 : 0;
+    const averageTaxRate = income > 0 ? (totalTax / income) * 100 : 0;
     
     return {
-      grossIncome: data.grossIncome,
+      annualIncome: income,
       taxableIncome,
       incomeTax,
       medicareLevy,
@@ -356,10 +359,11 @@ export default function TaxOptimizationPage() {
     // Pre-tax super contributions
     const maxConcessionalCap = 27500;
     const currentSuperContributions = data.superContributions || 0;
-    if (currentSuperContributions < maxConcessionalCap && data.grossIncome > 50000) {
+    const income = data.annualIncome ?? (data as any).grossIncome ?? 0;
+    if (currentSuperContributions < maxConcessionalCap && income > 50000) {
       const potentialContribution = Math.min(
         maxConcessionalCap - currentSuperContributions,
-        data.grossIncome * 0.15
+        income * 0.15
       );
       const taxSaving = potentialContribution * ((currentResult.marginalTaxRate - 15) / 100);
       strategies.push({
@@ -388,7 +392,7 @@ export default function TaxOptimizationPage() {
     }
     
     // Potential property investment opportunity
-    if (currentRentalIncome === 0 && data.grossIncome > 80000) {
+    if (currentRentalIncome === 0 && income > 80000) {
       const propertyValue = 750000; // Example property value
       const rentalYield = 0.04; // 4% rental yield
       const interestRate = 0.065; // 6.5% interest rate
@@ -408,8 +412,8 @@ export default function TaxOptimizationPage() {
     }
     
     // Private health insurance
-    if (!data.healthInsurance && data.grossIncome > 90000) {
-      const mlsSaving = Math.min(data.grossIncome * 0.015, 1500); // Medicare Levy Surcharge saving
+    if (!data.healthInsurance && income > 90000) {
+      const mlsSaving = Math.min(income * 0.015, 1500); // Medicare Levy Surcharge saving
       const insuranceCost = 2000; // Example annual premium
       const rebate = insuranceCost * 0.25; // Assuming 25% rebate tier
       const netCost = insuranceCost - rebate - mlsSaving;
@@ -564,10 +568,10 @@ export default function TaxOptimizationPage() {
                     <TabsContent value="income" className="space-y-4">
                       <FormField
                         control={taxForm.control}
-                        name="grossIncome"
+                        name="annualIncome"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Gross Income</FormLabel>
+                            <FormLabel>Annual Income</FormLabel>
                             <FormControl>
                               <Input
                                 type="text"
@@ -844,7 +848,7 @@ export default function TaxOptimizationPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Gross Income:</span>
-                      <span className="font-semibold text-foreground">${currentTax.grossIncome.toLocaleString()}</span>
+                      <span className="font-semibold text-foreground">${currentTax.annualIncome.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Total Deductions:</span>

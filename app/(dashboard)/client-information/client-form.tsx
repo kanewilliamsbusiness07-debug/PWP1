@@ -102,14 +102,14 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       numberOfDependants: client?.numberOfDependants || 0,
       agesOfDependants: client?.agesOfDependants || '',
       email: client?.email || '',
-      mobile: client?.mobile || '',
+      phoneNumber: client?.mobile || client?.phoneNumber || '',
       addressLine1: client?.addressLine1 || '',
       addressLine2: client?.addressLine2 || '',
       suburb: client?.suburb || '',
       state: (client?.state as 'ACT' | 'NSW' | 'NT' | 'QLD' | 'SA' | 'TAS' | 'VIC' | 'WA' | undefined) || undefined,
       postcode: client?.postcode || '',
       ownOrRent: (client?.ownOrRent as 'OWN' | 'RENT' | undefined) || undefined,
-      grossSalary: client?.grossSalary || 0,
+      annualIncome: client?.grossSalary || client?.grossIncome || client?.annualIncome || 0,
       rentalIncome: client?.rentalIncome || 0,
       dividends: client?.dividends || 0,
       frankedDividends: client?.frankedDividends || 0,
@@ -166,7 +166,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       
       // Critical financial fields that need immediate sync across pages
       const criticalFields = [
-        'grossSalary', 'rentalIncome', 'employmentIncome', 
+        'annualIncome', 'rentalIncome', 'employmentIncome', 
         'currentSavings', 'currentShares', 'currentSuper',
         'dividends', 'frankedDividends', 'capitalGains', 'otherIncome',
         'workRelatedExpenses', 'investmentExpenses', 'rentalExpenses',
@@ -214,14 +214,14 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         numberOfDependants: client.numberOfDependants || 0,
         agesOfDependants: client.agesOfDependants || '',
         email: client.email || '',
-        mobile: client.mobile || '',
+        phoneNumber: client.mobile || client.phoneNumber || '',
         addressLine1: client.addressLine1 || '',
         addressLine2: client.addressLine2 || '',
         suburb: client.suburb || '',
         state: (client.state as 'ACT' | 'NSW' | 'NT' | 'QLD' | 'SA' | 'TAS' | 'VIC' | 'WA' | undefined) || undefined,
         postcode: client.postcode || '',
         ownOrRent: (client.ownOrRent as 'OWN' | 'RENT' | undefined) || undefined,
-        grossSalary: client.grossSalary || 0,
+        annualIncome: client.grossSalary || client.grossIncome || client.annualIncome || 0,
         rentalIncome: client.rentalIncome || 0,
         dividends: client.dividends || 0,
         frankedDividends: client.frankedDividends || 0,
@@ -608,10 +608,10 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
 
                     <FormField
                       control={form.control}
-                      name="mobile"
+                      name="phoneNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Mobile</FormLabel>
+                          <FormLabel>Phone Number</FormLabel>
                           <FormControl>
                             <Input type="tel" placeholder="0400 000 000" {...field} />
                           </FormControl>
@@ -736,10 +736,10 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
-                        name="grossSalary"
+                        name="annualIncome"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Gross Salary</FormLabel>
+                            <FormLabel>Annual Income</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"

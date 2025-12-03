@@ -32,7 +32,7 @@ const liabilitySchema = z.object({
 });
 
 const incomeSchema = z.object({
-  grossSalary: z.number().min(0, 'Salary must be positive'),
+  annualIncome: z.number().min(0, 'Annual income must be positive'),
   rentalIncome: z.number().min(0, 'Income must be positive'),
   dividends: z.number().min(0, 'Dividends must be positive'),
   otherIncome: z.number().min(0, 'Income must be positive'),
@@ -115,7 +115,7 @@ export default function FinancialPositionPage() {
   const incomeForm = useForm<Income>({
     resolver: zodResolver(incomeSchema),
     defaultValues: {
-      grossSalary: grossIncome ?? 0,
+      annualIncome: grossIncome ?? 0,
       rentalIncome: rentalIncome ?? 0,
       dividends: 0,
       otherIncome: otherIncome ?? 0,
@@ -128,15 +128,15 @@ export default function FinancialPositionPage() {
   useEffect(() => {
     // Only update if the form values differ from store to avoid infinite loops
     const currentValues = incomeForm.getValues();
-    const storeGrossSalary = grossIncome ?? 0;
+    const storeAnnualIncome = grossIncome ?? 0;
     const storeRentalIncome = rentalIncome ?? 0;
     const storeDividends = (investmentIncome ?? 0) - (frankedDividends ?? 0);
     const storeOtherIncome = otherIncome ?? 0;
     const storeFrankedDividends = frankedDividends ?? 0;
     const storeCapitalGains = capitalGains ?? 0;
     
-    if (currentValues.grossSalary !== storeGrossSalary) {
-      incomeForm.setValue('grossSalary', storeGrossSalary, { shouldDirty: false });
+    if (currentValues.annualIncome !== storeAnnualIncome) {
+      incomeForm.setValue('annualIncome', storeAnnualIncome, { shouldDirty: false });
     }
     if (currentValues.rentalIncome !== storeRentalIncome) {
       incomeForm.setValue('rentalIncome', storeRentalIncome, { shouldDirty: false });
@@ -263,7 +263,7 @@ export default function FinancialPositionPage() {
     
     // Update store fields with type-safe keys
     switch (field) {
-      case 'grossSalary':
+      case 'annualIncome':
         store.updateField('grossIncome' as const, value);
         break;
       case 'rentalIncome':
@@ -729,17 +729,17 @@ export default function FinancialPositionPage() {
                       <div className="grid gap-6 md:grid-cols-2">
                         <FormField
                           control={incomeForm.control}
-                          name="grossSalary"
+                          name="annualIncome"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Current Income</FormLabel>
+                              <FormLabel>Annual Income</FormLabel>
                               <FormControl>
                                 <Input 
                                   type="number" 
                                   placeholder="0.00" 
                                   className="font-mono"
                                   value={field.value}
-                                  onChange={(e) => handleIncomeChange('grossSalary', Number(e.target.value))}
+                                  onChange={(e) => handleIncomeChange('annualIncome', Number(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />

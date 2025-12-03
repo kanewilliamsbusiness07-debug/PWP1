@@ -40,7 +40,7 @@ export function ClientPage() {
       numberOfDependants: 0,
       agesOfDependants: '',
       ownOrRent: undefined,
-      grossSalary: 0,
+      annualIncome: 0,
       rentalIncome: 0,
       dividends: 0,
       frankedDividends: 0,
