@@ -10,6 +10,8 @@ import { CalendarIcon, Save, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFinancialStore } from '@/lib/store/store';
 import { useToast } from '@/hooks/use-toast';
+import { useClientStorage } from '@/lib/hooks/use-client-storage';
+import { clientValidationSchema } from '@/lib/utils/client-validation';
 import {
   Form,
   FormControl,
@@ -71,102 +73,8 @@ const STATES = [
   { value: 'WA', label: 'Western Australia' },
 ];
 
-// Comprehensive schema including all fields
-const clientSchema = z.object({
-  // Personal Information
-  firstName: z.string().min(1, { message: 'First name is required' }),
-  middleName: z.string().optional(),
-  lastName: z.string().min(1, { message: 'Last name is required' }),
-  dob: z.date().optional(),
-  maritalStatus: z.string().optional(),
-  numberOfDependants: z.number().min(0).optional(),
-  agesOfDependants: z.string().optional(),
-  email: z.string().email('Invalid email address').optional().or(z.literal('')),
-  mobile: z.string().optional(),
-  addressLine1: z.string().optional(),
-  addressLine2: z.string().optional(),
-  suburb: z.string().optional(),
-  state: z.string().optional(),
-  postcode: z.string().optional(),
-  ownOrRent: z.enum(['OWN', 'RENT']).optional(),
-
-  // Financial Position - Income
-  grossSalary: z.number().min(0).optional(),
-  rentalIncome: z.number().min(0).optional(),
-  dividends: z.number().min(0).optional(),
-  frankedDividends: z.number().min(0).optional(),
-  capitalGains: z.number().min(0).optional(),
-  otherIncome: z.number().min(0).optional(),
-
-  // Financial Position - Assets (dynamic)
-  assets: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    currentValue: z.number().min(0),
-    type: z.enum(['property', 'vehicle', 'savings', 'shares', 'super', 'other']),
-  })).optional(),
-
-  // Financial Position - Liabilities (dynamic)
-  liabilities: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    balance: z.number().min(0),
-    monthlyPayment: z.number().min(0),
-    interestRate: z.number().min(0),
-    type: z.enum(['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other']),
-  })).optional(),
-
-  // Investment Properties
-  properties: z.array(z.object({
-    id: z.string(),
-    address: z.string(),
-    purchasePrice: z.number().min(0),
-    currentValue: z.number().min(0),
-    loanAmount: z.number().min(0),
-    interestRate: z.number().min(0),
-    loanTerm: z.number().min(1),
-    weeklyRent: z.number().min(0),
-    annualExpenses: z.number().min(0),
-  })).optional(),
-
-  // Projections
-  currentAge: z.number().min(0).optional(),
-  retirementAge: z.number().min(0).optional(),
-  currentSuper: z.number().min(0).optional(),
-  currentSavings: z.number().min(0).optional(),
-  currentShares: z.number().min(0).optional(),
-  propertyEquity: z.number().min(0).optional(),
-  monthlyDebtPayments: z.number().min(0).optional(),
-  monthlyRentalIncome: z.number().min(0).optional(),
-
-  // Projection Assumptions
-  inflationRate: z.number().min(0).optional(),
-  salaryGrowthRate: z.number().min(0).optional(),
-  superReturn: z.number().min(0).optional(),
-  shareReturn: z.number().min(0).optional(),
-  propertyGrowthRate: z.number().min(0).optional(),
-  withdrawalRate: z.number().min(0).optional(),
-  rentGrowthRate: z.number().min(0).optional(),
-
-  // Tax Optimization
-  employmentIncome: z.number().min(0).optional(),
-  investmentIncome: z.number().min(0).optional(),
-  workRelatedExpenses: z.number().min(0).optional(),
-  vehicleExpenses: z.number().min(0).optional(),
-  uniformsAndLaundry: z.number().min(0).optional(),
-  homeOfficeExpenses: z.number().min(0).optional(),
-  selfEducationExpenses: z.number().min(0).optional(),
-  investmentExpenses: z.number().min(0).optional(),
-  charityDonations: z.number().min(0).optional(),
-  accountingFees: z.number().min(0).optional(),
-  rentalExpenses: z.number().min(0).optional(),
-  superContributions: z.number().min(0).optional(),
-  healthInsurance: z.boolean().optional(),
-  hecs: z.boolean().optional(),
-  helpDebt: z.number().min(0).optional(),
-  hecsBalance: z.number().min(0).optional(),
-  privateHealthInsurance: z.boolean().optional(),
-});
+// Use comprehensive validation schema from utilities
+const clientSchema = clientValidationSchema;
 
 type ClientFormData = z.infer<typeof clientSchema>;
 
@@ -177,8 +85,10 @@ interface ClientFormProps {
 export function ClientForm({ clientSlot }: ClientFormProps) {
   const financialStore = useFinancialStore();
   const { toast } = useToast();
+  const { saveClient } = useClientStorage();
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const client = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
   
   const form = useForm<ClientFormData>({
@@ -331,8 +241,9 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
   }, [client, form]);
 
   const onSubmit = async (data: ClientFormData) => {
+    setIsSaving(true);
     try {
-      // Update store
+      // Update store first
       financialStore.setClientData(clientSlot, {
         ...data,
         dateOfBirth: data.dob,
@@ -342,37 +253,30 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       const currentClient = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
       const clientId = (currentClient as any)?.id;
 
-      // Prepare data for API
-      const clientData = {
+      // Prepare data for API - sanitize and format
+      const clientData: any = {
         ...data,
-        dob: data.dob?.toISOString(),
+        dob: data.dob ? (data.dob instanceof Date ? data.dob.toISOString() : data.dob) : null,
+        // Ensure all string fields are trimmed
+        firstName: data.firstName?.trim() || '',
+        lastName: data.lastName?.trim() || '',
+        middleName: data.middleName?.trim() || '',
+        email: data.email?.trim() || '',
+        mobile: data.mobile?.trim() || '',
+        addressLine1: data.addressLine1?.trim() || '',
+        addressLine2: data.addressLine2?.trim() || '',
+        suburb: data.suburb?.trim() || '',
+        postcode: data.postcode?.trim() || '',
+        agesOfDependants: data.agesOfDependants?.trim() || '',
       };
 
-      // Save to database
-      if (clientId) {
-        // Update existing client
-        const response = await fetch(`/api/clients/${clientId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clientData)
-        });
+      // Use the storage hook to save
+      const savedClient = await saveClient({
+        ...clientData,
+        id: clientId,
+      });
 
-        if (!response.ok) {
-          throw new Error('Failed to update client');
-        }
-      } else {
-        // Create new client
-        const response = await fetch('/api/clients', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clientData)
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to create client');
-        }
-
-        const savedClient = await response.json();
+      if (savedClient) {
         // Update store with saved client ID
         financialStore.setClientData(clientSlot, {
           ...data,
@@ -380,74 +284,76 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
           id: savedClient.id,
         } as any);
       }
-      
-      toast({
-        title: 'Success',
-        description: 'Client information saved successfully',
-      });
     } catch (error) {
       console.error('Error saving client data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save client information',
-        variant: 'destructive',
-      });
+      // Error handling is done in the hook, but we can add additional handling here if needed
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleSaveByName = async () => {
+    setIsSaving(true);
     try {
-      const name = saveName || `${form.getValues('firstName')} ${form.getValues('lastName')}`;
       const formData = form.getValues();
       
+      // Validate form before saving
+      const isValid = await form.trigger();
+      if (!isValid) {
+        toast({
+          title: 'Validation Error',
+          description: 'Please fix the errors in the form before saving',
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        return;
+      }
+
       // Save to store
-      financialStore.saveClientByName(name, clientSlot);
+      financialStore.saveClientByName(saveName || `${formData.firstName} ${formData.lastName}`, clientSlot);
       
-      // Save to database
-      const clientData = {
+      // Prepare data for API
+      const clientData: any = {
         ...formData,
-        dob: formData.dob?.toISOString(),
+        dob: formData.dob ? (formData.dob instanceof Date ? formData.dob.toISOString() : formData.dob) : null,
+        // Sanitize string fields
+        firstName: formData.firstName?.trim() || '',
+        lastName: formData.lastName?.trim() || '',
+        middleName: formData.middleName?.trim() || '',
+        email: formData.email?.trim() || '',
+        mobile: formData.mobile?.trim() || '',
+        addressLine1: formData.addressLine1?.trim() || '',
+        addressLine2: formData.addressLine2?.trim() || '',
+        suburb: formData.suburb?.trim() || '',
+        postcode: formData.postcode?.trim() || '',
+        agesOfDependants: formData.agesOfDependants?.trim() || '',
       };
 
       const currentClient = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
       const clientId = (currentClient as any)?.id;
 
-      if (clientId) {
-        await fetch(`/api/clients/${clientId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clientData)
-        });
-      } else {
-        const response = await fetch('/api/clients', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clientData)
-        });
-        
-        if (response.ok) {
-          const savedClient = await response.json();
-          financialStore.setClientData(clientSlot, {
-            ...formData,
-            dateOfBirth: formData.dob,
-            id: savedClient.id,
-          } as any);
-        }
-      }
-
-      setSaveDialogOpen(false);
-      setSaveName('');
-      toast({
-        title: 'Client Saved',
-        description: `Client "${name}" has been saved successfully`,
+      // Use the storage hook to save
+      const savedClient = await saveClient({
+        ...clientData,
+        id: clientId,
       });
+
+      if (savedClient) {
+        // Update store with saved client ID
+        financialStore.setClientData(clientSlot, {
+          ...formData,
+          dateOfBirth: formData.dob,
+          id: savedClient.id,
+        } as any);
+
+        setSaveDialogOpen(false);
+        setSaveName('');
+      }
     } catch (error) {
       console.error('Error saving client:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save client',
-        variant: 'destructive',
-      });
+      // Error handling is done in the hook
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -496,11 +402,18 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSaveDialogOpen(false)}
+                  disabled={isSaving}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleSaveByName}>
-                  Save
+                <Button 
+                  onClick={handleSaveByName}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : 'Save'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -617,6 +530,39 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="numberOfDependants"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of Dependants</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              {...field}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="agesOfDependants"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ages of Dependants</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., 5, 8, 12" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
                   <div className="space-y-4">
@@ -656,6 +602,20 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                           <FormLabel>Address Line 1</FormLabel>
                           <FormControl>
                             <Input placeholder="123 Main St" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="addressLine2"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address Line 2</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Unit 4" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -709,13 +669,35 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                           <FormItem>
                             <FormLabel>Postcode</FormLabel>
                             <FormControl>
-                              <Input placeholder="2000" {...field} />
+                              <Input placeholder="2000" maxLength={4} {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
+
+                    <FormField
+                      control={form.control}
+                      name="ownOrRent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Own or Rent</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select option" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="OWN">Own</SelectItem>
+                              <SelectItem value="RENT">Rent</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
               </TabsContent>
@@ -1854,8 +1836,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
             </Tabs>
 
             <div className="flex justify-end pt-4 border-t">
-              <Button type="submit" className="bg-yellow-500 text-white hover:bg-yellow-600">
-                Save Changes
+              <Button 
+                type="submit" 
+                className="bg-yellow-500 text-white hover:bg-yellow-600"
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </form>
