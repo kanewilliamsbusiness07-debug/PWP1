@@ -177,7 +177,8 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         const previousValue = previousValues.current[key as keyof typeof previousValues.current];
         const changed = currentValue !== previousValue;
         if (changed) {
-          previousValues.current[key as keyof typeof previousValues.current] = currentValue;
+          // Store the value, converting null to undefined for type safety
+          (previousValues.current as any)[key] = currentValue ?? undefined;
         }
         return changed;
       });
