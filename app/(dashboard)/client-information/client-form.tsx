@@ -202,9 +202,15 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     };
   }, [form, financialStore, clientSlot]);
 
-  // Load client data when it changes
+  // Load client data when it changes (only reset if client actually changed, not on every render)
+  const previousClientIdRef = React.useRef<string | null>(null);
   useEffect(() => {
-    if (client) {
+    // Only reset if we're loading a different client (by comparing a unique identifier)
+    const currentClientId = client ? `${client.firstName}-${client.lastName}-${clientSlot}` : null;
+    const clientChanged = previousClientIdRef.current !== currentClientId;
+    
+    if (client && clientChanged) {
+      previousClientIdRef.current = currentClientId;
       form.reset({
         firstName: client.firstName || '',
         lastName: client.lastName || '',
@@ -262,7 +268,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         helpDebt: client.helpDebt || 0,
         hecsBalance: client.hecsBalance || 0,
         privateHealthInsurance: client.privateHealthInsurance || false,
-      });
+      }, { keepDefaultValues: true });
     }
   }, [client, form]);
 
@@ -568,7 +574,15 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                               type="number"
                               placeholder="0"
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              value={field.value ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === '' ? undefined : (parseInt(value) || 0));
+                              }}
+                              onBlur={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === '' ? 0 : (parseInt(value) || 0));
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
@@ -745,7 +759,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -764,7 +788,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -783,7 +817,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -802,7 +846,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -821,7 +875,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -840,7 +904,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1197,7 +1271,15 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                     type="number"
                                     placeholder="30"
                                     {...field}
-                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                    value={field.value ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === '' ? undefined : (parseInt(value) || 0));
+                              }}
+                              onBlur={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === '' ? 0 : (parseInt(value) || 0));
+                              }}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1264,7 +1346,15 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === '' ? undefined : (parseInt(value) || 0));
+                              }}
+                              onBlur={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === '' ? 0 : (parseInt(value) || 0));
+                              }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1282,7 +1372,15 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === '' ? undefined : (parseInt(value) || 0));
+                              }}
+                              onBlur={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === '' ? 0 : (parseInt(value) || 0));
+                              }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1300,7 +1398,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1318,7 +1426,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1336,7 +1454,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1354,7 +1482,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1372,7 +1510,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1390,7 +1538,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1414,7 +1572,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1432,7 +1600,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1450,7 +1628,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1468,7 +1656,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1486,7 +1684,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1504,7 +1712,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1522,7 +1740,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1551,7 +1779,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1569,7 +1807,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1593,7 +1841,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1611,7 +1869,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1629,7 +1897,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1647,7 +1925,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1665,7 +1953,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1683,7 +1981,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1701,7 +2009,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1719,7 +2037,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1737,7 +2065,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1755,7 +2093,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1773,7 +2121,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1791,7 +2149,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 type="number"
                                 placeholder="0"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Allow empty string during typing, parse to number on blur
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  // Ensure we have a number on blur
+                                  const value = e.target.value;
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
