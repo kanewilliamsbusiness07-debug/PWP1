@@ -78,13 +78,13 @@ export default function ProjectionsPage() {
     defaultValues: {
       currentAge: clientData?.currentAge ?? 0,
       retirementAge: clientData?.retirementAge ?? 0,
-      currentSalary: financialStore.grossIncome ?? 0,
-      currentSuper: financialStore.superBalance ?? 0,
-      currentSavings: financialStore.cashSavings ?? 0,
-      currentShares: financialStore.investments ?? 0,
+      currentSalary: grossIncome ?? 0,
+      currentSuper: superBalance ?? 0,
+      currentSavings: cashSavings ?? 0,
+      currentShares: investments ?? 0,
       propertyEquity: clientData?.propertyEquity ?? 0,
       monthlyDebtPayments: clientData?.monthlyDebtPayments ?? 0,
-      monthlyRentalIncome: clientData?.monthlyRentalIncome ?? (financialStore.rentalIncome ? financialStore.rentalIncome / 12 : 0)
+      monthlyRentalIncome: clientData?.monthlyRentalIncome ?? (rentalIncome ? rentalIncome / 12 : 0)
     }
   });
 
