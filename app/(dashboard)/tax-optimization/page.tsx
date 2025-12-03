@@ -111,6 +111,35 @@ export default function TaxOptimizationPage() {
   const clientA = useFinancialStore((state) => state.clientA);
   const clientB = useFinancialStore((state) => state.clientB);
   
+  const taxForm = useForm<TaxFormData>({
+    resolver: zodResolver(taxFormSchema),
+    defaultValues: {
+      grossIncome: grossIncome || 0,
+      employmentIncome: employmentIncome || 0,
+      investmentIncome: investmentIncome || 0,
+      rentalIncome: rentalIncome || 0,
+      otherIncome: otherIncome || 0,
+      frankedDividends: 0,
+      capitalGains: 0,
+      workRelatedExpenses: workRelatedExpenses || 0,
+      vehicleExpenses: 0,
+      uniformsAndLaundry: 0,
+      homeOfficeExpenses: 0,
+      selfEducationExpenses: 0,
+      investmentExpenses: investmentExpenses || 0,
+      charityDonations: 0,
+      accountingFees: 0,
+      otherDeductions: 0,
+      rentalExpenses: rentalExpenses || 0,
+      superContributions: 0,
+      healthInsurance: false,
+      hecs: false,
+      helpDebt: 0,
+      hecsBalance: 0,
+      privateHealthInsurance: false
+    }
+  });
+
   // Subscribe to store updates in real-time
   React.useEffect(() => {
     const clientData = activeClient ? (activeClient === 'A' ? clientA : clientB) : null;
@@ -211,35 +240,6 @@ export default function TaxOptimizationPage() {
     clientB,
     taxForm
   ]);
-
-  const taxForm = useForm<TaxFormData>({
-    resolver: zodResolver(taxFormSchema),
-    defaultValues: {
-      grossIncome: financialStore.grossIncome || 0,
-      employmentIncome: financialStore.employmentIncome || 0,
-      investmentIncome: financialStore.investmentIncome || 0,
-      rentalIncome: financialStore.rentalIncome || 0,
-      otherIncome: financialStore.otherIncome || 0,
-      frankedDividends: 0,
-      capitalGains: 0,
-      workRelatedExpenses: financialStore.workRelatedExpenses || 0,
-      vehicleExpenses: 0,
-      uniformsAndLaundry: 0,
-      homeOfficeExpenses: 0,
-      selfEducationExpenses: 0,
-      investmentExpenses: financialStore.investmentExpenses || 0,
-      charityDonations: 0,
-      accountingFees: 0,
-      otherDeductions: 0,
-      rentalExpenses: financialStore.rentalExpenses || 0,
-      superContributions: 0,
-      healthInsurance: false,
-      hecs: false,
-      helpDebt: 0,
-      hecsBalance: 0,
-      privateHealthInsurance: false
-    }
-  });
 
   // Australian tax brackets 2024-25
   const taxBrackets = [
