@@ -120,6 +120,8 @@ export const clientValidationSchema = z.object({
   
   // Contact Information
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  phoneNumber: z.string().optional().or(z.literal('')),
+  // Legacy field - kept for backward compatibility during migration
   mobile: z.string().optional().or(z.literal('')),
   
   // Address Information
@@ -131,6 +133,8 @@ export const clientValidationSchema = z.object({
   ownOrRent: z.enum(['OWN', 'RENT']).optional(),
   
   // Financial Position - Income
+  annualIncome: z.number().min(0, 'Annual income cannot be negative').max(10000000, 'Annual income is too high').optional(),
+  // Legacy field names - kept for backward compatibility during migration
   grossSalary: z.number().min(0, 'Gross salary cannot be negative').max(10000000, 'Gross salary is too high').optional(),
   rentalIncome: z.number().min(0, 'Rental income cannot be negative').max(10000000, 'Rental income is too high').optional(),
   dividends: z.number().min(0, 'Dividends cannot be negative').max(10000000, 'Dividends are too high').optional(),

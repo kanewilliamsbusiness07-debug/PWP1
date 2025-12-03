@@ -33,7 +33,7 @@ const propertySchema = z.object({
 });
 
 const serviceabilitySchema = z.object({
-  grossIncome: z.number().min(0, 'Income must be positive'),
+  annualIncome: z.number().min(0, 'Annual income must be positive'), // Canonical field name (was grossIncome)
   monthlyExpenses: z.number().min(0, 'Expenses must be positive'),
   existingDebtPayments: z.number().min(0, 'Debt payments must be positive'),
   targetPropertyPrice: z.number().min(0, 'Price must be positive'),
@@ -109,7 +109,7 @@ export default function InvestmentPropertiesPage() {
   const serviceabilityForm = useForm<ServiceabilityData>({
     resolver: zodResolver(serviceabilitySchema),
     defaultValues: {
-      grossIncome: grossIncome || 0,
+      annualIncome: grossIncome || 0,
       monthlyExpenses: 0,
       existingDebtPayments: totalDebt ? calculateLoanPayment(totalDebt, 0.065, 30) : 0,
       targetPropertyPrice: 0,
@@ -126,14 +126,14 @@ export default function InvestmentPropertiesPage() {
   // Watch store and update form when store changes (use setValue to avoid disrupting user input)
   useEffect(() => {
     const currentValues = serviceabilityForm.getValues();
-    const storeGrossIncome = grossIncome || 0;
+    const storeAnnualIncome = grossIncome || 0;
     const storeDeposit = cashSavings || 0;
     const storeExistingDebtPayments = totalDebt ? calculateLoanPayment(totalDebt, 0.065, 30) : 0;
     const storeExpectedRent = rentalIncome ? (rentalIncome / 52) : currentValues.expectedRent;
     
     // Only update if values differ
-    if (currentValues.grossIncome !== storeGrossIncome) {
-      serviceabilityForm.setValue('grossIncome', storeGrossIncome, { shouldDirty: false });
+    if (currentValues.annualIncome !== storeAnnualIncome) {
+      serviceabilityForm.setValue('annualIncome', storeAnnualIncome, { shouldDirty: false });
     }
     if (currentValues.deposit !== storeDeposit) {
       serviceabilityForm.setValue('deposit', storeDeposit, { shouldDirty: false });
@@ -172,7 +172,9 @@ export default function InvestmentPropertiesPage() {
   };
 
   const calculateServiceability = (data: ServiceabilityData): ServiceabilityResult => {
-    const monthlyIncome = data.grossIncome / 12;
+    // Use annualIncome (canonical) or fall back to grossIncome for backward compatibility
+    const income = data.annualIncome ?? (data as any).grossIncome ?? 0;
+    const monthlyIncome = income / 12;
     const totalMonthlyExpenses = data.monthlyExpenses + data.existingDebtPayments;
     const monthlyServiceCapacity = (monthlyIncome * 0.7) - totalMonthlyExpenses; // 70% of income available for servicing
     
@@ -197,7 +199,7 @@ export default function InvestmentPropertiesPage() {
       : 0;
     
     const loanToValueRatio = (loanAmount / data.targetPropertyPrice) * 100;
-    const debtToIncomeRatio = ((data.existingDebtPayments * 12 + monthlyLoanPayment * 12) / data.grossIncome) * 100;
+    const debtToIncomeRatio = income > 0 ? ((data.existingDebtPayments * 12 + monthlyLoanPayment * 12) / income) * 100 : 0;
     const canAfford = monthlyServiceCapacity >= netMonthlyPayment;
     const monthlyShortfall = canAfford ? undefined : netMonthlyPayment - monthlyServiceCapacity;
 
@@ -589,10 +591,10 @@ export default function InvestmentPropertiesPage() {
                   <form className="space-y-4">
                     <FormField
                       control={serviceabilityForm.control}
-                      name="grossIncome"
+                      name="annualIncome"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Gross Annual Income</FormLabel>
+                          <FormLabel>Annual Income</FormLabel>
                           <FormControl>
                             <Input
                               type="text"

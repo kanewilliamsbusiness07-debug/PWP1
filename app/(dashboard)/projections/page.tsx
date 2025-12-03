@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 const projectionSchema = z.object({
   currentAge: z.number().min(18).max(100),
   retirementAge: z.number().min(50).max(100),
-  currentSalary: z.number().min(0),
+  annualIncome: z.number().min(0), // Canonical field name (was currentSalary)
   currentSuper: z.number().min(0),
   currentSavings: z.number().min(0),
   currentShares: z.number().min(0),
@@ -78,7 +78,7 @@ export default function ProjectionsPage() {
     defaultValues: {
       currentAge: clientData?.currentAge ?? 0,
       retirementAge: clientData?.retirementAge ?? 0,
-      currentSalary: grossIncome ?? 0,
+      annualIncome: grossIncome ?? 0,
       currentSuper: superBalance ?? 0,
       currentSavings: cashSavings ?? 0,
       currentShares: investments ?? 0,
@@ -93,15 +93,15 @@ export default function ProjectionsPage() {
     if (!activeClient) return;
     
     const currentValues = projectionForm.getValues();
-    const storeCurrentSalary = grossIncome ?? 0;
+    const storeAnnualIncome = grossIncome ?? 0;
     const storeCurrentSuper = superBalance ?? 0;
     const storeCurrentSavings = cashSavings ?? 0;
     const storeCurrentShares = investments ?? 0;
     const storeMonthlyRentalIncome = clientData?.monthlyRentalIncome ?? (rentalIncome ? rentalIncome / 12 : 0);
     
     // Only update if values differ
-    if (currentValues.currentSalary !== storeCurrentSalary) {
-      projectionForm.setValue('currentSalary', storeCurrentSalary, { shouldDirty: false });
+    if (currentValues.annualIncome !== storeAnnualIncome) {
+      projectionForm.setValue('annualIncome', storeAnnualIncome, { shouldDirty: false });
     }
     if (currentValues.currentSuper !== storeCurrentSuper) {
       projectionForm.setValue('currentSuper', storeCurrentSuper, { shouldDirty: false });
@@ -226,7 +226,7 @@ export default function ProjectionsPage() {
       
       // Calculate required income (70% of current salary adjusted for inflation)
       const inflationFactor = Math.pow(1 + assumptions.inflationRate / 100, yearsToRetirement);
-      const requiredIncome = (projectionData.currentSalary * 0.7) * inflationFactor;
+      const requiredIncome = (projectionData.annualIncome * 0.7) * inflationFactor;
       
       // Calculate deficit/surplus
       const annualDebtPayments = projectionData.monthlyDebtPayments * 12;
@@ -346,10 +346,10 @@ export default function ProjectionsPage() {
 
                         <FormField
                           control={projectionForm.control}
-                          name="currentSalary"
+                          name="annualIncome"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Current Income</FormLabel>
+                              <FormLabel>Annual Income</FormLabel>
                               <FormControl>
                                 <Input
                                   type="text"

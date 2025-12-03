@@ -55,6 +55,8 @@ interface ClientData {
   numberOfDependants?: number;
   agesOfDependants?: string;
   email?: string;
+  phoneNumber?: string;
+  // Legacy field - kept for backward compatibility during migration
   mobile?: string;
   addressLine1?: string;
   addressLine2?: string;
@@ -335,7 +337,22 @@ export const useFinancialStore = create<FinancialStore>()(
           // Auto-update financial store fields when client data changes
           const updates: Partial<FinancialFields> = {};
           
+          // Contact fields - map phoneNumber to mobile for backward compatibility
+          if (data.phoneNumber !== undefined) {
+            updatedClient.mobile = data.phoneNumber;
+            updatedClient.phoneNumber = data.phoneNumber;
+          }
+          // Legacy mobile field support
+          if (data.mobile !== undefined && !data.phoneNumber) {
+            updatedClient.phoneNumber = data.mobile;
+          }
+          
           // Income fields - map multiple field names to the same store field
+          // CANONICAL: annualIncome → grossIncome (store internal name)
+          if (data.annualIncome !== undefined) {
+            updates.grossIncome = data.annualIncome;
+            updates.employmentIncome = data.annualIncome;
+          }
           if (data.grossSalary !== undefined) {
             updates.grossIncome = data.grossSalary;
             updates.employmentIncome = data.grossSalary; // Also update employmentIncome
