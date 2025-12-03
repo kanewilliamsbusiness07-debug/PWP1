@@ -59,14 +59,17 @@ export const authConfig = {
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
+            console.error('[AUTH] Missing credentials');
             throw new Error('Missing credentials');
           }
 
           // Check if database is configured
           if (!process.env.DATABASE_URL) {
-            console.error('DATABASE_URL is not set');
+            console.error('[AUTH] DATABASE_URL is not set');
             throw new Error('Database connection not configured. Please check your environment variables.');
           }
+
+          console.log('[AUTH] Attempting login for email:', credentials.email.toLowerCase());
 
           // Find user in database
           let user;
@@ -74,16 +77,27 @@ export const authConfig = {
             user = await prisma.user.findUnique({
               where: { email: credentials.email.toLowerCase() }
             });
+            console.log('[AUTH] User lookup result:', user ? `User found (id: ${user.id}, active: ${user.isActive})` : 'User not found');
           } catch (dbError: any) {
-            console.error('Database error during login:', dbError);
+            console.error('[AUTH] Database error during login:', {
+              code: dbError.code,
+              message: dbError.message,
+              stack: dbError.stack
+            });
             // Check for common database connection errors
-            if (dbError.code === 'P1001' || dbError.message?.includes('connect')) {
+            if (dbError.code === 'P1001' || dbError.message?.includes('connect') || dbError.message?.includes('timeout')) {
               throw new Error('Unable to connect to database. Please check your database configuration.');
             }
             throw new Error('Database error occurred. Please try again later.');
           }
 
-          if (!user || !user.isActive) {
+          if (!user) {
+            console.error('[AUTH] User not found in database for email:', credentials.email.toLowerCase());
+            throw new Error('Invalid email or password');
+          }
+
+          if (!user.isActive) {
+            console.error('[AUTH] User account is inactive:', user.id);
             throw new Error('Invalid email or password');
           }
 
@@ -95,8 +109,10 @@ export const authConfig = {
           // Verify password
           const { verifyPassword } = await import('@/lib/auth/password');
           const isValidPassword = await verifyPassword(credentials.password, user.passwordHash);
+          console.log('[AUTH] Password verification result:', isValidPassword);
 
           if (!isValidPassword) {
+            console.error('[AUTH] Invalid password for user:', user.id);
             // Increment login attempts
             const newAttempts = user.loginAttempts + 1;
             const shouldLock = newAttempts >= 5;
@@ -110,7 +126,7 @@ export const authConfig = {
                 }
               });
             } catch (updateError) {
-              console.error('Error updating login attempts:', updateError);
+              console.error('[AUTH] Error updating login attempts:', updateError);
               // Continue even if update fails
             }
 
@@ -132,6 +148,7 @@ export const authConfig = {
             // Continue even if update fails
           }
 
+          console.log('[AUTH] Login successful for user:', user.id);
           return {
             id: user.id,
             name: user.name,
@@ -140,7 +157,11 @@ export const authConfig = {
           };
         } catch (error: any) {
           // Log the error for debugging
-          console.error('Authentication error:', error);
+          console.error('[AUTH] Authentication error:', {
+            message: error.message,
+            stack: error.stack,
+            code: error.code
+          });
           // Re-throw with a user-friendly message
           if (error.message && !error.message.includes('Invalid') && !error.message.includes('Missing')) {
             throw error;
