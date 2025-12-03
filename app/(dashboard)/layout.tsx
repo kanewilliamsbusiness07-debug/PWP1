@@ -123,7 +123,6 @@ export default function DashboardLayout({
             </nav>
           </div>
           
-  /* User info at bottom */
           <div className="flex-shrink-0 flex border-t border-border p-4">
             <div className="flex items-center">
               <div className="h-9 w-9 bg-accent rounded-full flex items-center justify-center">

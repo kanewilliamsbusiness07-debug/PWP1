@@ -164,7 +164,7 @@ npx prisma studio
 # Manually create user with:
 # - Email: allan@pwp2026.com.au
 # - Password hash: (generate using bcrypt.hash('123456', 12))
-# - Name: Allan Chambers
+# - Name: Allan Katup
 # - Role: ADVISOR
 # - isMasterAdmin: true
 # - isActive: true
@@ -185,7 +185,7 @@ VALUES (
   'clx' || substr(md5(random()::text), 1, 10), -- Generate random ID
   'allan@pwp2026.com.au',
   '$2a$12$...', -- Your generated hash here
-  'Allan Chambers',
+  'Allan Katup',
   'ADVISOR',
   true,
   true,
