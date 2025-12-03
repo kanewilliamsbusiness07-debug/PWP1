@@ -105,17 +105,45 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
       if (clientsRes.ok) {
         const clientsData = await clientsRes.json();
-        setClients(clientsData.clients || []);
+        // Handle both response formats: { clients: [...] } or [...]
+        const clientsList = Array.isArray(clientsData) ? clientsData : (clientsData.clients || []);
+        console.log('API Response:', clientsData);
+        console.log('Clients list:', clientsList);
+        setClients(clientsList);
+        if (clientsList.length === 0) {
+          console.warn('No clients found in response');
+        }
+      } else {
+        const errorData = await clientsRes.json().catch(() => ({}));
+        console.error('Error loading clients:', clientsRes.status, errorData);
+        setClients([]); // Clear clients on error
+        if (clientsRes.status === 401) {
+          toast({
+            title: 'Authentication Error',
+            description: 'Please log in again to view clients',
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'Error Loading Clients',
+            description: errorData.error || 'Failed to load clients',
+            variant: 'destructive'
+          });
+        }
       }
 
       if (appointmentsRes.ok) {
         const appointmentsData = await appointmentsRes.json();
         setAppointments(appointmentsData.appointments || []);
+      } else {
+        console.error('Error loading appointments:', appointmentsRes.status);
       }
 
       if (exportsRes.ok) {
         const exportsData = await exportsRes.json();
         setPdfExports(exportsData.exports || []);
+      } else {
+        console.error('Error loading PDF exports:', exportsRes.status);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -351,14 +379,25 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
               </TabsList>
 
               <TabsContent value="clients" className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search clients..."
-                    className="pl-10 bg-white border-gray-300 text-gray-900"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search clients..."
+                      className="pl-10 bg-white border-gray-300 text-gray-900"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={loadData}
+                    disabled={loading}
+                    className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                  >
+                    {loading ? '...' : '↻'}
+                  </Button>
                 </div>
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -368,7 +407,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     </div>
                   ) : filteredClients.length === 0 ? (
                     <div className="text-center py-8 text-gray-600">
-                      <p className="text-sm">No clients found</p>
+                      <p className="text-sm">
+                        {searchTerm ? 'No clients match your search' : clients.length === 0 ? 'No clients saved yet' : 'No clients match your search'}
+                      </p>
+                      {clients.length === 0 && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Save a client from the Client Information page to see them here
+                        </p>
+                      )}
                     </div>
                   ) : (
                     filteredClients.map((client) => (
