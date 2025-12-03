@@ -52,7 +52,16 @@ export default function LoginPage() {
       }
 
       if (result.error) {
-        throw new Error(result.error);
+        // Provide more helpful error messages
+        let errorMessage = result.error;
+        if (result.error === 'CredentialsSignin') {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (result.error.includes('Database') || result.error.includes('database')) {
+          errorMessage = 'Database connection error. Please check your configuration.';
+        } else if (result.error.includes('configured') || result.error.includes('environment')) {
+          errorMessage = 'Server configuration error. Please contact support.';
+        }
+        throw new Error(errorMessage);
       }
 
       if (result.ok) {
