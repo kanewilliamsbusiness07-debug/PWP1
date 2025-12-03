@@ -13,9 +13,23 @@ frontend:
         # Generate Prisma Client (required before build)
         - npx prisma generate
         # Run database migrations (safe to run on every build - only applies pending migrations)
-        - 'npx prisma migrate deploy || echo "Warning: Database migrations failed or database not accessible"'
+        # Note: DATABASE_URL must be set in Amplify Console environment variables
+        - |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "⚠️  Warning: DATABASE_URL not set. Skipping migrations. Set it in Amplify Console → Environment variables."
+          else
+            echo "🔄 Running database migrations..."
+            npx prisma migrate deploy || echo "⚠️  Warning: Database migrations failed or database not accessible"
+          fi
         # Seed database (safe to run - uses upsert, won't overwrite existing data)
-        - 'npx prisma db seed || echo "Warning: Database seeding failed (this is non-fatal)"'
+        # This creates the default admin user if it doesn't exist
+        - |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "⚠️  Warning: DATABASE_URL not set. Skipping seed. Set it in Amplify Console → Environment variables."
+          else
+            echo "🌱 Seeding database with default user..."
+            npx prisma db seed || echo "⚠️  Warning: Database seeding failed (this is non-fatal)"
+          fi
     build:
       commands:
         # Amplify handles SSR automatically as long as .next is the output directory
