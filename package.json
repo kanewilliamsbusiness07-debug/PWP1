@@ -19,6 +19,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "ts-node prisma/seed.ts",
     "db:studio": "prisma studio",
+    "db:update-allan": "ts-node scripts/update-allan-name.ts",
     "docker:build": "docker build -t fincalc-pro .",
     "docker:run": "docker-compose up -d",
     "docker:stop": "docker-compose down",
