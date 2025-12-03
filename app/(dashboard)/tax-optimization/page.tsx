@@ -96,42 +96,121 @@ export default function TaxOptimizationPage() {
   const financialStore = useFinancialStore();
   const clientFinancials = useClientFinancials();
   
-  // Subscribe to store updates
+  // Subscribe to specific store values to ensure re-renders
+  const grossIncome = useFinancialStore((state) => state.grossIncome);
+  const employmentIncome = useFinancialStore((state) => state.employmentIncome);
+  const investmentIncome = useFinancialStore((state) => state.investmentIncome);
+  const rentalIncome = useFinancialStore((state) => state.rentalIncome);
+  const otherIncome = useFinancialStore((state) => state.otherIncome);
+  const workRelatedExpenses = useFinancialStore((state) => state.workRelatedExpenses);
+  const investmentExpenses = useFinancialStore((state) => state.investmentExpenses);
+  const rentalExpenses = useFinancialStore((state) => state.rentalExpenses);
+  const frankedDividends = useFinancialStore((state) => state.frankedDividends);
+  const capitalGains = useFinancialStore((state) => state.capitalGains);
+  const activeClient = useFinancialStore((state) => state.activeClient);
+  const clientA = useFinancialStore((state) => state.clientA);
+  const clientB = useFinancialStore((state) => state.clientB);
+  
+  // Subscribe to store updates in real-time
   React.useEffect(() => {
-    const updateForm = (values: Partial<TaxFormData>) => {
-      Object.entries(values).forEach(([key, value]) => {
-        taxForm.setValue(key as keyof TaxFormData, value);
-      });
-    };
-
-    const activeClient = financialStore.activeClient;
-    const clientData = activeClient ? (activeClient === 'A' ? financialStore.clientA : financialStore.clientB) : null;
+    const clientData = activeClient ? (activeClient === 'A' ? clientA : clientB) : null;
+    const currentValues = taxForm.getValues();
     
-    updateForm({
-      grossIncome: financialStore.grossIncome,
-      employmentIncome: financialStore.employmentIncome,
-      investmentIncome: financialStore.investmentIncome,
-      rentalIncome: financialStore.rentalIncome,
-      otherIncome: financialStore.otherIncome || 0,
-      workRelatedExpenses: financialStore.workRelatedExpenses,
-      investmentExpenses: financialStore.investmentExpenses,
-      rentalExpenses: financialStore.rentalExpenses,
-      frankedDividends: financialStore.frankedDividends || 0,
-      capitalGains: financialStore.capitalGains || 0,
-      vehicleExpenses: clientData?.vehicleExpenses || 0,
-      uniformsAndLaundry: clientData?.uniformsAndLaundry || 0,
-      homeOfficeExpenses: clientData?.homeOfficeExpenses || 0,
-      selfEducationExpenses: clientData?.selfEducationExpenses || 0,
-      charityDonations: clientData?.charityDonations || 0,
-      accountingFees: clientData?.accountingFees || 0,
-      superContributions: clientData?.superContributions || 0,
-      helpDebt: clientData?.helpDebt || 0,
-      hecsBalance: clientData?.hecsBalance || 0,
-      healthInsurance: clientData?.healthInsurance || false,
-      hecs: clientData?.hecs || false,
-      privateHealthInsurance: clientData?.privateHealthInsurance || false
-    });
-  }, [financialStore]);
+    // Only update if values differ to avoid disrupting user input
+    const updates: Partial<TaxFormData> = {};
+    
+    if (currentValues.grossIncome !== grossIncome) {
+      updates.grossIncome = grossIncome;
+    }
+    if (currentValues.employmentIncome !== employmentIncome) {
+      updates.employmentIncome = employmentIncome;
+    }
+    if (currentValues.investmentIncome !== investmentIncome) {
+      updates.investmentIncome = investmentIncome;
+    }
+    if (currentValues.rentalIncome !== rentalIncome) {
+      updates.rentalIncome = rentalIncome;
+    }
+    if (currentValues.otherIncome !== (otherIncome || 0)) {
+      updates.otherIncome = otherIncome || 0;
+    }
+    if (currentValues.workRelatedExpenses !== workRelatedExpenses) {
+      updates.workRelatedExpenses = workRelatedExpenses;
+    }
+    if (currentValues.investmentExpenses !== investmentExpenses) {
+      updates.investmentExpenses = investmentExpenses;
+    }
+    if (currentValues.rentalExpenses !== rentalExpenses) {
+      updates.rentalExpenses = rentalExpenses;
+    }
+    if (Math.abs((currentValues.frankedDividends || 0) - (frankedDividends || 0)) > 0.01) {
+      updates.frankedDividends = frankedDividends || 0;
+    }
+    if (Math.abs((currentValues.capitalGains || 0) - (capitalGains || 0)) > 0.01) {
+      updates.capitalGains = capitalGains || 0;
+    }
+    
+    if (clientData) {
+      if (currentValues.vehicleExpenses !== (clientData.vehicleExpenses || 0)) {
+        updates.vehicleExpenses = clientData.vehicleExpenses || 0;
+      }
+      if (currentValues.uniformsAndLaundry !== (clientData.uniformsAndLaundry || 0)) {
+        updates.uniformsAndLaundry = clientData.uniformsAndLaundry || 0;
+      }
+      if (currentValues.homeOfficeExpenses !== (clientData.homeOfficeExpenses || 0)) {
+        updates.homeOfficeExpenses = clientData.homeOfficeExpenses || 0;
+      }
+      if (currentValues.selfEducationExpenses !== (clientData.selfEducationExpenses || 0)) {
+        updates.selfEducationExpenses = clientData.selfEducationExpenses || 0;
+      }
+      if (currentValues.charityDonations !== (clientData.charityDonations || 0)) {
+        updates.charityDonations = clientData.charityDonations || 0;
+      }
+      if (currentValues.accountingFees !== (clientData.accountingFees || 0)) {
+        updates.accountingFees = clientData.accountingFees || 0;
+      }
+      if (currentValues.superContributions !== (clientData.superContributions || 0)) {
+        updates.superContributions = clientData.superContributions || 0;
+      }
+      if (currentValues.helpDebt !== (clientData.helpDebt || 0)) {
+        updates.helpDebt = clientData.helpDebt || 0;
+      }
+      if (currentValues.hecsBalance !== (clientData.hecsBalance || 0)) {
+        updates.hecsBalance = clientData.hecsBalance || 0;
+      }
+      if (currentValues.healthInsurance !== (clientData.healthInsurance || false)) {
+        updates.healthInsurance = clientData.healthInsurance || false;
+      }
+      if (currentValues.hecs !== (clientData.hecs || false)) {
+        updates.hecs = clientData.hecs || false;
+      }
+      if (currentValues.privateHealthInsurance !== (clientData.privateHealthInsurance || false)) {
+        updates.privateHealthInsurance = clientData.privateHealthInsurance || false;
+      }
+    }
+    
+    // Apply updates if any
+    if (Object.keys(updates).length > 0) {
+      Object.entries(updates).forEach(([key, value]) => {
+        taxForm.setValue(key as keyof TaxFormData, value, { shouldDirty: false });
+      });
+    }
+  }, [
+    grossIncome,
+    employmentIncome,
+    investmentIncome,
+    rentalIncome,
+    otherIncome,
+    workRelatedExpenses,
+    investmentExpenses,
+    rentalExpenses,
+    frankedDividends,
+    capitalGains,
+    activeClient,
+    clientA,
+    clientB,
+    taxForm
+  ]);
 
   const taxForm = useForm<TaxFormData>({
     resolver: zodResolver(taxFormSchema),
