@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -115,9 +115,26 @@ export default function InvestmentPropertiesPage() {
       marginalTaxRate: 32.5,
       interestRate: 6.5,
       loanTerm: 30,
-      expectedRent: 0
+      expectedRent: financialStore.rentalIncome ? (financialStore.rentalIncome / 52) : 0
     }
   });
+
+  // Watch store and update form when store changes
+  useEffect(() => {
+    serviceabilityForm.reset({
+      grossIncome: financialStore.grossIncome || 0,
+      monthlyExpenses: serviceabilityForm.getValues('monthlyExpenses'),
+      existingDebtPayments: financialStore.totalDebt ? calculateLoanPayment(financialStore.totalDebt, 0.065, 30) : 0,
+      targetPropertyPrice: serviceabilityForm.getValues('targetPropertyPrice'),
+      deposit: financialStore.cashSavings || 0,
+      annualPropertyExpenses: serviceabilityForm.getValues('annualPropertyExpenses'),
+      depreciationAmount: serviceabilityForm.getValues('depreciationAmount'),
+      marginalTaxRate: serviceabilityForm.getValues('marginalTaxRate'),
+      interestRate: serviceabilityForm.getValues('interestRate'),
+      loanTerm: serviceabilityForm.getValues('loanTerm'),
+      expectedRent: financialStore.rentalIncome ? (financialStore.rentalIncome / 52) : serviceabilityForm.getValues('expectedRent')
+    });
+  }, [financialStore.grossIncome, financialStore.totalDebt, financialStore.cashSavings, financialStore.rentalIncome, serviceabilityForm]);
 
   const analyzeProperty = (property: Property): PropertyAnalysis => {
     const monthlyLoanPayment = calculateLoanPayment(property.loanAmount, property.interestRate, property.loanTerm);

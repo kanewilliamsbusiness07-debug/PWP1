@@ -335,20 +335,42 @@ export const useFinancialStore = create<FinancialStore>()(
           // Auto-update financial store fields when client data changes
           const updates: Partial<FinancialFields> = {};
           
-          if (data.grossSalary !== undefined) updates.grossIncome = data.grossSalary;
+          // Income fields - map multiple field names to the same store field
+          if (data.grossSalary !== undefined) {
+            updates.grossIncome = data.grossSalary;
+            updates.employmentIncome = data.grossSalary; // Also update employmentIncome
+          }
+          if (data.employmentIncome !== undefined) {
+            updates.grossIncome = data.employmentIncome;
+            updates.employmentIncome = data.employmentIncome;
+          }
           if (data.rentalIncome !== undefined) updates.rentalIncome = data.rentalIncome;
+          if (data.monthlyRentalIncome !== undefined) {
+            // Convert monthly to annual if needed
+            updates.rentalIncome = data.monthlyRentalIncome * 12;
+          }
           if (data.dividends !== undefined || data.frankedDividends !== undefined) {
-            updates.investmentIncome = (data.dividends || 0) + (data.frankedDividends || 0);
-            updates.frankedDividends = data.frankedDividends || 0;
+            const currentDividends = data.dividends || (currentClient as any)?.dividends || 0;
+            const currentFranked = data.frankedDividends || (currentClient as any)?.frankedDividends || 0;
+            updates.investmentIncome = currentDividends + currentFranked;
+            updates.frankedDividends = currentFranked;
           }
           if (data.capitalGains !== undefined) updates.capitalGains = data.capitalGains;
           if (data.otherIncome !== undefined) updates.otherIncome = data.otherIncome;
+          if (data.investmentIncome !== undefined) updates.investmentIncome = data.investmentIncome;
+          
+          // Expense fields
           if (data.workRelatedExpenses !== undefined) updates.workRelatedExpenses = data.workRelatedExpenses;
           if (data.investmentExpenses !== undefined) updates.investmentExpenses = data.investmentExpenses;
           if (data.rentalExpenses !== undefined) updates.rentalExpenses = data.rentalExpenses;
+          
+          // Asset fields - map multiple field names
           if (data.savingsValue !== undefined) updates.cashSavings = data.savingsValue;
+          if (data.currentSavings !== undefined) updates.cashSavings = data.currentSavings;
           if (data.sharesTotalValue !== undefined) updates.investments = data.sharesTotalValue;
+          if (data.currentShares !== undefined) updates.investments = data.currentShares;
           if (data.superFundValue !== undefined) updates.superBalance = data.superFundValue;
+          if (data.currentSuper !== undefined) updates.superBalance = data.currentSuper;
           
           // Calculate total debt from liabilities
           if (data.liabilities) {
