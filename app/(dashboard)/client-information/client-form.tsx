@@ -153,10 +153,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     }
   });
 
+  // Store previous values for change detection (must be at component level, not inside useEffect)
+  const previousValues = React.useRef<Partial<ClientFormData>>({});
+
   // Watch form values and auto-save to store in real-time (immediate for financial fields)
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    const previousValues = React.useRef<Partial<ClientFormData>>({});
     
     const subscription = form.watch((value) => {
       // Clear previous timeout
