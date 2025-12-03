@@ -104,6 +104,9 @@ export default function TaxOptimizationPage() {
       });
     };
 
+    const activeClient = financialStore.activeClient;
+    const clientData = activeClient ? (activeClient === 'A' ? financialStore.clientA : financialStore.clientB) : null;
+    
     updateForm({
       grossIncome: financialStore.grossIncome,
       employmentIncome: financialStore.employmentIncome,
@@ -112,7 +115,21 @@ export default function TaxOptimizationPage() {
       otherIncome: financialStore.otherIncome || 0,
       workRelatedExpenses: financialStore.workRelatedExpenses,
       investmentExpenses: financialStore.investmentExpenses,
-      rentalExpenses: financialStore.rentalExpenses
+      rentalExpenses: financialStore.rentalExpenses,
+      frankedDividends: financialStore.frankedDividends || 0,
+      capitalGains: financialStore.capitalGains || 0,
+      vehicleExpenses: clientData?.vehicleExpenses || 0,
+      uniformsAndLaundry: clientData?.uniformsAndLaundry || 0,
+      homeOfficeExpenses: clientData?.homeOfficeExpenses || 0,
+      selfEducationExpenses: clientData?.selfEducationExpenses || 0,
+      charityDonations: clientData?.charityDonations || 0,
+      accountingFees: clientData?.accountingFees || 0,
+      superContributions: clientData?.superContributions || 0,
+      helpDebt: clientData?.helpDebt || 0,
+      hecsBalance: clientData?.hecsBalance || 0,
+      healthInsurance: clientData?.healthInsurance || false,
+      hecs: clientData?.hecs || false,
+      privateHealthInsurance: clientData?.privateHealthInsurance || false
     });
   }, [financialStore]);
 

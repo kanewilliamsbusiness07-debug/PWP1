@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useFinancialStore } from '@/lib/store/store';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -59,34 +60,92 @@ export default function ProjectionsPage() {
   const [results, setResults] = useState<ProjectionResults | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const { toast } = useToast();
+  const financialStore = useFinancialStore();
+  const activeClient = financialStore.activeClient;
+  const clientData = activeClient ? (activeClient === 'A' ? financialStore.clientA : financialStore.clientB) : null;
 
   const projectionForm = useForm<ProjectionData>({
     resolver: zodResolver(projectionSchema),
     defaultValues: {
-      currentAge: 0,
-      retirementAge: 0,
-      currentSalary: 0,
-      currentSuper: 0,
-      currentSavings: 0,
-      currentShares: 0,
-      propertyEquity: 0,
-      monthlyDebtPayments: 0,
-      monthlyRentalIncome: 0
+      currentAge: clientData?.currentAge ?? 0,
+      retirementAge: clientData?.retirementAge ?? 0,
+      currentSalary: financialStore.grossIncome ?? 0,
+      currentSuper: financialStore.superBalance ?? 0,
+      currentSavings: financialStore.cashSavings ?? 0,
+      currentShares: financialStore.investments ?? 0,
+      propertyEquity: clientData?.propertyEquity ?? 0,
+      monthlyDebtPayments: clientData?.monthlyDebtPayments ?? 0,
+      monthlyRentalIncome: clientData?.monthlyRentalIncome ?? (financialStore.rentalIncome ? financialStore.rentalIncome / 12 : 0)
     }
   });
+
+  // Watch store and client data, update form when they change
+  useEffect(() => {
+    if (!activeClient) return;
+    
+    projectionForm.reset({
+      currentAge: clientData?.currentAge ?? 0,
+      retirementAge: clientData?.retirementAge ?? 0,
+      currentSalary: financialStore.grossIncome ?? 0,
+      currentSuper: financialStore.superBalance ?? 0,
+      currentSavings: financialStore.cashSavings ?? 0,
+      currentShares: financialStore.investments ?? 0,
+      propertyEquity: clientData?.propertyEquity ?? 0,
+      monthlyDebtPayments: clientData?.monthlyDebtPayments ?? 0,
+      monthlyRentalIncome: clientData?.monthlyRentalIncome ?? (financialStore.rentalIncome ? financialStore.rentalIncome / 12 : 0)
+    });
+  }, [
+    financialStore.grossIncome,
+    financialStore.superBalance,
+    financialStore.cashSavings,
+    financialStore.investments,
+    financialStore.rentalIncome,
+    clientData?.currentAge,
+    clientData?.retirementAge,
+    clientData?.propertyEquity,
+    clientData?.monthlyDebtPayments,
+    clientData?.monthlyRentalIncome,
+    activeClient,
+    projectionForm
+  ]);
 
   const assumptionsForm = useForm<AssumptionsData>({
     resolver: zodResolver(assumptionsSchema),
     defaultValues: {
-      inflationRate: 0,
-      salaryGrowthRate: 0,
-      superReturn: 0,
-      shareReturn: 0,
-      propertyGrowthRate: 0,
-      withdrawalRate: 0,
-      rentGrowthRate: 0
+      inflationRate: clientData?.inflationRate ?? 0,
+      salaryGrowthRate: clientData?.salaryGrowthRate ?? 0,
+      superReturn: clientData?.superReturn ?? 0,
+      shareReturn: clientData?.shareReturn ?? 0,
+      propertyGrowthRate: clientData?.propertyGrowthRate ?? 0,
+      withdrawalRate: clientData?.withdrawalRate ?? 0,
+      rentGrowthRate: clientData?.rentGrowthRate ?? 0
     }
   });
+
+  // Watch client data and update assumptions form when it changes
+  useEffect(() => {
+    if (!activeClient) return;
+    
+    assumptionsForm.reset({
+      inflationRate: clientData?.inflationRate ?? 0,
+      salaryGrowthRate: clientData?.salaryGrowthRate ?? 0,
+      superReturn: clientData?.superReturn ?? 0,
+      shareReturn: clientData?.shareReturn ?? 0,
+      propertyGrowthRate: clientData?.propertyGrowthRate ?? 0,
+      withdrawalRate: clientData?.withdrawalRate ?? 0,
+      rentGrowthRate: clientData?.rentGrowthRate ?? 0
+    });
+  }, [
+    clientData?.inflationRate,
+    clientData?.salaryGrowthRate,
+    clientData?.superReturn,
+    clientData?.shareReturn,
+    clientData?.propertyGrowthRate,
+    clientData?.withdrawalRate,
+    clientData?.rentGrowthRate,
+    activeClient,
+    assumptionsForm
+  ]);
 
   const calculateProjections = () => {
     const projectionData = projectionForm.getValues();

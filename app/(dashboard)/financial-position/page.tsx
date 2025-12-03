@@ -101,11 +101,25 @@ export default function FinancialPositionPage() {
       grossSalary: store?.grossIncome ?? 0,
       rentalIncome: store?.rentalIncome ?? 0,
       dividends: 0,
-      otherIncome: 0,
-      frankedDividends: 0,
-      capitalGains: 0
+      otherIncome: store?.otherIncome ?? 0,
+      frankedDividends: store?.frankedDividends ?? 0,
+      capitalGains: store?.capitalGains ?? 0
     }
   });
+
+  // Watch store and update income form when store changes
+  useEffect(() => {
+    if (!store) return;
+    
+    incomeForm.reset({
+      grossSalary: store.grossIncome ?? 0,
+      rentalIncome: store.rentalIncome ?? 0,
+      dividends: (store.investmentIncome ?? 0) - (store.frankedDividends ?? 0),
+      otherIncome: store.otherIncome ?? 0,
+      frankedDividends: store.frankedDividends ?? 0,
+      capitalGains: store.capitalGains ?? 0
+    });
+  }, [store?.grossIncome, store?.rentalIncome, store?.investmentIncome, store?.frankedDividends, store?.otherIncome, store?.capitalGains, incomeForm]);
 
   useEffect(() => {
     if (!store) {
