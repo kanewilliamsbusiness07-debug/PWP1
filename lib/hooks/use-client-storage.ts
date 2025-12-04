@@ -77,6 +77,7 @@ export function useClientStorage(): UseClientStorageReturn {
         
         // Dispatch event to notify other components (like Account Center) that a client was updated
         if (typeof window !== 'undefined') {
+          console.log('Dispatching client-saved event for updated client:', savedClient);
           window.dispatchEvent(new CustomEvent('client-saved', { detail: savedClient }));
         }
       } else {
@@ -97,6 +98,12 @@ export function useClientStorage(): UseClientStorageReturn {
           title: 'Success',
           description: 'Client saved successfully',
         });
+        
+        // Dispatch event to notify other components (like Account Center) that a client was created
+        if (typeof window !== 'undefined') {
+          console.log('Dispatching client-saved event for new client:', savedClient);
+          window.dispatchEvent(new CustomEvent('client-saved', { detail: savedClient }));
+        }
       }
 
       // Update local state
@@ -109,11 +116,6 @@ export function useClientStorage(): UseClientStorageReturn {
         }
         return [savedClient, ...prev];
       });
-
-      // Dispatch event to notify other components (like Account Center) that a client was saved
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('client-saved', { detail: savedClient }));
-      }
 
       return savedClient;
     } catch (err) {
