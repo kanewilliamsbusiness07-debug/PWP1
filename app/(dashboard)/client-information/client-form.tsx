@@ -455,21 +455,34 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       // Ensure dob is a string (YYYY-MM-DD format) for the API
       const dobString = formatDateToString(data.dob);
       
+      // Prepare client data - only include fields that match the Prisma schema
       const clientData: any = {
-        ...data,
-        dob: dobString,
-        // Ensure all string fields are trimmed
         firstName: data.firstName?.trim() || '',
         lastName: data.lastName?.trim() || '',
-        middleName: data.middleName?.trim() || '',
-        email: data.email?.trim() || '',
-        mobile: data.mobile?.trim() || '',
-        addressLine1: data.addressLine1?.trim() || '',
-        addressLine2: data.addressLine2?.trim() || '',
-        suburb: data.suburb?.trim() || '',
-        postcode: data.postcode?.trim() || '',
-        agesOfDependants: data.agesOfDependants?.trim() || '',
+        dob: dobString,
+        maritalStatus: data.maritalStatus || 'SINGLE',
+        numberOfDependants: data.numberOfDependants || 0,
       };
+
+      // Add optional fields if they exist and are not empty
+      if (data.middleName?.trim()) clientData.middleName = data.middleName.trim();
+      if (data.email?.trim()) clientData.email = data.email.trim();
+      // Map phoneNumber to mobile (schema expects 'mobile')
+      const phoneNumber = data.mobile?.trim() || (data as any).phoneNumber?.trim();
+      if (phoneNumber) clientData.mobile = phoneNumber;
+      if (data.addressLine1?.trim()) clientData.addressLine1 = data.addressLine1.trim();
+      if (data.addressLine2?.trim()) clientData.addressLine2 = data.addressLine2.trim();
+      if (data.suburb?.trim()) clientData.suburb = data.suburb.trim();
+      if (data.state) clientData.state = data.state;
+      if (data.postcode?.trim()) clientData.postcode = data.postcode.trim();
+      if (data.ownOrRent) clientData.ownOrRent = data.ownOrRent;
+      if (data.agesOfDependants?.trim()) clientData.agesOfDependants = data.agesOfDependants.trim();
+
+      // Add financial fields that exist in the schema (all optional)
+      if (data.annualIncome !== undefined && data.annualIncome !== null) clientData.annualIncome = Number(data.annualIncome);
+      if (data.grossSalary !== undefined && data.grossSalary !== null) clientData.grossSalary = Number(data.grossSalary);
+      if (data.rentalIncome !== undefined && data.rentalIncome !== null) clientData.rentalIncome = Number(data.rentalIncome);
+      // Add other numeric financial fields as needed - only those that exist in Prisma schema
 
       console.log('Saving client data:', { ...clientData, dob: dobString ? 'provided' : 'missing' });
 
