@@ -101,11 +101,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         const clientsData = await clientsRes.json();
         // Handle both response formats: { clients: [...] } or [...]
         const clientsList = Array.isArray(clientsData) ? clientsData : (clientsData.clients || []);
-        console.log('API Response:', clientsData);
-        console.log('Clients list:', clientsList);
+        console.log('Account Center: API Response:', clientsData);
+        console.log('Account Center: Parsed clients list:', clientsList);
+        console.log('Account Center: Number of clients:', clientsList.length);
         setClients(clientsList);
         if (clientsList.length === 0) {
-          console.warn('No clients found in response');
+          console.warn('Account Center: No clients found in response');
+        } else {
+          console.log('Account Center: Successfully loaded clients:', clientsList.map(c => `${c.firstName} ${c.lastName}`));
         }
       } else {
         const errorData = await clientsRes.json().catch(() => ({}));
@@ -153,25 +156,48 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
   useEffect(() => {
     if (open) {
+      console.log('Account Center: Drawer opened, loading data...');
       loadData();
     }
   }, [open, loadData]);
 
   // Listen for client save/update events to refresh the list
   useEffect(() => {
-    const handleClientSaved = () => {
+    const handleClientSaved = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Account Center: Received client-saved event', customEvent.detail);
+      // Always refresh if drawer is open, with a small delay to ensure DB commit
       if (open) {
-        loadData();
+        console.log('Account Center: Refreshing client list...');
+        setTimeout(() => {
+          loadData();
+        }, 500); // Small delay to ensure database transaction is committed
+      } else {
+        console.log('Account Center: Drawer is closed, will refresh when opened');
+      }
+    };
+
+    const handleClientDeleted = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Account Center: Received client-deleted event', customEvent.detail);
+      if (open) {
+        console.log('Account Center: Refreshing client list after deletion...');
+        setTimeout(() => {
+          loadData();
+        }, 500);
       }
     };
 
     // Listen for custom event when clients are saved
+    // Set up listeners regardless of open state so they're ready when drawer opens
+    console.log('Account Center: Setting up event listeners');
     window.addEventListener('client-saved', handleClientSaved);
-    window.addEventListener('client-deleted', handleClientSaved);
+    window.addEventListener('client-deleted', handleClientDeleted);
 
     return () => {
+      console.log('Account Center: Cleaning up event listeners');
       window.removeEventListener('client-saved', handleClientSaved);
-      window.removeEventListener('client-deleted', handleClientSaved);
+      window.removeEventListener('client-deleted', handleClientDeleted);
     };
   }, [open, loadData]);
 
