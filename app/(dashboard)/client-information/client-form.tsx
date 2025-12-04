@@ -298,6 +298,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       try {
         const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         if (!isNaN(date.getTime())) {
+          // Store as Date object for form validation, but will convert to string on save
           form.setValue('dob', date, { shouldValidate: true });
         }
       } catch (error) {
@@ -306,6 +307,29 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     } else {
       form.setValue('dob', null, { shouldValidate: true });
     }
+  };
+
+  // Convert date to YYYY-MM-DD string format
+  const formatDateToString = (date: Date | string | null | undefined): string | null => {
+    if (!date) return null;
+    
+    let dateObj: Date;
+    if (date instanceof Date) {
+      dateObj = date;
+    } else if (typeof date === 'string') {
+      dateObj = new Date(date);
+      if (isNaN(dateObj.getTime())) {
+        return null;
+      }
+    } else {
+      return null;
+    }
+    
+    // Format as YYYY-MM-DD
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   // Load client data when it changes (only reset if client actually changed, not on every render)
@@ -407,21 +431,8 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       const clientId = (currentClient as any)?.id;
 
       // Prepare data for API - sanitize and format
-      // Ensure dob is a string (ISO format) for the API
-      let dobString: string | null = null;
-      if (data.dob) {
-        if (data.dob instanceof Date) {
-          dobString = data.dob.toISOString();
-        } else if (typeof data.dob === 'string') {
-          dobString = data.dob;
-        } else {
-          // Try to convert to Date and then to ISO string
-          const date = new Date(data.dob as any);
-          if (!isNaN(date.getTime())) {
-            dobString = date.toISOString();
-          }
-        }
-      }
+      // Ensure dob is a string (YYYY-MM-DD format) for the API
+      const dobString = formatDateToString(data.dob);
       
       const clientData: any = {
         ...data,
@@ -482,21 +493,8 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       financialStore.saveClientByName(saveName || `${formData.firstName} ${formData.lastName}`, clientSlot);
       
       // Prepare data for API
-      // Ensure dob is a string (ISO format) for the API
-      let dobString: string | null = null;
-      if (formData.dob) {
-        if (formData.dob instanceof Date) {
-          dobString = formData.dob.toISOString();
-        } else if (typeof formData.dob === 'string') {
-          dobString = formData.dob;
-        } else {
-          // Try to convert to Date and then to ISO string
-          const date = new Date(formData.dob as any);
-          if (!isNaN(date.getTime())) {
-            dobString = date.toISOString();
-          }
-        }
-      }
+      // Ensure dob is a string (YYYY-MM-DD format) for the API
+      const dobString = formatDateToString(formData.dob);
       
       const clientData: any = {
         ...formData,
@@ -665,6 +663,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
               </AlertDialog>
             )}
           </div>
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
