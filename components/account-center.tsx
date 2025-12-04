@@ -114,7 +114,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         console.log('Account Center: API Response:', clientsData);
         console.log('Account Center: Parsed clients list:', clientsList);
         console.log('Account Center: Number of clients:', clientsList.length);
-        setClients(clientsList);
+        setClients(clientsList || []);
         if (clientsList.length === 0) {
           console.warn('Account Center: No clients found in response');
         } else {
@@ -198,14 +198,11 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       const customEvent = event as CustomEvent;
       console.log('Account Center: Received client-saved event', customEvent.detail);
       // Always refresh if drawer is open, with a small delay to ensure DB commit
-      if (open) {
-        console.log('Account Center: Refreshing client list...');
-        setTimeout(() => {
-          loadData();
-        }, 500); // Small delay to ensure database transaction is committed
-      } else {
-        console.log('Account Center: Drawer is closed, will refresh when opened');
-      }
+      // Also refresh when closed so data is ready when drawer opens
+      console.log('Account Center: Refreshing client list...');
+      setTimeout(() => {
+        loadData();
+      }, 500); // Small delay to ensure database transaction is committed
     };
 
     const handleClientDeleted = (event: Event) => {
@@ -222,12 +219,21 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     const handlePdfGenerated = (event: Event) => {
       const customEvent = event as CustomEvent;
       console.log('Account Center: Received pdf-generated event', customEvent.detail);
-      if (open) {
-        console.log('Account Center: Refreshing PDF exports list...');
-        setTimeout(() => {
-          loadData();
-        }, 500);
-      }
+      // Always refresh so data is ready when drawer opens
+      console.log('Account Center: Refreshing PDF exports list...');
+      setTimeout(() => {
+        loadData();
+      }, 500);
+    };
+
+    const handleAppointmentSaved = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Account Center: Received appointment-saved event', customEvent.detail);
+      // Always refresh so data is ready when drawer opens
+      console.log('Account Center: Refreshing appointments list...');
+      setTimeout(() => {
+        loadData();
+      }, 500);
     };
 
     // Listen for custom event when clients are saved
@@ -236,12 +242,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     window.addEventListener('client-saved', handleClientSaved);
     window.addEventListener('client-deleted', handleClientDeleted);
     window.addEventListener('pdf-generated', handlePdfGenerated);
+    window.addEventListener('appointment-saved', handleAppointmentSaved);
 
     return () => {
       console.log('Account Center: Cleaning up event listeners');
       window.removeEventListener('client-saved', handleClientSaved);
       window.removeEventListener('client-deleted', handleClientDeleted);
       window.removeEventListener('pdf-generated', handlePdfGenerated);
+      window.removeEventListener('appointment-saved', handleAppointmentSaved);
     };
   }, [open, loadData]);
 
@@ -517,6 +525,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
       if (response.ok) {
         const appointment = await response.json();
+        
+        // Dispatch event to notify other components
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('appointment-saved', { detail: appointment }));
+        }
+        
         // Refresh appointments list
         await loadData();
         toast({
