@@ -1,26 +1,70 @@
 'use client';
 
 import * as React from 'react';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useFinancialStore } from '@/lib/store/store';
 import { useAuth } from '@/hooks/use-auth';
+import { useClientStorage } from '@/lib/hooks/use-client-storage';
 import { ClientSelector } from '@/components/client-selector';
 import { ClientForm } from './client-form';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export function ClientPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading } = useAuth();
   const financialStore = useFinancialStore();
+  const { loadClient } = useClientStorage();
+  const { toast } = useToast();
+  const [isLoadingClient, setIsLoadingClient] = useState(false);
 
   useEffect(() => {
     if (!user && !loading) {
       router.push('/auth/login');
     }
   }, [user, loading, router]);
+
+  // Load client from query parameter
+  useEffect(() => {
+    const loadClientId = searchParams?.get('load');
+    if (loadClientId && user && !isLoadingClient) {
+      setIsLoadingClient(true);
+      loadClient(loadClientId)
+        .then((client) => {
+          if (client) {
+            // Load client into slot A
+            financialStore.setClientData('A', {
+              ...client,
+              dateOfBirth: client.dob ? (typeof client.dob === 'string' ? new Date(client.dob) : client.dob) : undefined,
+            } as any);
+            financialStore.setActiveClient('A');
+            
+            // Remove query parameter from URL
+            router.replace('/client-information');
+            
+            toast({
+              title: 'Client loaded',
+              description: `Loaded ${client.firstName} ${client.lastName}`
+            });
+          }
+        })
+        .catch((error) => {
+          console.error('Error loading client:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to load client',
+            variant: 'destructive'
+          });
+        })
+        .finally(() => {
+          setIsLoadingClient(false);
+        });
+    }
+  }, [searchParams, user, loadClient, financialStore, router, toast, isLoadingClient]);
 
   // Handle creating a new client
   const handleNewClient = () => {

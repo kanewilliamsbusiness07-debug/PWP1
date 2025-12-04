@@ -133,14 +133,34 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         const appointmentsData = await appointmentsRes.json();
         setAppointments(appointmentsData.appointments || []);
       } else {
-        console.error('Error loading appointments:', appointmentsRes.status);
+        const errorData = await appointmentsRes.json().catch(() => ({}));
+        console.error('Error loading appointments:', appointmentsRes.status, errorData);
+        setAppointments([]);
+        if (appointmentsRes.status !== 401) {
+          // Don't show toast for 401 as it's already shown for clients
+          toast({
+            title: 'Error Loading Appointments',
+            description: errorData.error || 'Failed to load appointments',
+            variant: 'destructive'
+          });
+        }
       }
 
       if (exportsRes.ok) {
         const exportsData = await exportsRes.json();
         setPdfExports(exportsData.exports || []);
       } else {
-        console.error('Error loading PDF exports:', exportsRes.status);
+        const errorData = await exportsRes.json().catch(() => ({}));
+        console.error('Error loading PDF exports:', exportsRes.status, errorData);
+        setPdfExports([]);
+        if (exportsRes.status !== 401) {
+          // Don't show toast for 401 as it's already shown for clients
+          toast({
+            title: 'Error Loading PDFs',
+            description: errorData.error || 'Failed to load PDF exports',
+            variant: 'destructive'
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -225,13 +245,19 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     }
 
     try {
-      const response = await fetch('/api/clients/email', {
+      // Use the send-summary endpoint with minimal data
+      const response = await fetch('/api/email/send-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          clientEmail: client.email,
           clientId: client.id,
-          template: 'general-inquiry',
-          subject: 'Follow-up from FinCalc Pro'
+          clientName: `${client.firstName} ${client.lastName}`,
+          subject: 'Follow-up from Perpetual Wealth Partners',
+          message: 'This is a follow-up email from your financial advisor.',
+          summaryData: {
+            clientName: `${client.firstName} ${client.lastName}`
+          }
         })
       });
 
@@ -241,12 +267,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           description: `Email sent to ${client.firstName} ${client.lastName}`
         });
       } else {
-        throw new Error('Failed to send email');
+        const error = await response.json().catch(() => ({ error: 'Failed to send email' }));
+        throw new Error(error.error || 'Failed to send email');
       }
     } catch (error) {
+      console.error('Error sending email:', error);
       toast({
         title: 'Error',
-        description: 'Failed to send email',
+        description: error instanceof Error ? error.message : 'Failed to send email',
         variant: 'destructive'
       });
     }
@@ -348,18 +376,24 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         const a = document.createElement('a');
         a.href = url;
         a.download = pdf.fileName;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         
         toast({
           title: 'PDF downloaded',
           description: `Downloaded ${pdf.fileName}`
         });
+      } else {
+        const error = await response.json().catch(() => ({ error: 'Failed to download PDF' }));
+        throw new Error(error.error || 'Failed to download PDF');
       }
     } catch (error) {
+      console.error('Error downloading PDF:', error);
       toast({
         title: 'Error',
-        description: 'Failed to download PDF',
+        description: error instanceof Error ? error.message : 'Failed to download PDF',
         variant: 'destructive'
       });
     }
@@ -388,16 +422,27 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         });
 
         if (response.ok) {
-          setClients(clients.filter(c => c.id !== client.id));
+          // Dispatch event to notify other components
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id: client.id } }));
+          }
+          
+          // Refresh the list
+          await loadData();
+          
           toast({
             title: 'Client deleted',
             description: `${client.firstName} ${client.lastName} has been deleted`
           });
+        } else {
+          const error = await response.json().catch(() => ({ error: 'Failed to delete client' }));
+          throw new Error(error.error || 'Failed to delete client');
         }
       } catch (error) {
+        console.error('Error deleting client:', error);
         toast({
           title: 'Error',
-          description: 'Failed to delete client',
+          description: error instanceof Error ? error.message : 'Failed to delete client',
           variant: 'destructive'
         });
       }
@@ -499,7 +544,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                   className="h-6 w-6 p-0 border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    window.open(`/client-information?load=${client.id}`, '_blank');
+                                    window.location.href = `/client-information?load=${client.id}`;
                                   }}
                                 >
                                   <Eye className="h-3 w-3" />

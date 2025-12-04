@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -66,43 +66,154 @@ export default function SummaryPage() {
   const { user } = useAuth();
   const financialStore = useFinancialStore();
 
+  // Get active client for email pre-fill
+  const activeClientForEmail = financialStore.activeClient 
+    ? financialStore[`client${financialStore.activeClient}` as keyof typeof financialStore] as any
+    : null;
+
   const emailForm = useForm<EmailData>({
     resolver: zodResolver(emailSchema),
     defaultValues: {
-      recipientEmail: '',
+      recipientEmail: activeClientForEmail?.email || '',
       subject: 'Your Financial Planning Report - Perpetual Wealth Partners',
       message: 'Please find attached your comprehensive financial planning report. If you have any questions, please don\'t hesitate to contact us.'
     }
   });
 
-  // Mock data - in real app this would come from state/API
-  const summary: FinancialSummary = {
-    clientName: 'John & Jane Smith',
-    totalAssets: 1250000,
-    totalLiabilities: 450000,
-    netWorth: 800000,
-    monthlyIncome: 12000,
-    monthlyExpenses: 8500,
-    monthlyCashFlow: 3500,
-    projectedRetirementLumpSum: 2800000,
-    retirementDeficitSurplus: -850,
-    isRetirementDeficit: true,
-    yearsToRetirement: 25,
-    currentTax: 28500,
-    optimizedTax: 24200,
-    taxSavings: 4300,
-    investmentProperties: 2,
-    totalPropertyValue: 1400000,
-    totalPropertyDebt: 680000,
-    propertyEquity: 720000,
-    recommendations: [
-      'Increase superannuation contributions through salary sacrifice',
-      'Consider additional investment property for negative gearing benefits',
-      'Maximize work-related tax deductions',
-      'Review and optimize investment portfolio allocation',
-      'Consider private health insurance to avoid Medicare Levy Surcharge'
-    ]
+  // Update email when client changes
+  useEffect(() => {
+    if (activeClientForEmail?.email) {
+      emailForm.setValue('recipientEmail', activeClientForEmail.email);
+    }
+  }, [activeClientForEmail?.email, emailForm]);
+
+  // Calculate summary from real financial store data
+  const activeClient = financialStore.activeClient 
+    ? financialStore[`client${financialStore.activeClient}` as keyof typeof financialStore] as any
+    : null;
+
+  // Calculate totals from store and client data
+  const calculateSummary = (): FinancialSummary => {
+    const client = activeClient;
+    const clientName = client 
+      ? `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Client'
+      : 'No Client Selected';
+
+    // Calculate assets
+    const homeValue = client?.homeValue || 0;
+    const investment1Value = client?.investment1Value || 0;
+    const investment2Value = client?.investment2Value || 0;
+    const investment3Value = client?.investment3Value || 0;
+    const investment4Value = client?.investment4Value || 0;
+    const vehicleValue = client?.vehicleValue || 0;
+    const savingsValue = client?.savingsValue || client?.currentSavings || financialStore.cashSavings || 0;
+    const homeContentsValue = client?.homeContentsValue || 0;
+    const superFundValue = client?.superFundValue || client?.currentSuper || financialStore.superBalance || 0;
+    const sharesValue = client?.sharesTotalValue || client?.currentShares || financialStore.investments || 0;
+    
+    const totalAssets = homeValue + investment1Value + investment2Value + investment3Value + investment4Value +
+      vehicleValue + savingsValue + homeContentsValue + superFundValue + sharesValue;
+
+    // Calculate liabilities
+    const homeBalance = client?.homeBalance || 0;
+    const investment1Balance = client?.investment1Balance || 0;
+    const investment2Balance = client?.investment2Balance || 0;
+    const investment3Balance = client?.investment3Balance || 0;
+    const investment4Balance = client?.investment4Balance || 0;
+    const creditCardBalance = client?.creditCardBalance || 0;
+    const personalLoanBalance = client?.personalLoanBalance || 0;
+    const hecsBalance = client?.hecsBalance || client?.helpDebt || 0;
+    
+    const totalLiabilities = homeBalance + investment1Balance + investment2Balance + investment3Balance + 
+      investment4Balance + creditCardBalance + personalLoanBalance + hecsBalance;
+
+    const netWorth = totalAssets - totalLiabilities;
+
+    // Calculate income (annual, convert to monthly)
+    const annualIncome = financialStore.grossIncome || financialStore.employmentIncome || client?.annualIncome || client?.grossSalary || 0;
+    const rentalIncome = financialStore.rentalIncome || client?.rentalIncome || 0;
+    const investmentIncome = financialStore.investmentIncome || client?.dividends || 0;
+    const otherIncome = financialStore.otherIncome || client?.otherIncome || 0;
+    const totalAnnualIncome = annualIncome + rentalIncome + investmentIncome + otherIncome;
+    const monthlyIncome = totalAnnualIncome / 12;
+
+    // Calculate expenses (annual, convert to monthly)
+    const workExpenses = financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0;
+    const investmentExpenses = financialStore.investmentExpenses || client?.investmentExpenses || 0;
+    const rentalExpenses = financialStore.rentalExpenses || client?.rentalExpenses || 0;
+    const vehicleExpenses = client?.vehicleExpenses || 0;
+    const homeOfficeExpenses = client?.homeOfficeExpenses || 0;
+    const totalAnnualExpenses = workExpenses + investmentExpenses + rentalExpenses + vehicleExpenses + homeOfficeExpenses;
+    const monthlyExpenses = totalAnnualExpenses / 12;
+
+    const monthlyCashFlow = monthlyIncome - monthlyExpenses;
+
+    // Property calculations
+    const investmentProperties = [investment1Value, investment2Value, investment3Value, investment4Value]
+      .filter(v => v > 0).length;
+    const totalPropertyValue = homeValue + investment1Value + investment2Value + investment3Value + investment4Value;
+    const totalPropertyDebt = homeBalance + investment1Balance + investment2Balance + investment3Balance + investment4Balance;
+    const propertyEquity = totalPropertyValue - totalPropertyDebt;
+
+    // Retirement calculations (simplified)
+    const currentAge = client?.currentAge || 35;
+    const retirementAge = client?.retirementAge || 65;
+    const yearsToRetirement = Math.max(0, retirementAge - currentAge);
+    const projectedRetirementLumpSum = superFundValue * Math.pow(1.07, yearsToRetirement); // 7% growth assumption
+    const retirementDeficitSurplus = monthlyCashFlow; // Simplified
+    const isRetirementDeficit = retirementDeficitSurplus < 0;
+
+    // Tax calculations (simplified - would need actual tax calculation)
+    const taxableIncome = totalAnnualIncome - totalAnnualExpenses;
+    const currentTax = Math.max(0, taxableIncome * 0.30); // Simplified 30% rate
+    const optimizedTax = Math.max(0, taxableIncome * 0.25); // Simplified optimization
+    const taxSavings = currentTax - optimizedTax;
+
+    // Generate recommendations
+    const recommendations: string[] = [];
+    if (superFundValue < totalAnnualIncome * 2) {
+      recommendations.push('Increase superannuation contributions through salary sacrifice');
+    }
+    if (monthlyCashFlow > 0 && investmentProperties < 2) {
+      recommendations.push('Consider additional investment property for negative gearing benefits');
+    }
+    if (workExpenses < annualIncome * 0.05) {
+      recommendations.push('Maximize work-related tax deductions');
+    }
+    if (sharesValue < totalAssets * 0.2) {
+      recommendations.push('Review and optimize investment portfolio allocation');
+    }
+    if (!client?.privateHealthInsurance && annualIncome > 90000) {
+      recommendations.push('Consider private health insurance to avoid Medicare Levy Surcharge');
+    }
+    if (recommendations.length === 0) {
+      recommendations.push('Continue current financial strategy');
+    }
+
+    return {
+      clientName,
+      totalAssets,
+      totalLiabilities,
+      netWorth,
+      monthlyIncome,
+      monthlyExpenses,
+      monthlyCashFlow,
+      projectedRetirementLumpSum,
+      retirementDeficitSurplus,
+      isRetirementDeficit,
+      yearsToRetirement,
+      currentTax,
+      optimizedTax,
+      taxSavings,
+      investmentProperties,
+      totalPropertyValue,
+      totalPropertyDebt,
+      propertyEquity,
+      recommendations
+    };
   };
+
+  const summary = calculateSummary();
 
   const generatePDF = async (attachToEmail = false): Promise<string | null> => {
     setIsGeneratingPDF(true);
@@ -369,12 +480,36 @@ export default function SummaryPage() {
     }
   };
 
+  // Show message if no client is selected
+  if (!activeClient) {
+    return (
+      <div className="p-6 space-y-6 bg-background min-h-screen flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle className="text-foreground">No Client Selected</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Please select or create a client to view the financial planning summary.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => window.location.href = '/client-information'}
+              className="w-full bg-yellow-500 text-white hover:bg-yellow-600"
+            >
+              Go to Client Information
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6 bg-background min-h-screen" id="summary-content" ref={summaryContentRef}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Financial Planning Summary</h1>
-          <p className="text-muted-foreground">Comprehensive overview and export options</p>
+          <p className="text-muted-foreground">Comprehensive overview and export options for {summary.clientName}</p>
         </div>        <div className="flex gap-2">
           <Button variant="outline" onClick={shareReport}>
             <Share2 className="h-4 w-4 mr-2" />
