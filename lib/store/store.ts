@@ -173,6 +173,7 @@ interface ClientData {
   propertyEquity?: number;
   monthlyDebtPayments?: number;
   monthlyRentalIncome?: number;
+  monthlyExpenses?: number;
   
   // Projection Assumptions
   inflationRate?: number;
