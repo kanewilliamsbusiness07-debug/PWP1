@@ -126,8 +126,18 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
             clientsList = Array.isArray(clientsData.clients) ? clientsData.clients : [];
           }
           
-          // Validate client data structure
-          clientsList = clientsList.filter((c: any) => c && c.id && c.firstName && c.lastName);
+          // Validate client data structure - ensure all required fields exist
+          clientsList = clientsList.filter((c: any) => {
+            if (!c || !c.id || !c.firstName || !c.lastName) {
+              console.warn('Account Center: Invalid client data:', c);
+              return false;
+            }
+            // Ensure updatedAt exists, default to createdAt if missing
+            if (!c.updatedAt && c.createdAt) {
+              c.updatedAt = c.createdAt;
+            }
+            return true;
+          });
           
           console.log('Account Center: Parsed and validated clients list:', clientsList);
           console.log('Account Center: Number of clients:', clientsList.length);
@@ -140,7 +150,13 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
             console.log('Account Center: Successfully loaded clients:', clientsList.map((c: Client) => `${c.firstName} ${c.lastName}`));
           }
         } else {
-          const errorData = await clientsRes.json().catch(() => ({}));
+          const errorText = await clientsRes.text();
+          let errorData = {};
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: errorText || 'Unknown error' };
+          }
           console.error('Error loading clients:', clientsRes.status, errorData);
           setClients([]);
           if (clientsRes.status === 401) {
@@ -152,7 +168,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           } else {
             toast({
               title: 'Error Loading Clients',
-              description: errorData.error || `Failed to load clients (${clientsRes.status})`,
+              description: (errorData as any).error || `Failed to load clients (${clientsRes.status})`,
               variant: 'destructive'
             });
           }
@@ -162,7 +178,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         setClients([]);
         toast({
           title: 'Error',
-          description: 'Failed to fetch clients. Please try again.',
+          description: error instanceof Error ? error.message : 'Failed to fetch clients. Please try again.',
           variant: 'destructive'
         });
       }
@@ -284,15 +300,13 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   useEffect(() => {
     if (open) {
       console.log('Account Center: Drawer opened, loading data...');
-      // Always reload data when drawer opens - use a small delay to ensure component is mounted
-      const timer = setTimeout(() => {
-        loadData();
-      }, 100);
-      return () => clearTimeout(timer);
+      // Always reload data when drawer opens
+      loadData();
     } else {
       console.log('Account Center: Drawer closed');
     }
-  }, [open, loadData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Listen for client save/update events to refresh the list
   useEffect(() => {
@@ -353,7 +367,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       window.removeEventListener('pdf-generated', handlePdfGenerated);
       window.removeEventListener('appointment-saved', handleAppointmentSaved);
     };
-  }, [open, loadData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleGeneratePDF = async (client: Client) => {
     setIsGeneratingPDF(client.id);
@@ -647,6 +662,9 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           window.dispatchEvent(new CustomEvent('appointment-saved', { detail: appointment }));
         }
         
+        // Save the editing state before resetting
+        const wasEditing = isEditingAppointment;
+        
         // Reset form first
         setAppointmentClientId('');
         setAppointmentTitle('');
@@ -663,8 +681,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         await loadData();
         
         toast({
-          title: isEditingAppointment ? 'Appointment updated' : 'Appointment scheduled',
-          description: `Appointment with ${appointment.client?.firstName || 'client'} ${appointment.client?.lastName || ''} has been ${isEditingAppointment ? 'updated' : 'scheduled'}`
+          title: wasEditing ? 'Appointment updated' : 'Appointment scheduled',
+          description: `Appointment with ${appointment.client?.firstName || 'client'} ${appointment.client?.lastName || ''} has been ${wasEditing ? 'updated' : 'scheduled'}`
         });
       } else {
         const error = await response.json();
