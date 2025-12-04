@@ -88,30 +88,6 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (open) {
-      loadData();
-    }
-  }, [open, loadData]);
-
-  // Listen for client save/update events to refresh the list
-  useEffect(() => {
-    const handleClientSaved = () => {
-      if (open) {
-        loadData();
-      }
-    };
-
-    // Listen for custom event when clients are saved
-    window.addEventListener('client-saved', handleClientSaved);
-    window.addEventListener('client-deleted', handleClientSaved);
-
-    return () => {
-      window.removeEventListener('client-saved', handleClientSaved);
-      window.removeEventListener('client-deleted', handleClientSaved);
-    };
-  }, [open, loadData]);
-
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -174,6 +150,30 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       setLoading(false);
     }
   }, [toast]);
+
+  useEffect(() => {
+    if (open) {
+      loadData();
+    }
+  }, [open, loadData]);
+
+  // Listen for client save/update events to refresh the list
+  useEffect(() => {
+    const handleClientSaved = () => {
+      if (open) {
+        loadData();
+      }
+    };
+
+    // Listen for custom event when clients are saved
+    window.addEventListener('client-saved', handleClientSaved);
+    window.addEventListener('client-deleted', handleClientSaved);
+
+    return () => {
+      window.removeEventListener('client-saved', handleClientSaved);
+      window.removeEventListener('client-deleted', handleClientSaved);
+    };
+  }, [open, loadData]);
 
   const handleEmailClient = async (client: Client) => {
     if (!client.email) {
