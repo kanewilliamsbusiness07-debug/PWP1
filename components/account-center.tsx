@@ -448,7 +448,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     handleOpenEmailDialog(client);
   };
 
-  const handleScheduleAppointment = () => {
+  const handleScheduleAppointment = (clientId?: string) => {
     if (clients.length === 0) {
       toast({
         title: 'No Clients Available',
@@ -459,7 +459,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     }
     setIsEditingAppointment(false);
     setSelectedAppointment(null);
-    setAppointmentClientId('');
+    setAppointmentClientId(clientId || '');
     setAppointmentTitle('');
     setAppointmentDescription('');
     setAppointmentDate(undefined);
@@ -943,6 +943,18 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                               </div>
                               
                               <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 w-6 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleScheduleAppointment(client.id);
+                                  }}
+                                  title="Schedule Appointment"
+                                >
+                                  <CalendarIcon className="h-3 w-3" />
+                                </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
