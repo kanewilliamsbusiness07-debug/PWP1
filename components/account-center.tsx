@@ -103,9 +103,24 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     try {
       console.log('Account Center: Starting to load data...');
       const [clientsRes, appointmentsRes, exportsRes] = await Promise.all([
-        fetch('/api/clients?limit=50'),
-        fetch('/api/appointments?limit=20'),
-        fetch('/api/pdf-exports?limit=20')
+        fetch('/api/clients?limit=50', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }),
+        fetch('/api/appointments?limit=20', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }),
+        fetch('/api/pdf-exports?limit=20', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
       ]);
 
       console.log('Account Center: API responses received', {
@@ -202,8 +217,11 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   useEffect(() => {
     if (open) {
       console.log('Account Center: Drawer opened, loading data...');
-      // Always reload data when drawer opens
-      loadData();
+      // Always reload data when drawer opens - use a small delay to ensure component is mounted
+      const timer = setTimeout(() => {
+        loadData();
+      }, 100);
+      return () => clearTimeout(timer);
     } else {
       console.log('Account Center: Drawer closed');
     }
@@ -321,6 +339,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       // Send email via API with optional PDF attachment
       const response = await fetch('/api/email/send-summary', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientEmail: selectedClientForEmail.email,
@@ -407,11 +426,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     }
 
     try {
-      const response = await fetch(`/api/appointments/${appointment.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'CANCELLED' })
-      });
+        const response = await fetch(`/api/appointments/${appointment.id}`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'CANCELLED' })
+        });
 
       if (response.ok) {
         await loadData();
@@ -442,7 +462,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
     try {
       const response = await fetch(`/api/appointments/${appointment.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -471,6 +492,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     try {
       const response = await fetch(`/api/appointments/${appointment.id}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'COMPLETED' })
       });
@@ -537,6 +559,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
       const response = await fetch(url, {
         method,
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId: appointmentClientId,
@@ -596,7 +619,9 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
   const handleDownloadPDF = async (pdf: PdfExport) => {
     try {
-      const response = await fetch(`/api/pdf-exports/${pdf.id}/download`);
+      const response = await fetch(`/api/pdf-exports/${pdf.id}/download`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -645,7 +670,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     if (confirm(`Are you sure you want to delete ${client.firstName} ${client.lastName}?`)) {
       try {
         const response = await fetch(`/api/clients/${client.id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          credentials: 'include'
         });
 
         if (response.ok) {
@@ -732,11 +758,25 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           </SheetHeader>
 
           <div className="mt-6">
+            {/* Debug info - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
+                <p>Clients: {clients.length} | Appointments: {appointments.length} | PDFs: {pdfExports.length}</p>
+                <p>Loading: {loading ? 'Yes' : 'No'}</p>
+              </div>
+            )}
+            
             <Tabs defaultValue="clients" className="space-y-4">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="clients" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">Clients</TabsTrigger>
-                <TabsTrigger value="appointments" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">Appointments</TabsTrigger>
-                <TabsTrigger value="exports" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">PDFs</TabsTrigger>
+                <TabsTrigger value="clients" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
+                  Clients {clients.length > 0 && `(${clients.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="appointments" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
+                  Appointments {appointments.length > 0 && `(${appointments.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="exports" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
+                  PDFs {pdfExports.length > 0 && `(${pdfExports.length})`}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="clients" className="space-y-4">
@@ -764,17 +804,28 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {loading ? (
                     <div className="text-center py-8 text-gray-600">
+                      <Clock className="h-8 w-8 mx-auto mb-2 animate-spin text-yellow-500" />
                       <p className="text-sm">Loading clients...</p>
                     </div>
                   ) : filteredClients.length === 0 ? (
                     <div className="text-center py-8 text-gray-600">
-                      <p className="text-sm">
+                      <p className="text-sm font-medium mb-2">
                         {searchTerm ? 'No clients match your search' : clients.length === 0 ? 'No clients saved yet' : 'No clients match your search'}
                       </p>
                       {clients.length === 0 && (
-                        <p className="text-xs text-gray-500 mt-2">
-                          Save a client from the Client Information page to see them here
-                        </p>
+                        <>
+                          <p className="text-xs text-gray-500 mt-2 mb-4">
+                            Save a client from the Client Information page to see them here
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.location.href = '/client-information'}
+                            className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                          >
+                            Go to Client Information
+                          </Button>
+                        </>
                       )}
                     </div>
                   ) : (
@@ -946,6 +997,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {loading ? (
                     <div className="text-center py-8 text-gray-600">
+                      <Clock className="h-8 w-8 mx-auto mb-2 animate-spin text-yellow-500" />
                       <p className="text-sm">Loading appointments...</p>
                     </div>
                   ) : filteredAppointments.length === 0 ? (
@@ -1030,12 +1082,16 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {loading ? (
                     <div className="text-center py-8 text-gray-600">
+                      <Clock className="h-8 w-8 mx-auto mb-2 animate-spin text-yellow-500" />
                       <p className="text-sm">Loading PDFs...</p>
                     </div>
                   ) : recentPDFs.length === 0 ? (
                     <div className="text-center py-8 text-gray-600">
                       <FileText className="h-8 w-8 mx-auto mb-2 opacity-50 text-gray-400" />
-                      <p className="text-sm">No PDF exports yet</p>
+                      <p className="text-sm font-medium mb-2">No PDF exports yet</p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Generate a PDF from the Summary page to see it here
+                      </p>
                     </div>
                   ) : (
                     recentPDFs.map((pdf) => (
