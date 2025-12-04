@@ -30,7 +30,8 @@ const projectionSchema = z.object({
   currentShares: z.number().min(0),
   propertyEquity: z.number().min(0),
   monthlyDebtPayments: z.number().min(0),
-  monthlyRentalIncome: z.number().min(0)
+  monthlyRentalIncome: z.number().min(0),
+  monthlyExpenses: z.number().min(0)
 });
 
 const assumptionsSchema = z.object({
@@ -54,6 +55,9 @@ interface ProjectionResults {
   monthlyDeficitSurplus: number;
   isDeficit: boolean;
   savingsDepletionYears?: number;
+  monthlySavings: number;
+  afterTaxIncome: number;
+  totalTax: number;
 }
 
 export default function ProjectionsPage() {
@@ -84,7 +88,8 @@ export default function ProjectionsPage() {
       currentShares: investments ?? 0,
       propertyEquity: clientData?.propertyEquity ?? 0,
       monthlyDebtPayments: clientData?.monthlyDebtPayments ?? 0,
-      monthlyRentalIncome: clientData?.monthlyRentalIncome ?? (rentalIncome ? rentalIncome / 12 : 0)
+      monthlyRentalIncome: clientData?.monthlyRentalIncome ?? (rentalIncome ? rentalIncome / 12 : 0),
+      monthlyExpenses: clientData?.monthlyExpenses ?? 0
     }
   });
 
@@ -127,6 +132,9 @@ export default function ProjectionsPage() {
     if (currentValues.monthlyDebtPayments !== (clientData?.monthlyDebtPayments ?? 0)) {
       projectionForm.setValue('monthlyDebtPayments', clientData?.monthlyDebtPayments ?? 0, { shouldDirty: false });
     }
+    if (currentValues.monthlyExpenses !== (clientData?.monthlyExpenses ?? 0)) {
+      projectionForm.setValue('monthlyExpenses', clientData?.monthlyExpenses ?? 0, { shouldDirty: false });
+    }
   }, [
     grossIncome,
     superBalance,
@@ -138,6 +146,7 @@ export default function ProjectionsPage() {
     clientData?.propertyEquity,
     clientData?.monthlyDebtPayments,
     clientData?.monthlyRentalIncome,
+    clientData?.monthlyExpenses,
     activeClient,
     projectionForm
   ]);
@@ -195,6 +204,40 @@ export default function ProjectionsPage() {
     assumptionsForm
   ]);
 
+  // Australian tax calculation functions
+  const taxBrackets = [
+    { min: 0, max: 18200, rate: 0, baseAmount: 0 },
+    { min: 18201, max: 45000, rate: 0.19, baseAmount: 0 },
+    { min: 45001, max: 120000, rate: 0.325, baseAmount: 5092 },
+    { min: 120001, max: 180000, rate: 0.37, baseAmount: 29467 },
+    { min: 180001, max: Infinity, rate: 0.45, baseAmount: 51667 }
+  ];
+
+  const calculateIncomeTax = (taxableIncome: number): number => {
+    if (taxableIncome <= 0) return 0;
+    for (let i = taxBrackets.length - 1; i >= 0; i--) {
+      const bracket = taxBrackets[i];
+      if (taxableIncome >= bracket.min) {
+        const taxableInBracket = taxableIncome - bracket.min;
+        return bracket.baseAmount + (taxableInBracket * bracket.rate);
+      }
+    }
+    return 0;
+  };
+
+  const calculateMedicareLevy = (taxableIncome: number): number => {
+    if (taxableIncome <= 24276) return 0;
+    return taxableIncome * 0.02; // 2% Medicare Levy
+  };
+
+  const calculateTax = (annualIncome: number): { incomeTax: number; medicareLevy: number; totalTax: number; afterTaxIncome: number } => {
+    const incomeTax = calculateIncomeTax(annualIncome);
+    const medicareLevy = calculateMedicareLevy(annualIncome);
+    const totalTax = incomeTax + medicareLevy;
+    const afterTaxIncome = annualIncome - totalTax;
+    return { incomeTax, medicareLevy, totalTax, afterTaxIncome };
+  };
+
   const calculateProjections = () => {
     const projectionData = projectionForm.getValues();
     const assumptions = assumptionsForm.getValues();
@@ -215,6 +258,14 @@ export default function ProjectionsPage() {
         return;
       }
       
+      // Calculate tax on annual income
+      const taxResult = calculateTax(projectionData.annualIncome);
+      const afterTaxIncome = taxResult.afterTaxIncome;
+      const monthlyAfterTaxIncome = afterTaxIncome / 12;
+      
+      // Calculate monthly savings = after-tax income - monthly expenses
+      const monthlySavings = monthlyAfterTaxIncome - projectionData.monthlyExpenses;
+      
       // Calculate real growth rates (nominal - inflation)
       const realSuperReturn = (assumptions.superReturn / 100) - (assumptions.inflationRate / 100);
       const realShareReturn = (assumptions.shareReturn / 100) - (assumptions.inflationRate / 100);
@@ -231,14 +282,9 @@ export default function ProjectionsPage() {
       const projectedSuper = projectionData.currentSuper * superGrowthFactor;
       const projectedShares = projectionData.currentShares * shareGrowthFactor;
       const projectedProperty = projectionData.propertyEquity * propertyGrowthFactor;
-      const projectedSavings = projectionData.currentSavings * savingsGrowthFactor;
+      const projectedCurrentSavings = projectionData.currentSavings * savingsGrowthFactor;
       
-      // Add future super contributions (assuming 11.5% employer contribution + any salary sacrifice)
-      // Calculate salary growth
-      const salaryGrowthFactor = Math.pow(1 + assumptions.salaryGrowthRate / 100, yearsToRetirement);
-      const finalSalary = projectionData.annualIncome * salaryGrowthFactor;
-      
-      // Calculate total super contributions over years (simplified - assumes constant contribution rate)
+      // Add future super contributions (assuming 11.5% employer contribution)
       const superContributionRate = 0.115; // 11.5% employer contribution
       let totalSuperContributions = 0;
       for (let year = 0; year < yearsToRetirement; year++) {
@@ -250,6 +296,31 @@ export default function ProjectionsPage() {
       }
       
       const totalProjectedSuper = projectedSuper + totalSuperContributions;
+      
+      // Add future monthly savings contributions
+      // Calculate future value of monthly savings contributions with compound growth
+      let totalSavingsContributions = 0;
+      if (monthlySavings > 0) {
+        const monthlyRate = realSavingsReturn / 12;
+        const totalMonths = yearsToRetirement * 12;
+        
+        // Simplified calculation: assume monthly savings grow with salary growth rate
+        // Use future value of annuity formula with growth: FV = PMT * [((1+r)^n - (1+g)^n) / (r-g)]
+        // Where r = monthly return rate, g = monthly growth rate, n = number of months
+        const monthlyGrowthRate = assumptions.salaryGrowthRate / 100 / 12;
+        
+        if (Math.abs(monthlyRate - monthlyGrowthRate) < 0.0001) {
+          // If rates are equal, use simplified formula
+          totalSavingsContributions = monthlySavings * totalMonths * Math.pow(1 + monthlyRate, totalMonths);
+        } else {
+          // Standard formula with different growth and return rates
+          const numerator = Math.pow(1 + monthlyRate, totalMonths) - Math.pow(1 + monthlyGrowthRate, totalMonths);
+          const denominator = monthlyRate - monthlyGrowthRate;
+          totalSavingsContributions = monthlySavings * (numerator / denominator);
+        }
+      }
+      
+      const projectedSavings = projectedCurrentSavings + totalSavingsContributions;
       
       // Calculate total projected lump sum
       const projectedLumpSum = totalProjectedSuper + projectedShares + projectedProperty + projectedSavings;
@@ -265,9 +336,8 @@ export default function ProjectionsPage() {
       
       const projectedPassiveIncome = withdrawalIncome + projectedRentalIncome;
       
-      // Calculate required income (70% of current salary adjusted for inflation)
-      const inflationFactor = Math.pow(1 + assumptions.inflationRate / 100, yearsToRetirement);
-      const requiredIncome = (projectionData.annualIncome * 0.7) * inflationFactor;
+      // Calculate required income (70% of current annual income - NOT adjusted for inflation)
+      const requiredIncome = projectionData.annualIncome * 0.7;
       
       // Calculate deficit/surplus
       const annualDebtPayments = projectionData.monthlyDebtPayments * 12;
@@ -289,7 +359,10 @@ export default function ProjectionsPage() {
         requiredIncome,
         monthlyDeficitSurplus,
         isDeficit,
-        savingsDepletionYears
+        savingsDepletionYears,
+        monthlySavings,
+        afterTaxIncome,
+        totalTax: taxResult.totalTax
       };
       
       setResults(calculatedResults);
@@ -517,6 +590,28 @@ export default function ProjectionsPage() {
                             </FormItem>
                           )}
                         />
+
+                        <FormField
+                          control={projectionForm.control}
+                          name="monthlyExpenses"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Monthly Expenses</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="text"
+                                  placeholder="5000"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                              <p className="text-xs text-muted-foreground">
+                                Total monthly living expenses (after tax)
+                              </p>
+                            </FormItem>
+                          )}
+                        />
                       </div>
                     </form>
                   </Form>
@@ -734,6 +829,27 @@ export default function ProjectionsPage() {
                       <span className="text-muted-foreground">Required Income (70%):</span>
                       <span className="font-semibold">
                         ${results.requiredIncome.toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <span className="text-muted-foreground">After-Tax Income:</span>
+                      <span className="font-semibold text-blue-600">
+                        ${results.afterTaxIncome.toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total Tax:</span>
+                      <span className="font-semibold text-red-600">
+                        ${results.totalTax.toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Monthly Savings:</span>
+                      <span className={`font-semibold ${results.monthlySavings >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
+                        ${results.monthlySavings.toLocaleString()}
                       </span>
                     </div>
                   </div>
