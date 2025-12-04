@@ -385,7 +385,7 @@ export default function SummaryPage() {
             Print
           </Button>
           <Button 
-            onClick={generatePDF}
+            onClick={() => generatePDF(false)}
             disabled={isGeneratingPDF}
             className="bg-yellow-500 text-white hover:bg-yellow-600"
           >
@@ -745,7 +745,7 @@ export default function SummaryPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <Button 
-                onClick={generatePDF}
+                onClick={() => generatePDF(false)}
                 disabled={isGeneratingPDF}
                 className="w-full bg-blue-500 text-white hover:bg-blue-600"
               >
