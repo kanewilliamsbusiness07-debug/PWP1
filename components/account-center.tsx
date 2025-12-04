@@ -72,6 +72,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   const [pdfExports, setPdfExports] = useState<PdfExport[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState(false);
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
   const [appointmentDetailsOpen, setAppointmentDetailsOpen] = useState(false);
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
@@ -100,6 +101,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setAuthError(false); // Reset auth error on each load attempt
     try {
       console.log('Account Center: Starting to load data...');
       
@@ -147,11 +149,6 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           if (clientsList.length === 0) {
             console.warn('Account Center: No valid clients found in response');
             console.warn('Account Center: Raw response data was:', clientsData);
-            toast({
-              title: 'No Clients Found',
-              description: 'No clients found. Save a client from the Client Information page.',
-              variant: 'default'
-            });
           } else {
             console.log('Account Center: Successfully loaded clients:', clientsList.map((c: Client) => `${c.firstName} ${c.lastName}`));
           }
@@ -166,11 +163,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           console.error('Error loading clients:', clientsRes.status, errorData);
           setClients([]);
           if (clientsRes.status === 401) {
-            toast({
-              title: 'Authentication Error',
-              description: 'Please log in again to view clients',
-              variant: 'destructive'
-            });
+            console.error('Account Center: Authentication failed - user not logged in or session expired');
+            setAuthError(true);
           } else {
             toast({
               title: 'Error Loading Clients',
@@ -912,16 +906,29 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                       {clients.length === 0 && (
                         <>
                           <p className="text-xs text-muted-foreground mt-2 mb-4">
-                            Save a client from the Client Information page to see them here
+                            {authError 
+                              ? 'Please log in to view your clients. If you are logged in, try refreshing the page or logging out and back in.'
+                              : 'Save a client from the Client Information page to see them here'}
                           </p>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.location.href = '/client-information'}
-                            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                          >
-                            Go to Client Information
-                          </Button>
+                          {authError ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.location.href = '/auth/login'}
+                              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                            >
+                              Go to Login
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.location.href = '/client-information'}
+                              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                            >
+                              Go to Client Information
+                            </Button>
+                          )}
                         </>
                       )}
                     </div>
