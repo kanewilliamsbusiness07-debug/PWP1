@@ -121,7 +121,7 @@
     "vitest": "^3.2.4"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "jest": {
     "preset": "ts-jest",
