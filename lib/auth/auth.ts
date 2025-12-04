@@ -210,3 +210,7 @@ export const authConfig = {
 const handler = NextAuth(authConfig);
 
 export { handler as auth };
+// Export authConfig as authOptions for use in API routes with getServerSession
+export { authConfig as authOptions };
+// Export authConfig as authOptions for use in API routes with getServerSession
+export { authConfig as authOptions };
