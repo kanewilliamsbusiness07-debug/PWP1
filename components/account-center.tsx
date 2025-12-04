@@ -1347,7 +1347,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           <DialogHeader>
             <DialogTitle>{selectedPdf?.fileName}</DialogTitle>
             <DialogDescription>
-              {selectedPdf && `${selectedPdf.client.firstName} ${selectedPdf.client.lastName} - ${format(new Date(selectedPdf.createdAt), 'MMM dd, yyyy')}`}
+              {selectedPdf && selectedPdf.client && `${selectedPdf.client.firstName} ${selectedPdf.client.lastName} - ${format(new Date(selectedPdf.createdAt), 'MMM dd, yyyy')}`}
+              {selectedPdf && !selectedPdf.client && `PDF - ${format(new Date(selectedPdf.createdAt), 'MMM dd, yyyy')}`}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-hidden">
