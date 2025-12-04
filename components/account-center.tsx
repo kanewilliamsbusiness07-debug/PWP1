@@ -55,7 +55,7 @@ interface Appointment {
 interface PdfExport {
   id: string;
   clientId: string;
-  client: Client;
+  client?: Client;
   fileName: string;
   filePath: string;
   createdAt: string;
@@ -101,17 +101,24 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      console.log('Account Center: Starting to load data...');
       const [clientsRes, appointmentsRes, exportsRes] = await Promise.all([
         fetch('/api/clients?limit=50'),
         fetch('/api/appointments?limit=20'),
         fetch('/api/pdf-exports?limit=20')
       ]);
 
+      console.log('Account Center: API responses received', {
+        clients: clientsRes.status,
+        appointments: appointmentsRes.status,
+        exports: exportsRes.status
+      });
+
       if (clientsRes.ok) {
         const clientsData = await clientsRes.json();
+        console.log('Account Center: Raw clients data:', clientsData);
         // Handle both response formats: { clients: [...] } or [...]
         const clientsList = Array.isArray(clientsData) ? clientsData : (clientsData.clients || []);
-        console.log('Account Center: API Response:', clientsData);
         console.log('Account Center: Parsed clients list:', clientsList);
         console.log('Account Center: Number of clients:', clientsList.length);
         setClients(clientsList || []);
@@ -133,7 +140,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         } else {
           toast({
             title: 'Error Loading Clients',
-            description: errorData.error || 'Failed to load clients',
+            description: errorData.error || `Failed to load clients (${clientsRes.status})`,
             variant: 'destructive'
           });
         }
@@ -141,7 +148,10 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
       if (appointmentsRes.ok) {
         const appointmentsData = await appointmentsRes.json();
-        setAppointments(appointmentsData.appointments || []);
+        console.log('Account Center: Loaded appointments:', appointmentsData);
+        const appointmentsList = appointmentsData.appointments || appointmentsData || [];
+        setAppointments(Array.isArray(appointmentsList) ? appointmentsList : []);
+        console.log('Account Center: Set appointments count:', Array.isArray(appointmentsList) ? appointmentsList.length : 0);
       } else {
         const errorData = await appointmentsRes.json().catch(() => ({}));
         console.error('Error loading appointments:', appointmentsRes.status, errorData);
@@ -150,7 +160,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           // Don't show toast for 401 as it's already shown for clients
           toast({
             title: 'Error Loading Appointments',
-            description: errorData.error || 'Failed to load appointments',
+            description: errorData.error || `Failed to load appointments (${appointmentsRes.status})`,
             variant: 'destructive'
           });
         }
@@ -158,7 +168,10 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
       if (exportsRes.ok) {
         const exportsData = await exportsRes.json();
-        setPdfExports(exportsData.exports || []);
+        console.log('Account Center: Loaded PDF exports:', exportsData);
+        const exportsList = exportsData.exports || exportsData || [];
+        setPdfExports(Array.isArray(exportsList) ? exportsList : []);
+        console.log('Account Center: Set PDF exports count:', Array.isArray(exportsList) ? exportsList.length : 0);
       } else {
         const errorData = await exportsRes.json().catch(() => ({}));
         console.error('Error loading PDF exports:', exportsRes.status, errorData);
@@ -167,11 +180,13 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           // Don't show toast for 401 as it's already shown for clients
           toast({
             title: 'Error Loading PDFs',
-            description: errorData.error || 'Failed to load PDF exports',
+            description: errorData.error || `Failed to load PDF exports (${exportsRes.status})`,
             variant: 'destructive'
           });
         }
       }
+      
+      console.log('Account Center: Data loading completed');
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -189,6 +204,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       console.log('Account Center: Drawer opened, loading data...');
       // Always reload data when drawer opens
       loadData();
+    } else {
+      console.log('Account Center: Drawer closed');
     }
   }, [open, loadData]);
 
@@ -346,6 +363,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   };
 
   const handleScheduleAppointment = () => {
+    if (clients.length === 0) {
+      toast({
+        title: 'No Clients Available',
+        description: 'Please save at least one client before scheduling an appointment. Go to Client Information page to create a client.',
+        variant: 'destructive'
+      });
+      return;
+    }
     setIsEditingAppointment(false);
     setSelectedAppointment(null);
     setAppointmentClientId('');
@@ -682,10 +707,28 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-full sm:max-w-md bg-white border-gray-200 overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="text-gray-900">Account Center</SheetTitle>
-            <SheetDescription className="text-gray-600">
-              Manage clients, appointments, and quick actions
-            </SheetDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <SheetTitle className="text-gray-900">Account Center</SheetTitle>
+                <SheetDescription className="text-gray-600">
+                  Manage clients, appointments, and quick actions
+                </SheetDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => loadData()}
+                disabled={loading}
+                className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                title="Refresh data"
+              >
+                {loading ? (
+                  <Clock className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span>↻ Refresh</span>
+                )}
+              </Button>
+            </div>
           </SheetHeader>
 
           <div className="mt-6">
@@ -1005,7 +1048,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                             >
                               <p className="text-sm font-medium truncate text-gray-900">{pdf.fileName}</p>
                               <p className="text-xs text-gray-600">
-                                {pdf.client.firstName} {pdf.client.lastName}
+                                {pdf.client ? `${pdf.client.firstName} ${pdf.client.lastName}` : 'Unknown Client'}
                               </p>
                               <p className="text-xs text-gray-500">
                                 {format(new Date(pdf.createdAt), 'MMM dd, yyyy')}
@@ -1078,11 +1121,17 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   <SelectValue placeholder="Select a client" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.firstName} {client.lastName}
-                    </SelectItem>
-                  ))}
+                  {clients.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-gray-500">
+                      No clients available. Please save a client first.
+                    </div>
+                  ) : (
+                    clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.firstName} {client.lastName}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
