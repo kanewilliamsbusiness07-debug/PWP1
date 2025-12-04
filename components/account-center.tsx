@@ -108,7 +108,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         if (clientsList.length === 0) {
           console.warn('Account Center: No clients found in response');
         } else {
-          console.log('Account Center: Successfully loaded clients:', clientsList.map(c => `${c.firstName} ${c.lastName}`));
+          console.log('Account Center: Successfully loaded clients:', clientsList.map((c: Client) => `${c.firstName} ${c.lastName}`));
         }
       } else {
         const errorData = await clientsRes.json().catch(() => ({}));
