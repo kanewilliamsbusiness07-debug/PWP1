@@ -8,12 +8,19 @@ import nodemailer from 'nodemailer';
 import prisma from '@/lib/prisma';
 import { decryptField } from '@/lib/encryption';
 
+interface EmailAttachment {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+}
+
 interface EmailOptions {
   to: string | string[];
   subject: string;
   html?: string;
   text?: string;
   from?: string;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -89,7 +96,12 @@ export async function sendEmail(
     to: recipients.join(', '),
     subject: options.subject,
     html: options.html,
-    text: options.text || options.html?.replace(/<[^>]*>/g, '')
+    text: options.text || options.html?.replace(/<[^>]*>/g, ''),
+    attachments: options.attachments?.map(att => ({
+      filename: att.filename,
+      content: att.content,
+      contentType: att.contentType
+    }))
   });
 }
 

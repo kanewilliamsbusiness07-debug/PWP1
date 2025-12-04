@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Bell, User, Menu, X, Users, TrendingUp, Chrome as Home, FileText, Settings, Calculator } from 'lucide-react';
+import { User, Menu, X, Users, TrendingUp, Chrome as Home, FileText, Settings, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -163,14 +163,6 @@ export default function DashboardLayout({
             <div className="ml-4 flex items-center md:ml-6 space-x-3">
               {/* Theme Toggle */}
               <ThemeToggle />
-
-              {/* Notifications */}
-              <Button variant="ghost" size="sm" className="relative text-white hover:text-accent">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-accent rounded-full text-xs text-black flex items-center justify-center">
-                  2
-                </span>
-              </Button>
 
               {/* Account Center */}
               <Button 
