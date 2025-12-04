@@ -1071,6 +1071,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     variant="outline" 
                     className="border-primary text-primary hover:bg-primary hover:text-primary-foreground" 
                     onClick={() => handleScheduleAppointment()}
+                    disabled={clients.length === 0}
+                    title={clients.length === 0 ? 'Create a client first before scheduling an appointment' : 'Schedule Appointment'}
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Schedule
@@ -1127,7 +1129,9 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                           size="sm"
                           variant="outline"
                           onClick={() => handleScheduleAppointment()}
+                          disabled={clients.length === 0}
                           className="mt-4 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                          title={clients.length === 0 ? 'Create a client first before scheduling an appointment' : 'Schedule First Appointment'}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Schedule First Appointment
