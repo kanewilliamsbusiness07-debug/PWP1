@@ -177,9 +177,10 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   useEffect(() => {
     if (open) {
       console.log('Account Center: Drawer opened, loading data...');
+      // Always reload data when drawer opens
       loadData();
     }
-  }, [open, loadData]);
+  }, [open]); // Remove loadData from dependencies to avoid infinite loop
 
   // Listen for client save/update events to refresh the list
   useEffect(() => {
@@ -454,9 +455,10 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     client.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const upcomingAppointments = appointments.filter(apt => 
-    new Date(apt.startDateTime) > new Date() && apt.status === 'SCHEDULED'
-  ).sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
+  // Show all appointments, not just upcoming - filter by status instead
+  const upcomingAppointments = appointments
+    .filter(apt => apt.status === 'SCHEDULED' || apt.status === 'RESCHEDULED')
+    .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
 
   const recentPDFs = pdfExports.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

@@ -175,14 +175,28 @@ export default function InvestmentPropertiesPage() {
     // Use annualIncome (canonical) or fall back to grossIncome for backward compatibility
     const income = data.annualIncome ?? (data as any).grossIncome ?? 0;
     const monthlyIncome = income / 12;
-    const totalMonthlyExpenses = data.monthlyExpenses + data.existingDebtPayments;
-    const monthlyServiceCapacity = (monthlyIncome * 0.7) - totalMonthlyExpenses; // 70% of income available for servicing
     
-    const loanAmount = data.targetPropertyPrice - data.deposit;
-    const monthlyLoanPayment = calculateLoanPayment(loanAmount, data.interestRate, data.loanTerm);
+    // Australian lending criteria:
+    // 1. Assessment rate: higher of actual rate + 3% buffer OR 7.25% (APRA requirement)
+    const assessmentRate = Math.max(data.interestRate + 3, 7.25);
+    
+    // 2. Serviceability: 30% of gross income available for loan servicing
+    const monthlyServiceCapacity = (monthlyIncome * 0.30) - data.existingDebtPayments;
+    
+    // 3. Rental income: 80% of rental income counts toward serviceability
     const monthlyRent = (data.expectedRent * 52) / 12;
+    const assessableRentalIncome = monthlyRent * 0.80;
+    
+    // Calculate loan details
+    const loanAmount = data.targetPropertyPrice - data.deposit;
+    const monthlyLoanPayment = calculateLoanPayment(loanAmount, assessmentRate, data.loanTerm);
+    
+    // Total serviceability capacity including rental income
+    const totalServiceCapacity = monthlyServiceCapacity + assessableRentalIncome;
+    
     // Calculate annual figures for negative gearing
-    const annualInterest = monthlyLoanPayment * 12 * 0.8; // Assuming 80% of payment is interest
+    const actualMonthlyPayment = calculateLoanPayment(loanAmount, data.interestRate, data.loanTerm);
+    const annualInterest = actualMonthlyPayment * 12 * 0.85; // Assuming 85% of payment is interest in early years
     const annualRent = monthlyRent * 12;
     const totalDeductions = annualInterest + data.annualPropertyExpenses + data.depreciationAmount;
     const isNegativelyGeared = totalDeductions > annualRent;
@@ -191,21 +205,29 @@ export default function InvestmentPropertiesPage() {
     
     // Monthly figures after tax benefits
     const monthlyTaxBenefit = taxBenefit / 12;
-    const netMonthlyPayment = monthlyLoanPayment - monthlyRent - monthlyTaxBenefit;
+    const netMonthlyPayment = actualMonthlyPayment - monthlyRent - monthlyTaxBenefit;
     
-    const maxBorrowingCapacity = monthlyServiceCapacity > 0 
-      ? (monthlyServiceCapacity * (Math.pow(1 + data.interestRate/100/12, data.loanTerm * 12) - 1)) / 
-        ((data.interestRate/100/12) * Math.pow(1 + data.interestRate/100/12, data.loanTerm * 12))
-      : 0;
+    // Calculate maximum borrowing capacity using assessment rate
+    // Invert the loan payment formula: P = PMT * [(1+r)^n - 1] / [r(1+r)^n]
+    let maxBorrowingCapacity = 0;
+    if (totalServiceCapacity > 0 && assessmentRate > 0) {
+      const monthlyRate = assessmentRate / 100 / 12;
+      const totalPayments = data.loanTerm * 12;
+      const numerator = Math.pow(1 + monthlyRate, totalPayments) - 1;
+      const denominator = monthlyRate * Math.pow(1 + monthlyRate, totalPayments);
+      maxBorrowingCapacity = totalServiceCapacity * (numerator / denominator);
+    }
     
-    const loanToValueRatio = (loanAmount / data.targetPropertyPrice) * 100;
-    const debtToIncomeRatio = income > 0 ? ((data.existingDebtPayments * 12 + monthlyLoanPayment * 12) / income) * 100 : 0;
-    const canAfford = monthlyServiceCapacity >= netMonthlyPayment;
-    const monthlyShortfall = canAfford ? undefined : netMonthlyPayment - monthlyServiceCapacity;
+    const loanToValueRatio = data.targetPropertyPrice > 0 ? (loanAmount / data.targetPropertyPrice) * 100 : 0;
+    const debtToIncomeRatio = income > 0 ? ((data.existingDebtPayments * 12 + actualMonthlyPayment * 12) / income) * 100 : 0;
+    
+    // Can afford if service capacity (at assessment rate) covers the loan payment (at assessment rate)
+    const canAfford = totalServiceCapacity >= monthlyLoanPayment && loanToValueRatio <= 80;
+    const monthlyShortfall = canAfford ? undefined : Math.max(0, monthlyLoanPayment - totalServiceCapacity);
 
     return {
       maxBorrowingCapacity,
-      monthlyServiceCapacity,
+      monthlyServiceCapacity: totalServiceCapacity,
       loanToValueRatio,
       debtToIncomeRatio,
       canAfford,

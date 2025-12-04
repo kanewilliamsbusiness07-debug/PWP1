@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useFinancialStore } from '@/lib/store/store';
+import { useClientStorage } from '@/lib/hooks/use-client-storage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,15 +11,50 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export function ClientSelector() {
   const financialStore = useFinancialStore();
+  const { deleteClient } = useClientStorage();
+  const { toast } = useToast();
   const [selectedSavedClient, setSelectedSavedClient] = useState<string>('');
   const savedClientNames = financialStore.getAllSavedClientNames();
   
   const handleLoadClient = (name: string, slot: "A" | "B") => {
     financialStore.loadClientByName(name, slot);
     setSelectedSavedClient('');
+  };
+
+  const handleDeleteClient = async (name: string) => {
+    const savedClient = financialStore.savedClients[name];
+    if (!savedClient) return;
+
+    // If client has a database ID, delete from database
+    if (savedClient.data.id) {
+      const confirmed = confirm(`Are you sure you want to delete ${name}? This will permanently delete the client from the database.`);
+      if (confirmed) {
+        const success = await deleteClient(savedClient.data.id);
+        if (success) {
+          // Also remove from local storage
+          financialStore.deleteClientByName(name);
+          toast({
+            title: 'Client deleted',
+            description: `${name} has been deleted`
+          });
+        }
+      }
+    } else {
+      // Delete from local storage only
+      const confirmed = confirm(`Are you sure you want to delete ${name}?`);
+      if (confirmed) {
+        financialStore.deleteClientByName(name);
+        toast({
+          title: 'Client deleted',
+          description: `${name} has been removed from saved clients`
+        });
+      }
+    }
   };
 
   return (
@@ -99,6 +135,14 @@ export function ClientSelector() {
                       onClick={() => handleLoadClient(selectedSavedClient, 'B')}
                     >
                       Load to B
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteClient(selectedSavedClient)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 )}
