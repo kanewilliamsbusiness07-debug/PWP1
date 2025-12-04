@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { auth } from '@/lib/auth/auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import type { Session } from 'next-auth';
 import { normalizeFields } from '@/lib/utils/field-mapping';
 
 // GET /api/clients - List clients (account-scoped) with recent clients support
 export async function GET(req: NextRequest) {
   try {
-    const session = (await getServerSession(auth)) as Session | null;
+    const session = (await getServerSession(authOptions)) as Session | null;
+    console.log('Clients API - Session check:', session ? `User ID: ${session.user?.id}` : 'No session');
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -61,7 +62,7 @@ export async function GET(req: NextRequest) {
 // POST /api/clients - Create a new client (with field normalization)
 export async function POST(req: NextRequest) {
   try {
-    const session = (await getServerSession(auth)) as Session | null;
+    const session = (await getServerSession(authOptions)) as Session | null;
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
