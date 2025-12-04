@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Mail, FileText, Trash2, Search, Plus, Eye, Download, Clock, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Mail, FileText, Trash2, Search, Plus, Eye, Download, Clock, X, Edit, CheckCircle, XCircle } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -73,8 +73,11 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [appointmentDialogOpen, setAppointmentDialogOpen] = useState(false);
+  const [appointmentDetailsOpen, setAppointmentDetailsOpen] = useState(false);
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<PdfExport | null>(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [appointmentFilter, setAppointmentFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('upcoming');
   
   // Appointment form state
   const [appointmentClientId, setAppointmentClientId] = useState('');
@@ -85,6 +88,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   const [appointmentEndTime, setAppointmentEndTime] = useState('10:00');
   const [appointmentNotes, setAppointmentNotes] = useState('');
   const [isSavingAppointment, setIsSavingAppointment] = useState(false);
+  const [isEditingAppointment, setIsEditingAppointment] = useState(false);
   
   const { toast } = useToast();
 
@@ -180,7 +184,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       // Always reload data when drawer opens
       loadData();
     }
-  }, [open]); // Remove loadData from dependencies to avoid infinite loop
+  }, [open, loadData]);
 
   // Listen for client save/update events to refresh the list
   useEffect(() => {
@@ -282,7 +286,130 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   };
 
   const handleScheduleAppointment = () => {
+    setIsEditingAppointment(false);
+    setSelectedAppointment(null);
+    setAppointmentClientId('');
+    setAppointmentTitle('');
+    setAppointmentDescription('');
+    setAppointmentDate(undefined);
+    setAppointmentStartTime('09:00');
+    setAppointmentEndTime('10:00');
+    setAppointmentNotes('');
     setAppointmentDialogOpen(true);
+  };
+
+  const handleEditAppointment = (appointment: Appointment) => {
+    setIsEditingAppointment(true);
+    setSelectedAppointment(appointment);
+    setAppointmentClientId(appointment.clientId);
+    setAppointmentTitle(appointment.title);
+    setAppointmentDescription(appointment.description || '');
+    setAppointmentDate(new Date(appointment.startDateTime));
+    setAppointmentStartTime(format(new Date(appointment.startDateTime), 'HH:mm'));
+    setAppointmentEndTime(format(new Date(appointment.endDateTime), 'HH:mm'));
+    setAppointmentNotes(appointment.notes || '');
+    setAppointmentDialogOpen(true);
+  };
+
+  const handleViewAppointment = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setAppointmentDetailsOpen(true);
+  };
+
+  const handleCancelAppointment = async (appointment: Appointment) => {
+    if (!confirm(`Are you sure you want to cancel this appointment with ${appointment.client.firstName} ${appointment.client.lastName}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/appointments/${appointment.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' })
+      });
+
+      if (response.ok) {
+        await loadData();
+        toast({
+          title: 'Appointment cancelled',
+          description: `Appointment with ${appointment.client.firstName} ${appointment.client.lastName} has been cancelled`
+        });
+        if (appointmentDetailsOpen) {
+          setAppointmentDetailsOpen(false);
+        }
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to cancel appointment');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to cancel appointment',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDeleteAppointment = async (appointment: Appointment) => {
+    if (!confirm(`Are you sure you want to permanently delete this appointment with ${appointment.client.firstName} ${appointment.client.lastName}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/appointments/${appointment.id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        await loadData();
+        toast({
+          title: 'Appointment deleted',
+          description: `Appointment with ${appointment.client.firstName} ${appointment.client.lastName} has been deleted`
+        });
+        if (appointmentDetailsOpen) {
+          setAppointmentDetailsOpen(false);
+        }
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete appointment');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete appointment',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleCompleteAppointment = async (appointment: Appointment) => {
+    try {
+      const response = await fetch(`/api/appointments/${appointment.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'COMPLETED' })
+      });
+
+      if (response.ok) {
+        await loadData();
+        toast({
+          title: 'Appointment completed',
+          description: `Appointment with ${appointment.client.firstName} ${appointment.client.lastName} has been marked as completed`
+        });
+        if (appointmentDetailsOpen) {
+          setAppointmentDetailsOpen(false);
+        }
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to complete appointment');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to complete appointment',
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleSaveAppointment = async () => {
@@ -317,8 +444,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         return;
       }
 
-      const response = await fetch('/api/appointments', {
-        method: 'POST',
+      const url = isEditingAppointment && selectedAppointment 
+        ? `/api/appointments/${selectedAppointment.id}`
+        : '/api/appointments';
+      
+      const method = isEditingAppointment ? 'PATCH' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId: appointmentClientId,
@@ -331,12 +464,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       });
 
       if (response.ok) {
-        const newAppointment = await response.json();
+        const appointment = await response.json();
         // Refresh appointments list
         await loadData();
         toast({
-          title: 'Appointment scheduled',
-          description: `Appointment with ${newAppointment.client.firstName} ${newAppointment.client.lastName} has been scheduled`
+          title: isEditingAppointment ? 'Appointment updated' : 'Appointment scheduled',
+          description: `Appointment with ${appointment.client.firstName} ${appointment.client.lastName} has been ${isEditingAppointment ? 'updated' : 'scheduled'}`
         });
         
         // Reset form
@@ -347,15 +480,17 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         setAppointmentStartTime('09:00');
         setAppointmentEndTime('10:00');
         setAppointmentNotes('');
+        setIsEditingAppointment(false);
+        setSelectedAppointment(null);
         setAppointmentDialogOpen(false);
       } else {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to schedule appointment');
+        throw new Error(error.error || `Failed to ${isEditingAppointment ? 'update' : 'schedule'} appointment`);
       }
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to schedule appointment',
+        description: error.message || `Failed to ${isEditingAppointment ? 'update' : 'schedule'} appointment`,
         variant: 'destructive'
       });
     } finally {
@@ -455,9 +590,21 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     client.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Show all appointments, not just upcoming - filter by status instead
-  const upcomingAppointments = appointments
-    .filter(apt => apt.status === 'SCHEDULED' || apt.status === 'RESCHEDULED')
+  // Filter appointments based on selected filter
+  const filteredAppointments = appointments
+    .filter(apt => {
+      switch (appointmentFilter) {
+        case 'upcoming':
+          return apt.status === 'SCHEDULED' || apt.status === 'RESCHEDULED';
+        case 'completed':
+          return apt.status === 'COMPLETED';
+        case 'cancelled':
+          return apt.status === 'CANCELLED';
+        case 'all':
+        default:
+          return true;
+      }
+    })
     .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
 
   const recentPDFs = pdfExports.sort((a, b) => 
@@ -599,7 +746,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
               <TabsContent value="appointments" className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium text-gray-900">Upcoming Appointments</h3>
+                  <h3 className="text-sm font-medium text-gray-900">Appointments</h3>
                   <Button 
                     size="sm" 
                     variant="outline" 
@@ -611,27 +758,102 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   </Button>
                 </div>
 
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={appointmentFilter === 'all' ? 'default' : 'outline'}
+                    className={appointmentFilter === 'all' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : ''}
+                    onClick={() => setAppointmentFilter('all')}
+                  >
+                    All
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={appointmentFilter === 'upcoming' ? 'default' : 'outline'}
+                    className={appointmentFilter === 'upcoming' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : ''}
+                    onClick={() => setAppointmentFilter('upcoming')}
+                  >
+                    Upcoming
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={appointmentFilter === 'completed' ? 'default' : 'outline'}
+                    className={appointmentFilter === 'completed' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : ''}
+                    onClick={() => setAppointmentFilter('completed')}
+                  >
+                    Completed
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={appointmentFilter === 'cancelled' ? 'default' : 'outline'}
+                    className={appointmentFilter === 'cancelled' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : ''}
+                    onClick={() => setAppointmentFilter('cancelled')}
+                  >
+                    Cancelled
+                  </Button>
+                </div>
+
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {loading ? (
                     <div className="text-center py-8 text-gray-600">
                       <p className="text-sm">Loading appointments...</p>
                     </div>
-                  ) : upcomingAppointments.length === 0 ? (
+                  ) : filteredAppointments.length === 0 ? (
                     <div className="text-center py-8 text-gray-600">
                       <CalendarIcon className="h-8 w-8 mx-auto mb-2 opacity-50 text-gray-400" />
-                      <p className="text-sm">No upcoming appointments</p>
+                      <p className="text-sm">No {appointmentFilter === 'all' ? '' : appointmentFilter} appointments</p>
                     </div>
                   ) : (
-                    upcomingAppointments.map((appointment) => (
-                      <Card key={appointment.id} className="bg-white border-gray-200">
+                    filteredAppointments.map((appointment) => (
+                      <Card key={appointment.id} className="bg-white border-gray-200 cursor-pointer hover:bg-gray-50">
                         <CardContent className="p-4">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <p className="text-sm font-medium text-gray-900">{appointment.title}</p>
-                              <Badge variant="outline">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {format(new Date(appointment.startDateTime), 'MMM dd')}
-                              </Badge>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">{appointment.title}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge 
+                                    variant="outline"
+                                    className={
+                                      appointment.status === 'COMPLETED' ? 'border-green-500 text-green-700' :
+                                      appointment.status === 'CANCELLED' ? 'border-red-500 text-red-700' :
+                                      'border-yellow-500 text-yellow-700'
+                                    }
+                                  >
+                                    {appointment.status}
+                                  </Badge>
+                                  <Badge variant="outline">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    {format(new Date(appointment.startDateTime), 'MMM dd, yyyy')}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 w-7 p-0 border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewAppointment(appointment);
+                                  }}
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                                {appointment.status !== 'CANCELLED' && appointment.status !== 'COMPLETED' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 w-7 p-0 border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditAppointment(appointment);
+                                    }}
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             <p className="text-xs text-gray-600">
                               With: {appointment.client.firstName} {appointment.client.lastName}
@@ -640,7 +862,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                               {format(new Date(appointment.startDateTime), 'h:mm a')} - {format(new Date(appointment.endDateTime), 'h:mm a')}
                             </p>
                             {appointment.description && (
-                              <p className="text-xs text-gray-500 mt-1">{appointment.description}</p>
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{appointment.description}</p>
                             )}
                           </div>
                         </CardContent>
@@ -718,13 +940,27 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         </SheetContent>
       </Sheet>
 
-      {/* Appointment Scheduling Dialog */}
-      <Dialog open={appointmentDialogOpen} onOpenChange={setAppointmentDialogOpen}>
+      {/* Appointment Scheduling/Editing Dialog */}
+      <Dialog open={appointmentDialogOpen} onOpenChange={(open) => {
+        setAppointmentDialogOpen(open);
+        if (!open) {
+          // Reset form when dialog closes
+          setIsEditingAppointment(false);
+          setSelectedAppointment(null);
+          setAppointmentClientId('');
+          setAppointmentTitle('');
+          setAppointmentDescription('');
+          setAppointmentDate(undefined);
+          setAppointmentStartTime('09:00');
+          setAppointmentEndTime('10:00');
+          setAppointmentNotes('');
+        }
+      }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Schedule Appointment</DialogTitle>
+            <DialogTitle>{isEditingAppointment ? 'Edit Appointment' : 'Schedule Appointment'}</DialogTitle>
             <DialogDescription>
-              Create a new appointment with a client
+              {isEditingAppointment ? 'Update appointment details' : 'Create a new appointment with a client'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -832,7 +1068,118 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
               disabled={isSavingAppointment}
               className="bg-yellow-500 hover:bg-yellow-600 text-white"
             >
-              {isSavingAppointment ? 'Saving...' : 'Schedule'}
+              {isSavingAppointment ? 'Saving...' : isEditingAppointment ? 'Update' : 'Schedule'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Appointment Details Dialog */}
+      <Dialog open={appointmentDetailsOpen} onOpenChange={setAppointmentDetailsOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{selectedAppointment?.title}</DialogTitle>
+            <DialogDescription>
+              {selectedAppointment && `${selectedAppointment.client.firstName} ${selectedAppointment.client.lastName}`}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedAppointment && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Badge 
+                  variant="outline"
+                  className={
+                    selectedAppointment.status === 'COMPLETED' ? 'border-green-500 text-green-700' :
+                    selectedAppointment.status === 'CANCELLED' ? 'border-red-500 text-red-700' :
+                    'border-yellow-500 text-yellow-700'
+                  }
+                >
+                  {selectedAppointment.status}
+                </Badge>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Date & Time</Label>
+                <p className="text-sm text-gray-900">
+                  {format(new Date(selectedAppointment.startDateTime), 'EEEE, MMMM dd, yyyy')}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {format(new Date(selectedAppointment.startDateTime), 'h:mm a')} - {format(new Date(selectedAppointment.endDateTime), 'h:mm a')}
+                </p>
+              </div>
+
+              {selectedAppointment.description && (
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <p className="text-sm text-gray-900">{selectedAppointment.description}</p>
+                </div>
+              )}
+
+              {selectedAppointment.notes && (
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedAppointment.notes}</p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Client Contact</Label>
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-900">
+                    {selectedAppointment.client.firstName} {selectedAppointment.client.lastName}
+                  </p>
+                  {selectedAppointment.client.email && (
+                    <p className="text-sm text-gray-600">{selectedAppointment.client.email}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex flex-wrap gap-2">
+            {selectedAppointment && selectedAppointment.status === 'SCHEDULED' && (
+              <>
+                <Button
+                  variant="outline"
+                  className="border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                  onClick={() => handleCompleteAppointment(selectedAppointment)}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Mark Complete
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
+                  onClick={() => {
+                    setAppointmentDetailsOpen(false);
+                    handleEditAppointment(selectedAppointment);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white"
+                  onClick={() => handleCancelAppointment(selectedAppointment)}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+              </>
+            )}
+            {selectedAppointment && selectedAppointment.status === 'CANCELLED' && (
+              <Button
+                variant="outline"
+                className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white"
+                onClick={() => handleDeleteAppointment(selectedAppointment)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Permanently
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setAppointmentDetailsOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
