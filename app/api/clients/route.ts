@@ -72,8 +72,12 @@ export async function POST(req: NextRequest) {
 
     const data = await req.json();
 
+    console.log('[Clients API POST] Received data:', JSON.stringify(data, null, 2));
+
     // Normalize field names to canonical forms
     const normalizedData = normalizeFields(data);
+
+    console.log('[Clients API POST] Normalized data:', JSON.stringify(normalizedData, null, 2));
 
     // Ensure required fields
     if (!normalizedData.firstName || !normalizedData.lastName || !normalizedData.dob) {
@@ -83,13 +87,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create client with normalized data
-    const client = await prisma.client.create({
-      data: {
-        ...normalizedData,
-        userId: session.user.id,
-        dob: new Date(normalizedData.dob)
+    // Ensure maritalStatus has a default value if missing (required by schema)
+    if (!normalizedData.maritalStatus) {
+      normalizedData.maritalStatus = 'SINGLE';
+    }
+
+    // Prepare data for Prisma - only include fields that exist in the schema
+    const clientData: any = {
+      userId: session.user.id,
+      firstName: normalizedData.firstName,
+      lastName: normalizedData.lastName,
+      dob: new Date(normalizedData.dob),
+      maritalStatus: normalizedData.maritalStatus || 'SINGLE',
+      numberOfDependants: normalizedData.numberOfDependants ?? 0,
+    };
+
+    // Add optional fields if present
+    if (normalizedData.middleName !== undefined) clientData.middleName = normalizedData.middleName;
+    if (normalizedData.email !== undefined) clientData.email = normalizedData.email;
+    if (normalizedData.mobile !== undefined) clientData.mobile = normalizedData.mobile;
+    if (normalizedData.addressLine1 !== undefined) clientData.addressLine1 = normalizedData.addressLine1;
+    if (normalizedData.addressLine2 !== undefined) clientData.addressLine2 = normalizedData.addressLine2;
+    if (normalizedData.suburb !== undefined) clientData.suburb = normalizedData.suburb;
+    if (normalizedData.state !== undefined) clientData.state = normalizedData.state;
+    if (normalizedData.postcode !== undefined) clientData.postcode = normalizedData.postcode;
+    if (normalizedData.ownOrRent !== undefined) clientData.ownOrRent = normalizedData.ownOrRent;
+    if (normalizedData.agesOfDependants !== undefined) clientData.agesOfDependants = normalizedData.agesOfDependants;
+
+    // Add all financial fields from normalizedData (they're all optional)
+    Object.keys(normalizedData).forEach(key => {
+      if (!['userId', 'firstName', 'lastName', 'dob', 'maritalStatus', 'numberOfDependants', 
+            'middleName', 'email', 'mobile', 'addressLine1', 'addressLine2', 'suburb', 'state', 
+            'postcode', 'ownOrRent', 'agesOfDependants'].includes(key)) {
+        clientData[key] = normalizedData[key];
       }
+    });
+
+    console.log('[Clients API POST] Final client data:', JSON.stringify(clientData, null, 2));
+
+    // Create client with prepared data
+    const client = await prisma.client.create({
+      data: clientData
     });
 
     // Track recent access
@@ -110,9 +148,15 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    console.log('[Clients API POST] Client created successfully:', client.id);
     return NextResponse.json(client);
   } catch (error) {
-    console.error('Error creating client:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[Clients API POST] Error creating client:', error);
+    console.error('[Clients API POST] Error details:', error instanceof Error ? error.message : String(error));
+    console.error('[Clients API POST] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
