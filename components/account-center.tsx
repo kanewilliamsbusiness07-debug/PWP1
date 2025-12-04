@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Mail, FileText, Trash2, Search, Plus, Eye, Download, Clock, X } from 'lucide-react';
 import {
@@ -92,9 +92,27 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     if (open) {
       loadData();
     }
-  }, [open]);
+  }, [open, loadData]);
 
-  const loadData = async () => {
+  // Listen for client save/update events to refresh the list
+  useEffect(() => {
+    const handleClientSaved = () => {
+      if (open) {
+        loadData();
+      }
+    };
+
+    // Listen for custom event when clients are saved
+    window.addEventListener('client-saved', handleClientSaved);
+    window.addEventListener('client-deleted', handleClientSaved);
+
+    return () => {
+      window.removeEventListener('client-saved', handleClientSaved);
+      window.removeEventListener('client-deleted', handleClientSaved);
+    };
+  }, [open, loadData]);
+
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [clientsRes, appointmentsRes, exportsRes] = await Promise.all([
@@ -155,7 +173,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const handleEmailClient = async (client: Client) => {
     if (!client.email) {

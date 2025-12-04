@@ -74,6 +74,11 @@ export function useClientStorage(): UseClientStorageReturn {
           title: 'Success',
           description: 'Client information updated successfully',
         });
+        
+        // Dispatch event to notify other components (like Account Center) that a client was updated
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('client-saved', { detail: savedClient }));
+        }
       } else {
         // Create new client
         const response = await fetch('/api/clients', {
@@ -104,6 +109,11 @@ export function useClientStorage(): UseClientStorageReturn {
         }
         return [savedClient, ...prev];
       });
+
+      // Dispatch event to notify other components (like Account Center) that a client was saved
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('client-saved', { detail: savedClient }));
+      }
 
       return savedClient;
     } catch (err) {
@@ -189,6 +199,11 @@ export function useClientStorage(): UseClientStorageReturn {
 
       // Remove from local state
       setClients((prev) => prev.filter((c) => c.id !== clientId));
+
+      // Dispatch event to notify other components (like Account Center) that a client was deleted
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id: clientId } }));
+      }
 
       toast({
         title: 'Success',
