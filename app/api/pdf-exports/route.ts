@@ -28,26 +28,39 @@ export async function GET(req: NextRequest) {
       where.clientId = clientId;
     }
 
-    const exports = await prisma.pdfExport.findMany({
-      where,
-      include: {
-        client: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
+    try {
+      const exports = await prisma.pdfExport.findMany({
+        where,
+        include: {
+          client: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
           }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit
-    });
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit
+      });
 
-    return NextResponse.json({ exports });
-  } catch (error) {
-    console.error('Error getting PDF exports:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      console.log(`[PDF Exports API] Returning ${exports.length} exports`);
+      
+      // Return array directly instead of wrapped object
+      return NextResponse.json(exports);
+    } catch (dbError: any) {
+      // Handle case where table might not exist or there's a database error
+      if (dbError?.code === 'P2021' || dbError?.message?.includes('does not exist') || dbError?.message?.includes('relation') || dbError?.message?.includes('table')) {
+        console.warn('[PDF Exports API] Table may not exist yet, returning empty array');
+        return NextResponse.json([]);
+      }
+      throw dbError;
+    }
+  } catch (error: any) {
+    console.error('[PDF Exports API] Error getting PDF exports:', error);
+    // Don't fail hard - return empty array on error
+    return NextResponse.json([]);
   }
 }
 

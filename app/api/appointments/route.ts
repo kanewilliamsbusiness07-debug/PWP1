@@ -58,7 +58,10 @@ export async function GET(req: NextRequest) {
       take: limit
     });
 
-    return NextResponse.json({ appointments });
+    console.log(`[Appointments API] Returning ${appointments.length} appointments`);
+    
+    // Return array directly instead of wrapped object
+    return NextResponse.json(appointments);
   } catch (error) {
     console.error('Error getting appointments:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

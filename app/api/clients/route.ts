@@ -52,7 +52,10 @@ export async function GET(req: NextRequest) {
       take: limit
     });
 
-    return NextResponse.json({ clients });
+    console.log(`[Clients API] Returning ${clients.length} clients`);
+    
+    // Return array directly instead of wrapped object
+    return NextResponse.json(clients);
   } catch (error) {
     console.error('Error getting clients:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
