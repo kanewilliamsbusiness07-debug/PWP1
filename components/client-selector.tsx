@@ -30,11 +30,15 @@ export function ClientSelector() {
     const savedClient = financialStore.savedClients[name];
     if (!savedClient) return;
 
+    // Check if client has a database ID (may exist at runtime even if not in type)
+    const clientData = savedClient.data as any;
+    const databaseId = clientData?.id;
+
     // If client has a database ID, delete from database
-    if (savedClient.data.id) {
+    if (databaseId && typeof databaseId === 'string') {
       const confirmed = confirm(`Are you sure you want to delete ${name}? This will permanently delete the client from the database.`);
       if (confirmed) {
-        const success = await deleteClient(savedClient.data.id);
+        const success = await deleteClient(databaseId);
         if (success) {
           // Also remove from local storage
           financialStore.deleteClientByName(name);
