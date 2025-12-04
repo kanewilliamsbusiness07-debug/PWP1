@@ -79,6 +79,7 @@ export function useClientStorage(): UseClientStorageReturn {
         const response = await fetch(`/api/clients/${clientData.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(dataToSave),
         });
 
@@ -103,6 +104,7 @@ export function useClientStorage(): UseClientStorageReturn {
         const response = await fetch('/api/clients', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(dataToSave),
         });
 
@@ -163,7 +165,9 @@ export function useClientStorage(): UseClientStorageReturn {
     setError(null);
 
     try {
-      const response = await fetch(`/api/clients/${clientId}`);
+      const response = await fetch(`/api/clients/${clientId}`, {
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -210,6 +214,7 @@ export function useClientStorage(): UseClientStorageReturn {
     try {
       const response = await fetch(`/api/clients/${clientId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -259,7 +264,9 @@ export function useClientStorage(): UseClientStorageReturn {
       }
       url.searchParams.set('limit', '50');
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         throw new Error('Failed to search clients');
@@ -301,7 +308,9 @@ export function useClientStorage(): UseClientStorageReturn {
       url.searchParams.set('recent', 'true');
       url.searchParams.set('limit', limit.toString());
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         throw new Error('Failed to load recent clients');

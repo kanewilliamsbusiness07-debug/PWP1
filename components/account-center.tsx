@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Mail, FileText, Trash2, Search, Plus, Eye, Download, Clock, X, Edit, CheckCircle, XCircle, Send, FileDown } from 'lucide-react';
 import {
@@ -307,52 +307,55 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     }
   }, [open, loadData]);
 
+  // Use a ref to store the latest loadData function for event handlers
+  const loadDataRef = useRef(loadData);
+  
+  // Update ref whenever loadData changes
+  useEffect(() => {
+    loadDataRef.current = loadData;
+  }, [loadData]);
+
   // Listen for client save/update events to refresh the list
   useEffect(() => {
     const handleClientSaved = (event: Event) => {
       const customEvent = event as CustomEvent;
       console.log('Account Center: Received client-saved event', customEvent.detail);
-      // Always refresh if drawer is open, with a small delay to ensure DB commit
-      // Also refresh when closed so data is ready when drawer opens
-      console.log('Account Center: Refreshing client list...');
+      console.log('Account Center: Refreshing client list after save...');
+      // Use ref to get the latest loadData function
       setTimeout(() => {
-        loadData();
+        loadDataRef.current();
       }, 500); // Small delay to ensure database transaction is committed
     };
 
     const handleClientDeleted = (event: Event) => {
       const customEvent = event as CustomEvent;
       console.log('Account Center: Received client-deleted event', customEvent.detail);
-      if (open) {
-        console.log('Account Center: Refreshing client list after deletion...');
-        setTimeout(() => {
-          loadData();
-        }, 500);
-      }
+      console.log('Account Center: Refreshing client list after deletion...');
+      setTimeout(() => {
+        loadDataRef.current();
+      }, 500);
     };
 
     const handlePdfGenerated = (event: Event) => {
       const customEvent = event as CustomEvent;
       console.log('Account Center: Received pdf-generated event', customEvent.detail);
-      // Always refresh so data is ready when drawer opens
       console.log('Account Center: Refreshing PDF exports list...');
       setTimeout(() => {
-        loadData();
+        loadDataRef.current();
       }, 500);
     };
 
     const handleAppointmentSaved = (event: Event) => {
       const customEvent = event as CustomEvent;
       console.log('Account Center: Received appointment-saved event', customEvent.detail);
-      // Always refresh so data is ready when drawer opens
       console.log('Account Center: Refreshing appointments list...');
       setTimeout(() => {
-        loadData();
+        loadDataRef.current();
       }, 500);
     };
 
-    // Listen for custom event when clients are saved
-    // Set up listeners regardless of open state so they're ready when drawer opens
+    // Listen for custom events - set up listeners once and keep them stable
+    // Use ref to access the latest loadData function
     console.log('Account Center: Setting up event listeners');
     window.addEventListener('client-saved', handleClientSaved);
     window.addEventListener('client-deleted', handleClientDeleted);
@@ -366,7 +369,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       window.removeEventListener('pdf-generated', handlePdfGenerated);
       window.removeEventListener('appointment-saved', handleAppointmentSaved);
     };
-  }, [open, loadData]);
+  }, []); // Empty dependency array - listeners are set up once and use ref for latest loadData
 
   const handleGeneratePDF = async (client: Client) => {
     setIsGeneratingPDF(client.id);
