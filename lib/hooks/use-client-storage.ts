@@ -109,8 +109,16 @@ export function useClientStorage(): UseClientStorageReturn {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to create client' }));
-          throw new Error(errorData.error || 'Failed to create client');
+          let errorData: any = {};
+          try {
+            const errorText = await response.text();
+            console.error('[use-client-storage] Client save error response:', errorText);
+            errorData = JSON.parse(errorText);
+          } catch (parseError) {
+            errorData = { error: `Failed to create client (${response.status})` };
+          }
+          console.error('[use-client-storage] Client save error details:', errorData);
+          throw new Error(errorData.error || errorData.details || 'Failed to create client');
         }
 
         savedClient = await response.json();
