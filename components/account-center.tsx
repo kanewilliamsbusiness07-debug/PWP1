@@ -305,8 +305,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     } else {
       console.log('Account Center: Drawer closed');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, loadData]);
 
   // Listen for client save/update events to refresh the list
   useEffect(() => {
@@ -367,8 +366,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       window.removeEventListener('pdf-generated', handlePdfGenerated);
       window.removeEventListener('appointment-saved', handleAppointmentSaved);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, loadData]);
 
   const handleGeneratePDF = async (client: Client) => {
     setIsGeneratingPDF(client.id);
