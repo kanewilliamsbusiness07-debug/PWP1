@@ -1310,7 +1310,11 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="client">Client *</Label>
-              <Select value={appointmentClientId} onValueChange={setAppointmentClientId}>
+              <Select 
+                value={appointmentClientId} 
+                onValueChange={setAppointmentClientId}
+                disabled={isEditingAppointment}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a client" />
                 </SelectTrigger>
@@ -1328,6 +1332,11 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   )}
                 </SelectContent>
               </Select>
+              {isEditingAppointment && (
+                <p className="text-xs text-muted-foreground">
+                  Client cannot be changed for existing appointments
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -1366,12 +1375,20 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     {appointmentDate ? format(appointmentDate, "PPP") : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={appointmentDate}
                     onSelect={setAppointmentDate}
                     initialFocus
+                    disabled={(date) => {
+                      // Allow past dates when editing, but not for new appointments
+                      if (isEditingAppointment) {
+                        return false;
+                      }
+                      // For new appointments, disable past dates
+                      return date < new Date(new Date().setHours(0, 0, 0, 0));
+                    }}
                   />
                 </PopoverContent>
               </Popover>
@@ -1410,12 +1427,16 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAppointmentDialogOpen(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setAppointmentDialogOpen(false)}
+              disabled={isSavingAppointment}
+            >
               Cancel
             </Button>
             <Button 
               onClick={handleSaveAppointment}
-              disabled={isSavingAppointment}
+              disabled={isSavingAppointment || !appointmentClientId || !appointmentTitle || !appointmentDate}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {isSavingAppointment ? 'Saving...' : isEditingAppointment ? 'Update' : 'Save'}
