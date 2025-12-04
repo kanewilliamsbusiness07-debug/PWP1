@@ -6,11 +6,13 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FileText, Download, Mail, Printer, Share2, TrendingUp, TrendingDown, DollarSign, Calculator, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -58,6 +60,8 @@ interface FinancialSummary {
 export default function SummaryPage() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [lastGeneratedPdfId, setLastGeneratedPdfId] = useState<string | null>(null);
+  const summaryContentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const financialStore = useFinancialStore();
@@ -100,23 +104,147 @@ export default function SummaryPage() {
     ]
   };
 
-  const generatePDF = async () => {
+  const generatePDF = async (attachToEmail = false): Promise<string | null> => {
     setIsGeneratingPDF(true);
     
-    // Simulate PDF generation
-    setTimeout(() => {
-      setIsGeneratingPDF(false);
-      toast({
-        title: 'PDF Generated',
-        description: 'Your financial planning report has been generated successfully'
+    try {
+      // Get the summary content element
+      const element = summaryContentRef.current || document.getElementById('summary-content');
+      if (!element) {
+        throw new Error('Summary content not found');
+      }
+
+      // Get active client for saving PDF
+      const activeClient = financialStore.activeClient 
+        ? financialStore[`client${financialStore.activeClient}` as keyof typeof financialStore] as any
+        : null;
+
+      if (!activeClient) {
+        toast({
+          title: 'Error',
+          description: 'Please select a client before generating PDF. Go to Client Information page to select or create a client.',
+          variant: 'destructive'
+        });
+        setIsGeneratingPDF(false);
+        return null;
+      }
+
+      // Check if client has been saved (has an ID)
+      if (!activeClient.id) {
+        toast({
+          title: 'Error',
+          description: 'Please save the client first before generating PDF. Go to Client Information page and click Save.',
+          variant: 'destructive'
+        });
+        setIsGeneratingPDF(false);
+        return null;
+      }
+
+      // Capture the content as canvas
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
       });
+
+      const imgData = canvas.toDataURL('image/png');
       
-      // In real app, this would trigger actual PDF download
-      const link = document.createElement('a');
-      link.href = '#'; // Would be actual PDF blob URL
-      link.download = `Financial_Report_${summary.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-      // link.click();
-    }, 2000);
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add additional pages if content is longer than one page
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Generate filename
+      const fileName = `Financial_Report_${summary.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      if (attachToEmail) {
+        // Convert to blob for upload
+        const pdfBlob = pdf.output('blob');
+        
+        // Save to server
+        const formData = new FormData();
+        formData.append('file', pdfBlob, fileName);
+        formData.append('clientId', activeClient.id);
+        formData.append('fileName', fileName);
+
+        const response = await fetch('/api/pdf-exports', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save PDF to server');
+        }
+
+        const savedPdf = await response.json();
+        setLastGeneratedPdfId(savedPdf.id);
+        
+        toast({
+          title: 'PDF Generated',
+          description: 'PDF has been generated and saved'
+        });
+
+        return savedPdf.id;
+      } else {
+        // Download PDF
+        pdf.save(fileName);
+        
+        // Also save to server
+        const pdfBlob = pdf.output('blob');
+        const formData = new FormData();
+        formData.append('file', pdfBlob, fileName);
+        formData.append('clientId', activeClient.id);
+        formData.append('fileName', fileName);
+
+        const response = await fetch('/api/pdf-exports', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          const savedPdf = await response.json();
+          setLastGeneratedPdfId(savedPdf.id);
+          
+          // Dispatch event to refresh Account Centre
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('pdf-generated', { detail: savedPdf }));
+          }
+        }
+
+        toast({
+          title: 'PDF Generated',
+          description: 'Your financial planning report has been generated and downloaded'
+        });
+
+        return null;
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to generate PDF',
+        variant: 'destructive'
+      });
+      return null;
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const sendEmail = async (data: EmailData) => {
@@ -134,7 +262,17 @@ export default function SummaryPage() {
       if (!finalClientEmail) {
         toast({
           title: 'Error',
-          description: 'Client email is required. Please enter a client email address.',
+          description: 'Client email is required. Please enter a client email address or ensure the selected client has an email.',
+          variant: 'destructive'
+        });
+        setIsSendingEmail(false);
+        return;
+      }
+
+      if (!activeClient?.id) {
+        toast({
+          title: 'Error',
+          description: 'Please save the client first before sending email. Go to Client Information page and click Save.',
           variant: 'destructive'
         });
         setIsSendingEmail(false);
@@ -151,15 +289,32 @@ export default function SummaryPage() {
         return;
       }
 
-      // Send email via API
+      // Generate PDF first and attach it
+      let pdfId = lastGeneratedPdfId;
+      if (!pdfId) {
+        // Generate new PDF if one doesn't exist
+        pdfId = await generatePDF(true);
+        if (!pdfId) {
+          toast({
+            title: 'Warning',
+            description: 'PDF generation failed, sending email without attachment',
+            variant: 'destructive'
+          });
+        }
+      }
+
+      // Send email via API with PDF attachment
       const response = await fetch('/api/email/send-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientEmail: finalClientEmail,
+          clientId: activeClient?.id,
+          clientName: summary.clientName,
           subject: data.subject,
           message: data.message,
-          summaryData: summary
+          summaryData: summary,
+          pdfId: pdfId || undefined
         })
       });
 
@@ -170,7 +325,7 @@ export default function SummaryPage() {
 
       toast({
         title: 'Email Sent',
-        description: `Report has been sent to ${finalClientEmail} and ${user.email}`
+        description: `Report${pdfId ? ' with PDF' : ''} has been sent to ${finalClientEmail} and ${user.email}`
       });
       emailForm.reset();
     } catch (error) {
@@ -215,7 +370,7 @@ export default function SummaryPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
+    <div className="p-6 space-y-6 bg-background min-h-screen" id="summary-content" ref={summaryContentRef}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Financial Planning Summary</h1>

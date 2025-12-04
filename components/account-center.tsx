@@ -188,16 +188,29 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       }
     };
 
+    const handlePdfGenerated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('Account Center: Received pdf-generated event', customEvent.detail);
+      if (open) {
+        console.log('Account Center: Refreshing PDF exports list...');
+        setTimeout(() => {
+          loadData();
+        }, 500);
+      }
+    };
+
     // Listen for custom event when clients are saved
     // Set up listeners regardless of open state so they're ready when drawer opens
     console.log('Account Center: Setting up event listeners');
     window.addEventListener('client-saved', handleClientSaved);
     window.addEventListener('client-deleted', handleClientDeleted);
+    window.addEventListener('pdf-generated', handlePdfGenerated);
 
     return () => {
       console.log('Account Center: Cleaning up event listeners');
       window.removeEventListener('client-saved', handleClientSaved);
       window.removeEventListener('client-deleted', handleClientDeleted);
+      window.removeEventListener('pdf-generated', handlePdfGenerated);
     };
   }, [open, loadData]);
 
@@ -290,7 +303,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
       if (response.ok) {
         const newAppointment = await response.json();
-        setAppointments([newAppointment, ...appointments]);
+        // Refresh appointments list
+        await loadData();
         toast({
           title: 'Appointment scheduled',
           description: `Appointment with ${newAppointment.client.firstName} ${newAppointment.client.lastName} has been scheduled`
