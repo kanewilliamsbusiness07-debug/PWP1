@@ -833,20 +833,6 @@ export default function ProjectionsPage() {
                     </div>
                     
                     <div className="flex justify-between items-center pt-2 border-t">
-                      <span className="text-muted-foreground">After-Tax Income:</span>
-                      <span className="font-semibold text-blue-600">
-                        ${results.afterTaxIncome.toLocaleString()}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Total Tax:</span>
-                      <span className="font-semibold text-red-600">
-                        ${results.totalTax.toLocaleString()}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Monthly Savings:</span>
                       <span className={`font-semibold ${results.monthlySavings >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
                         ${results.monthlySavings.toLocaleString()}
