@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { auth } from '@/lib/auth/auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import type { Session } from 'next-auth';
 import { sendEmail } from '@/lib/email/email-service';
 import prisma from '@/lib/prisma';
@@ -10,7 +10,7 @@ import { join } from 'path';
 // POST /api/email/send-summary - Send summary report to client and account email
 export async function POST(req: NextRequest) {
   try {
-    const session = (await getServerSession(auth)) as Session | null;
+    const session = (await getServerSession(authOptions)) as Session | null;
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { auth } from '@/lib/auth/auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import type { Session } from 'next-auth';
 import prisma from '@/lib/prisma';
 import { encryptField } from '@/lib/encryption';
@@ -8,7 +8,7 @@ import { encryptField } from '@/lib/encryption';
 // GET /api/email/integration - Get email integration settings
 export async function GET(req: NextRequest) {
   try {
-    const session = (await getServerSession(auth)) as Session | null;
+    const session = (await getServerSession(authOptions)) as Session | null;
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 // POST /api/email/integration - Create or update email integration
 export async function POST(req: NextRequest) {
   try {
-    const session = (await getServerSession(auth)) as Session | null;
+    const session = (await getServerSession(authOptions)) as Session | null;
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 // DELETE /api/email/integration - Delete email integration
 export async function DELETE(req: NextRequest) {
   try {
-    const session = (await getServerSession(auth)) as Session | null;
+    const session = (await getServerSession(authOptions)) as Session | null;
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
