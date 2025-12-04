@@ -32,17 +32,35 @@ export async function GET(
     }
 
     // Read file from disk
-    const filePath = join(process.cwd(), pdfExport.filePath);
-    const fileBuffer = await readFile(filePath);
+    // Handle both absolute paths and relative paths
+    let filePath: string;
+    if (pdfExport.filePath.startsWith('/') && !pdfExport.filePath.startsWith(process.cwd())) {
+      // Path starts with / but is not absolute from cwd - treat as relative
+      filePath = join(process.cwd(), pdfExport.filePath);
+    } else if (pdfExport.filePath.startsWith('/')) {
+      // Absolute path from cwd
+      filePath = pdfExport.filePath;
+    } else {
+      // Relative path
+      filePath = join(process.cwd(), pdfExport.filePath);
+    }
+    
+    try {
+      const fileBuffer = await readFile(filePath);
 
-    // Return file as response
-    return new NextResponse(fileBuffer, {
-      headers: {
-        'Content-Type': pdfExport.mimeType || 'application/pdf',
-        'Content-Disposition': `attachment; filename="${pdfExport.fileName}"`,
-        'Content-Length': pdfExport.fileSize?.toString() || fileBuffer.length.toString()
-      }
-    });
+      // Return file as response
+      return new NextResponse(fileBuffer, {
+        headers: {
+          'Content-Type': pdfExport.mimeType || 'application/pdf',
+          'Content-Disposition': `attachment; filename="${pdfExport.fileName}"`,
+          'Content-Length': pdfExport.fileSize?.toString() || fileBuffer.length.toString()
+        }
+      });
+    } catch (fileError) {
+      console.error('Error reading PDF file:', fileError);
+      console.error('Attempted file path:', filePath);
+      return NextResponse.json({ error: 'PDF file not found on server' }, { status: 404 });
+    }
   } catch (error) {
     console.error('Error downloading PDF:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
