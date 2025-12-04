@@ -241,7 +241,7 @@ export default function TaxOptimizationPage() {
     taxForm
   ]);
 
-  // Australian tax brackets 2024-25
+  // Australian tax brackets 2024-25 (corrected)
   const taxBrackets = [
     { min: 0, max: 18200, rate: 0, baseAmount: 0 },
     { min: 18201, max: 45000, rate: 0.19, baseAmount: 0 },
@@ -249,6 +249,13 @@ export default function TaxOptimizationPage() {
     { min: 120001, max: 180000, rate: 0.37, baseAmount: 29467 },
     { min: 180001, max: Infinity, rate: 0.45, baseAmount: 51667 }
   ];
+  
+  // Medicare Levy thresholds 2024-25
+  const MEDICARE_LEVY_RATE = 0.02; // 2%
+  const MEDICARE_LEVY_THRESHOLD_SINGLE = 24276;
+  const MEDICARE_LEVY_THRESHOLD_FAMILY = 40939;
+  const MEDICARE_LEVY_SURCHARGE_THRESHOLD = 90000; // Single
+  const MEDICARE_LEVY_SURCHARGE_RATE = 0.01; // 1% to 1.5% depending on income
 
   const hecsThresholds = [
     { min: 51550, max: 59518, rate: 0.01 },
@@ -266,8 +273,10 @@ export default function TaxOptimizationPage() {
   const calculateIncomeTax = (taxableIncome: number): number => {
     if (taxableIncome <= 0) return 0;
     
-    for (const bracket of taxBrackets) {
-      if (taxableIncome >= bracket.min && taxableIncome <= bracket.max) {
+    // Find the correct bracket
+    for (let i = taxBrackets.length - 1; i >= 0; i--) {
+      const bracket = taxBrackets[i];
+      if (taxableIncome >= bracket.min) {
         const taxableInBracket = taxableIncome - bracket.min;
         return bracket.baseAmount + (taxableInBracket * bracket.rate);
       }
@@ -276,16 +285,33 @@ export default function TaxOptimizationPage() {
   };
 
   const calculateMedicareLevy = (taxableIncome: number, hasPrivateHealth: boolean): number => {
-    const threshold = 24276;
-    if (hasPrivateHealth || taxableIncome <= threshold) return 0;
-    return taxableIncome * 0.02;
+    // Medicare Levy: 2% of taxable income above threshold
+    if (taxableIncome <= MEDICARE_LEVY_THRESHOLD_SINGLE) return 0;
+    
+    // Calculate Medicare Levy (2%)
+    let medicareLevy = taxableIncome * MEDICARE_LEVY_RATE;
+    
+    // Medicare Levy Surcharge: Additional 1-1.5% if no private health insurance and income > threshold
+    if (!hasPrivateHealth && taxableIncome > MEDICARE_LEVY_SURCHARGE_THRESHOLD) {
+      let surchargeRate = 0.01; // 1% for $90,001 - $105,000
+      if (taxableIncome > 105000 && taxableIncome <= 140000) {
+        surchargeRate = 0.0125; // 1.25% for $105,001 - $140,000
+      } else if (taxableIncome > 140000) {
+        surchargeRate = 0.015; // 1.5% for $140,001+
+      }
+      medicareLevy += taxableIncome * surchargeRate;
+    }
+    
+    return medicareLevy;
   };
 
   const calculateHecsRepayment = (grossIncome: number, hecsBalance: number): number => {
-    if (hecsBalance <= 0) return 0;
+    if (hecsBalance <= 0 || grossIncome < 51550) return 0;
     
-    for (const threshold of hecsThresholds) {
-      if (grossIncome >= threshold.min && grossIncome <= threshold.max) {
+    // Find the correct threshold
+    for (let i = hecsThresholds.length - 1; i >= 0; i--) {
+      const threshold = hecsThresholds[i];
+      if (grossIncome >= threshold.min) {
         const repayment = grossIncome * threshold.rate;
         return Math.min(repayment, hecsBalance);
       }
@@ -293,11 +319,26 @@ export default function TaxOptimizationPage() {
     return 0;
   };
 
-  const calculateMarginalTaxRate = (taxableIncome: number): number => {
-    for (const bracket of taxBrackets) {
-      if (taxableIncome >= bracket.min && taxableIncome <= bracket.max) {
+  const calculateMarginalTaxRate = (taxableIncome: number, hasPrivateHealth: boolean = false): number => {
+    // Find the correct bracket
+    for (let i = taxBrackets.length - 1; i >= 0; i--) {
+      const bracket = taxBrackets[i];
+      if (taxableIncome >= bracket.min) {
         let marginalRate = bracket.rate;
-        if (taxableIncome > 24276) marginalRate += 0.02; // Medicare levy
+        // Add Medicare Levy (2%)
+        if (taxableIncome > MEDICARE_LEVY_THRESHOLD_SINGLE) {
+          marginalRate += MEDICARE_LEVY_RATE;
+        }
+        // Add Medicare Levy Surcharge if applicable
+        if (!hasPrivateHealth && taxableIncome > MEDICARE_LEVY_SURCHARGE_THRESHOLD) {
+          if (taxableIncome > 140000) {
+            marginalRate += 0.015; // 1.5%
+          } else if (taxableIncome > 105000) {
+            marginalRate += 0.0125; // 1.25%
+          } else {
+            marginalRate += 0.01; // 1%
+          }
+        }
         return marginalRate * 100;
       }
     }
@@ -305,24 +346,56 @@ export default function TaxOptimizationPage() {
   };
 
   const calculateTax = (data: TaxFormData): TaxCalculationResult => {
-    const totalDeductions = data.workRelatedExpenses + data.investmentExpenses +
-                           data.charityDonations + data.otherDeductions;    const negativeGearing = Math.max(0, data.rentalExpenses - data.rentalIncome);
-    const frankedCredits = data.frankedDividends * 0.3; // 30% franking credit
+    // Calculate total deductions
+    const totalDeductions = data.workRelatedExpenses + 
+                           data.vehicleExpenses +
+                           data.uniformsAndLaundry +
+                           data.homeOfficeExpenses +
+                           data.selfEducationExpenses +
+                           data.investmentExpenses +
+                           data.charityDonations +
+                           data.accountingFees +
+                           data.otherDeductions;
+    
+    // Negative gearing: rental expenses can offset rental income
+    const negativeGearing = Math.max(0, data.rentalExpenses - data.rentalIncome);
+    
+    // Franking credits: 30% of franked dividends (company tax rate)
+    const frankedCredits = data.frankedDividends * 0.3;
     
     // Use annualIncome (canonical) or fall back to grossIncome for backward compatibility
     const income = data.annualIncome ?? (data as any).grossIncome ?? 0;
     
-    let taxableIncome = income - totalDeductions - negativeGearing + 
-                       data.frankedDividends + frankedCredits + data.capitalGains + data.otherIncome;
+    // Calculate total assessable income
+    // Note: Franked dividends are included in assessable income, but franking credits reduce tax
+    // Capital gains: only 50% is assessable if held > 12 months (CGT discount)
+    const assessableCapitalGains = data.capitalGains * 0.5; // Assuming 50% CGT discount
+    
+    // Calculate taxable income
+    let taxableIncome = income + 
+                       data.investmentIncome +
+                       data.rentalIncome +
+                       data.frankedDividends + 
+                       assessableCapitalGains + 
+                       data.otherIncome -
+                       totalDeductions - 
+                       negativeGearing;
     taxableIncome = Math.max(0, taxableIncome);
     
-    const incomeTax = Math.max(0, calculateIncomeTax(taxableIncome) - frankedCredits);
-    const medicareLevy = calculateMedicareLevy(taxableIncome, data.privateHealthInsurance);
-    const hecsRepayment = calculateHecsRepayment(income, data.hecsBalance);
+    // Calculate income tax (franking credits reduce tax payable)
+    const incomeTaxBeforeCredits = calculateIncomeTax(taxableIncome);
+    const incomeTax = Math.max(0, incomeTaxBeforeCredits - frankedCredits);
     
+    // Medicare Levy and Surcharge
+    const medicareLevy = calculateMedicareLevy(taxableIncome, data.privateHealthInsurance || false);
+    
+    // HECS/HELP repayment (based on gross income, not taxable income)
+    const hecsRepayment = calculateHecsRepayment(income, data.hecsBalance || 0);
+    
+    // Total tax
     const totalTax = incomeTax + medicareLevy + hecsRepayment;
-    const afterTaxIncome = income - totalTax;
-    const marginalTaxRate = calculateMarginalTaxRate(taxableIncome);
+    const afterTaxIncome = income + data.investmentIncome + data.rentalIncome + data.otherIncome - totalTax;
+    const marginalTaxRate = calculateMarginalTaxRate(taxableIncome, data.privateHealthInsurance || false);
     const averageTaxRate = income > 0 ? (totalTax / income) * 100 : 0;
     
     return {

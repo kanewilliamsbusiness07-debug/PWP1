@@ -203,25 +203,66 @@ export default function ProjectionsPage() {
     
     // Simulate calculation delay
     setTimeout(() => {
-      const yearsToRetirement = projectionData.retirementAge - projectionData.currentAge;
+      const yearsToRetirement = Math.max(0, projectionData.retirementAge - projectionData.currentAge);
       
-      // Calculate projected lump sum with compound growth
-      const superGrowthFactor = Math.pow(1 + assumptions.superReturn / 100, yearsToRetirement);
-      const shareGrowthFactor = Math.pow(1 + assumptions.shareReturn / 100, yearsToRetirement);
-      const propertyGrowthFactor = Math.pow(1 + assumptions.propertyGrowthRate / 100, yearsToRetirement);
-      const savingsGrowthFactor = Math.pow(1 + 2 / 100, yearsToRetirement); // Conservative 2% for savings
+      if (yearsToRetirement <= 0) {
+        toast({
+          title: 'Invalid Input',
+          description: 'Retirement age must be greater than current age',
+          variant: 'destructive'
+        });
+        setIsCalculating(false);
+        return;
+      }
       
+      // Calculate real growth rates (nominal - inflation)
+      const realSuperReturn = (assumptions.superReturn / 100) - (assumptions.inflationRate / 100);
+      const realShareReturn = (assumptions.shareReturn / 100) - (assumptions.inflationRate / 100);
+      const realPropertyReturn = (assumptions.propertyGrowthRate / 100) - (assumptions.inflationRate / 100);
+      const realSavingsReturn = 0.02 - (assumptions.inflationRate / 100); // 2% nominal for savings
+      
+      // Project assets with compound growth (using real returns)
+      const superGrowthFactor = Math.pow(1 + realSuperReturn, yearsToRetirement);
+      const shareGrowthFactor = Math.pow(1 + realShareReturn, yearsToRetirement);
+      const propertyGrowthFactor = Math.pow(1 + realPropertyReturn, yearsToRetirement);
+      const savingsGrowthFactor = Math.pow(1 + Math.max(0, realSavingsReturn), yearsToRetirement);
+      
+      // Calculate future value of current assets
       const projectedSuper = projectionData.currentSuper * superGrowthFactor;
       const projectedShares = projectionData.currentShares * shareGrowthFactor;
       const projectedProperty = projectionData.propertyEquity * propertyGrowthFactor;
       const projectedSavings = projectionData.currentSavings * savingsGrowthFactor;
       
-      const projectedLumpSum = projectedSuper + projectedShares + projectedProperty + projectedSavings;
+      // Add future super contributions (assuming 11.5% employer contribution + any salary sacrifice)
+      // Calculate salary growth
+      const salaryGrowthFactor = Math.pow(1 + assumptions.salaryGrowthRate / 100, yearsToRetirement);
+      const finalSalary = projectionData.annualIncome * salaryGrowthFactor;
       
-      // Calculate passive income
+      // Calculate total super contributions over years (simplified - assumes constant contribution rate)
+      const superContributionRate = 0.115; // 11.5% employer contribution
+      let totalSuperContributions = 0;
+      for (let year = 0; year < yearsToRetirement; year++) {
+        const yearSalary = projectionData.annualIncome * Math.pow(1 + assumptions.salaryGrowthRate / 100, year);
+        const yearContribution = yearSalary * superContributionRate;
+        const yearsRemaining = yearsToRetirement - year;
+        const contributionGrowth = Math.pow(1 + realSuperReturn, yearsRemaining);
+        totalSuperContributions += yearContribution * contributionGrowth;
+      }
+      
+      const totalProjectedSuper = projectedSuper + totalSuperContributions;
+      
+      // Calculate total projected lump sum
+      const projectedLumpSum = totalProjectedSuper + projectedShares + projectedProperty + projectedSavings;
+      
+      // Calculate passive income at retirement
+      // Safe withdrawal rate from lump sum
       const withdrawalIncome = projectedLumpSum * (assumptions.withdrawalRate / 100);
-      const rentGrowthFactor = Math.pow(1 + assumptions.rentGrowthRate / 100, yearsToRetirement);
+      
+      // Project rental income to retirement (using real growth)
+      const rentRealGrowth = (assumptions.rentGrowthRate / 100) - (assumptions.inflationRate / 100);
+      const rentGrowthFactor = Math.pow(1 + rentRealGrowth, yearsToRetirement);
       const projectedRentalIncome = (projectionData.monthlyRentalIncome * 12) * rentGrowthFactor;
+      
       const projectedPassiveIncome = withdrawalIncome + projectedRentalIncome;
       
       // Calculate required income (70% of current salary adjusted for inflation)
