@@ -47,11 +47,29 @@ export function useClientStorage(): UseClientStorageReturn {
       if (!clientData.firstName || !clientData.lastName) {
         throw new Error('First name and last name are required');
       }
+      
+      // Validate date of birth is required for new clients
+      if (!clientData.id && !clientData.dob) {
+        throw new Error('Date of birth is required to save a client');
+      }
 
       // Prepare data for API
+      let dobValue: string | null = null;
+      if (clientData.dob) {
+        if (typeof clientData.dob === 'string') {
+          dobValue = clientData.dob;
+        } else if (clientData.dob instanceof Date) {
+          // Format as YYYY-MM-DD
+          const year = clientData.dob.getFullYear();
+          const month = String(clientData.dob.getMonth() + 1).padStart(2, '0');
+          const day = String(clientData.dob.getDate()).padStart(2, '0');
+          dobValue = `${year}-${month}-${day}`;
+        }
+      }
+      
       const dataToSave = {
         ...clientData,
-        dob: clientData.dob ? (typeof clientData.dob === 'string' ? clientData.dob : clientData.dob.toISOString()) : null,
+        dob: dobValue,
       };
 
       let savedClient: ClientData;

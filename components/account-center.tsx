@@ -146,6 +146,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           
           if (clientsList.length === 0) {
             console.warn('Account Center: No valid clients found in response');
+            console.warn('Account Center: Raw response data was:', clientsData);
+            toast({
+              title: 'No Clients Found',
+              description: 'No clients found. Save a client from the Client Information page.',
+              variant: 'default'
+            });
           } else {
             console.log('Account Center: Successfully loaded clients:', clientsList.map((c: Client) => `${c.firstName} ${c.lastName}`));
           }
@@ -462,6 +468,9 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   };
 
   const handleScheduleAppointment = (clientId?: string) => {
+    console.log('handleScheduleAppointment called with clientId:', clientId);
+    console.log('Current clients count:', clients.length);
+    
     if (clients.length === 0) {
       toast({
         title: 'No Clients Available',
@@ -470,6 +479,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       });
       return;
     }
+    
+    console.log('Opening appointment dialog...');
     setIsEditingAppointment(false);
     setSelectedAppointment(null);
     setAppointmentClientId(clientId || '');
@@ -480,6 +491,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     setAppointmentEndTime('10:00');
     setAppointmentNotes('');
     setAppointmentDialogOpen(true);
+    console.log('Appointment dialog state set to open');
   };
 
   const handleEditAppointment = (appointment: Appointment) => {
@@ -964,7 +976,9 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                   variant="outline"
                                   className="h-6 w-6 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                   onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
+                                    console.log('Schedule appointment button clicked for client:', client.id);
                                     handleScheduleAppointment(client.id);
                                   }}
                                   title="Schedule Appointment"
