@@ -61,6 +61,7 @@ export default function SummaryPage() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [lastGeneratedPdfId, setLastGeneratedPdfId] = useState<string | null>(null);
+  const [isLoadingClient, setIsLoadingClient] = useState(false);
   const summaryContentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -86,6 +87,38 @@ export default function SummaryPage() {
       emailForm.setValue('recipientEmail', activeClientForEmail.email);
     }
   }, [activeClientForEmail?.email, emailForm]);
+
+  // Try to load client from URL if not in store
+  useEffect(() => {
+    const loadClientFromUrl = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientId = urlParams.get('load');
+      
+      if (clientId && !activeClientForEmail?.id && !isLoadingClient) {
+        setIsLoadingClient(true);
+        try {
+          const response = await fetch(`/api/clients/${clientId}`);
+          if (response.ok) {
+            const client = await response.json();
+            // Load client into store
+            const clientSlot = financialStore.activeClient || 'A';
+            financialStore.setClientData(clientSlot, client as any);
+            financialStore.setActiveClient(clientSlot);
+            toast({
+              title: 'Client loaded',
+              description: `Loaded ${client.firstName} ${client.lastName}`
+            });
+          }
+        } catch (error) {
+          console.error('Error loading client:', error);
+        } finally {
+          setIsLoadingClient(false);
+        }
+      }
+    };
+    
+    loadClientFromUrl();
+  }, [activeClientForEmail?.id, isLoadingClient, financialStore, toast]);
 
   // Calculate summary from real financial store data
   const activeClient = financialStore.activeClient 
@@ -241,14 +274,47 @@ export default function SummaryPage() {
       }
 
       // Check if client has been saved (has an ID)
-      if (!activeClient.id) {
-        toast({
-          title: 'Error',
-          description: 'Please save the client first before generating PDF. Go to Client Information page and click Save.',
-          variant: 'destructive'
-        });
-        setIsGeneratingPDF(false);
-        return null;
+      // If not, try to save it first or use a temporary ID
+      let clientId: string | undefined = activeClient.id;
+      if (!clientId) {
+        // Try to save the client first
+        try {
+          const saveResponse = await fetch('/api/clients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              firstName: activeClient.firstName || 'Client',
+              lastName: activeClient.lastName || '',
+              email: activeClient.email || '',
+              ...activeClient
+            })
+          });
+          
+          if (saveResponse.ok) {
+            const savedClient = await saveResponse.json();
+            clientId = savedClient.id;
+            // Update store with saved client ID
+            financialStore.setClientData(financialStore.activeClient || 'A', { ...activeClient, id: clientId } as any);
+            toast({
+              title: 'Client saved',
+              description: 'Client has been saved automatically'
+            });
+          } else {
+            // If save fails, still allow PDF generation but warn user
+            toast({
+              title: 'Warning',
+              description: 'Client not saved to database. PDF will be generated but not stored.',
+              variant: 'default'
+            });
+          }
+        } catch (error) {
+          console.error('Error saving client:', error);
+          toast({
+            title: 'Warning',
+            description: 'Could not save client. PDF will be generated but not stored.',
+            variant: 'default'
+          });
+        }
       }
 
       // Capture the content as canvas
@@ -288,60 +354,88 @@ export default function SummaryPage() {
         // Convert to blob for upload
         const pdfBlob = pdf.output('blob');
         
-        // Save to server
-        const formData = new FormData();
-        formData.append('file', pdfBlob, fileName);
-        formData.append('clientId', activeClient.id);
-        formData.append('fileName', fileName);
+        // Save to server if client ID exists
+        if (clientId) {
+          const formData = new FormData();
+          formData.append('file', pdfBlob, fileName);
+          formData.append('clientId', clientId);
+          formData.append('fileName', fileName);
 
-        const response = await fetch('/api/pdf-exports', {
-          method: 'POST',
-          body: formData
-        });
+          const response = await fetch('/api/pdf-exports', {
+            method: 'POST',
+            body: formData
+          });
 
-        if (!response.ok) {
-          throw new Error('Failed to save PDF to server');
+          if (response.ok) {
+            const savedPdf = await response.json();
+            setLastGeneratedPdfId(savedPdf.id);
+            
+            toast({
+              title: 'PDF Generated',
+              description: 'PDF has been generated and saved'
+            });
+
+            return savedPdf.id;
+          } else {
+            console.error('Failed to save PDF to server');
+            toast({
+              title: 'PDF Generated',
+              description: 'PDF generated but could not be saved to server',
+              variant: 'default'
+            });
+            return null;
+          }
+        } else {
+          toast({
+            title: 'PDF Generated',
+            description: 'PDF generated but not saved (client not saved)',
+            variant: 'default'
+          });
+          return null;
         }
-
-        const savedPdf = await response.json();
-        setLastGeneratedPdfId(savedPdf.id);
-        
-        toast({
-          title: 'PDF Generated',
-          description: 'PDF has been generated and saved'
-        });
-
-        return savedPdf.id;
       } else {
         // Download PDF
         pdf.save(fileName);
         
-        // Also save to server
-        const pdfBlob = pdf.output('blob');
-        const formData = new FormData();
-        formData.append('file', pdfBlob, fileName);
-        formData.append('clientId', activeClient.id);
-        formData.append('fileName', fileName);
+        // Also save to server if client ID exists
+        if (clientId) {
+          const pdfBlob = pdf.output('blob');
+          const formData = new FormData();
+          formData.append('file', pdfBlob, fileName);
+          formData.append('clientId', clientId);
+          formData.append('fileName', fileName);
 
-        const response = await fetch('/api/pdf-exports', {
-          method: 'POST',
-          body: formData
-        });
+          const response = await fetch('/api/pdf-exports', {
+            method: 'POST',
+            body: formData
+          });
 
-        if (response.ok) {
-          const savedPdf = await response.json();
-          setLastGeneratedPdfId(savedPdf.id);
-          
-          // Dispatch event to refresh Account Centre
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('pdf-generated', { detail: savedPdf }));
+          if (response.ok) {
+            const savedPdf = await response.json();
+            setLastGeneratedPdfId(savedPdf.id);
+            
+            // Dispatch event to refresh Account Centre
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('pdf-generated', { detail: savedPdf }));
+            }
+            
+            toast({
+              title: 'PDF Generated',
+              description: 'Your financial planning report has been generated, downloaded, and saved'
+            });
+          } else {
+            toast({
+              title: 'PDF Generated',
+              description: 'Your financial planning report has been generated and downloaded (not saved to server)',
+              variant: 'default'
+            });
           }
+        } else {
+          toast({
+            title: 'PDF Generated',
+            description: 'Your financial planning report has been generated and downloaded'
+          });
         }
-
-        toast({
-          title: 'PDF Generated',
-          description: 'Your financial planning report has been generated and downloaded'
-        });
 
         return null;
       }
@@ -380,10 +474,52 @@ export default function SummaryPage() {
         return;
       }
 
-      if (!activeClient?.id) {
+      // Ensure client is saved before sending email
+      let clientId = activeClient?.id;
+      if (!clientId && activeClient) {
+        // Try to save the client first
+        try {
+          const saveResponse = await fetch('/api/clients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              firstName: activeClient.firstName || 'Client',
+              lastName: activeClient.lastName || '',
+              email: finalClientEmail,
+              ...activeClient
+            })
+          });
+          
+          if (saveResponse.ok) {
+            const savedClient = await saveResponse.json();
+            clientId = savedClient.id;
+            // Update store with saved client ID
+            financialStore.setClientData(financialStore.activeClient || 'A', { ...activeClient, id: clientId } as any);
+          } else {
+            toast({
+              title: 'Error',
+              description: 'Please save the client first before sending email. Go to Client Information page and click Save.',
+              variant: 'destructive'
+            });
+            setIsSendingEmail(false);
+            return;
+          }
+        } catch (error) {
+          console.error('Error saving client:', error);
+          toast({
+            title: 'Error',
+            description: 'Could not save client. Please save the client first before sending email.',
+            variant: 'destructive'
+          });
+          setIsSendingEmail(false);
+          return;
+        }
+      }
+      
+      if (!clientId) {
         toast({
           title: 'Error',
-          description: 'Please save the client first before sending email. Go to Client Information page and click Save.',
+          description: 'Please select and save a client before sending email. Go to Client Information page to create or load a client.',
           variant: 'destructive'
         });
         setIsSendingEmail(false);
@@ -420,7 +556,7 @@ export default function SummaryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientEmail: finalClientEmail,
-          clientId: activeClient?.id,
+          clientId: clientId,
           clientName: summary.clientName,
           subject: data.subject,
           message: data.message,
@@ -481,7 +617,7 @@ export default function SummaryPage() {
   };
 
   // Show message if no client is selected
-  if (!activeClient) {
+  if (!activeClient && !isLoadingClient) {
     return (
       <div className="p-6 space-y-6 bg-background min-h-screen flex items-center justify-center">
         <Card className="max-w-md">
@@ -491,13 +627,31 @@ export default function SummaryPage() {
               Please select or create a client to view the financial planning summary.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <Button 
               onClick={() => window.location.href = '/client-information'}
               className="w-full bg-yellow-500 text-white hover:bg-yellow-600"
             >
               Go to Client Information
             </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Or load a client by adding ?load=CLIENT_ID to the URL
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isLoadingClient) {
+    return (
+      <div className="p-6 space-y-6 bg-background min-h-screen flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-muted-foreground">Loading client data...</p>
+            </div>
           </CardContent>
         </Card>
       </div>
