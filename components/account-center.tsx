@@ -102,103 +102,170 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     setLoading(true);
     try {
       console.log('Account Center: Starting to load data...');
-      const [clientsRes, appointmentsRes, exportsRes] = await Promise.all([
-        fetch('/api/clients?limit=50', {
+      
+      // Load clients
+      try {
+        const clientsRes = await fetch('/api/clients?limit=50', {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           }
-        }),
-        fetch('/api/appointments?limit=20', {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }),
-        fetch('/api/pdf-exports?limit=20', {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        })
-      ]);
+        });
 
-      console.log('Account Center: API responses received', {
-        clients: clientsRes.status,
-        appointments: appointmentsRes.status,
-        exports: exportsRes.status
-      });
+        console.log('Account Center: Clients API response status:', clientsRes.status);
 
-      if (clientsRes.ok) {
-        const clientsData = await clientsRes.json();
-        console.log('Account Center: Raw clients data:', clientsData);
-        // Handle both response formats: { clients: [...] } or [...]
-        const clientsList = Array.isArray(clientsData) ? clientsData : (clientsData.clients || []);
-        console.log('Account Center: Parsed clients list:', clientsList);
-        console.log('Account Center: Number of clients:', clientsList.length);
-        setClients(clientsList || []);
-        if (clientsList.length === 0) {
-          console.warn('Account Center: No clients found in response');
+        if (clientsRes.ok) {
+          const clientsData = await clientsRes.json();
+          console.log('Account Center: Raw clients data:', clientsData);
+          
+          // Handle both response formats: { clients: [...] } or [...]
+          let clientsList: Client[] = [];
+          if (Array.isArray(clientsData)) {
+            clientsList = clientsData;
+          } else if (clientsData && typeof clientsData === 'object' && 'clients' in clientsData) {
+            clientsList = Array.isArray(clientsData.clients) ? clientsData.clients : [];
+          }
+          
+          // Validate client data structure
+          clientsList = clientsList.filter((c: any) => c && c.id && c.firstName && c.lastName);
+          
+          console.log('Account Center: Parsed and validated clients list:', clientsList);
+          console.log('Account Center: Number of clients:', clientsList.length);
+          
+          setClients(clientsList);
+          
+          if (clientsList.length === 0) {
+            console.warn('Account Center: No valid clients found in response');
+          } else {
+            console.log('Account Center: Successfully loaded clients:', clientsList.map((c: Client) => `${c.firstName} ${c.lastName}`));
+          }
         } else {
-          console.log('Account Center: Successfully loaded clients:', clientsList.map((c: Client) => `${c.firstName} ${c.lastName}`));
+          const errorData = await clientsRes.json().catch(() => ({}));
+          console.error('Error loading clients:', clientsRes.status, errorData);
+          setClients([]);
+          if (clientsRes.status === 401) {
+            toast({
+              title: 'Authentication Error',
+              description: 'Please log in again to view clients',
+              variant: 'destructive'
+            });
+          } else {
+            toast({
+              title: 'Error Loading Clients',
+              description: errorData.error || `Failed to load clients (${clientsRes.status})`,
+              variant: 'destructive'
+            });
+          }
         }
-      } else {
-        const errorData = await clientsRes.json().catch(() => ({}));
-        console.error('Error loading clients:', clientsRes.status, errorData);
-        setClients([]); // Clear clients on error
-        if (clientsRes.status === 401) {
-          toast({
-            title: 'Authentication Error',
-            description: 'Please log in again to view clients',
-            variant: 'destructive'
-          });
-        } else {
-          toast({
-            title: 'Error Loading Clients',
-            description: errorData.error || `Failed to load clients (${clientsRes.status})`,
-            variant: 'destructive'
-          });
-        }
+      } catch (error) {
+        console.error('Error fetching clients:', error);
+        setClients([]);
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch clients. Please try again.',
+          variant: 'destructive'
+        });
       }
 
-      if (appointmentsRes.ok) {
-        const appointmentsData = await appointmentsRes.json();
-        console.log('Account Center: Loaded appointments:', appointmentsData);
-        const appointmentsList = appointmentsData.appointments || appointmentsData || [];
-        setAppointments(Array.isArray(appointmentsList) ? appointmentsList : []);
-        console.log('Account Center: Set appointments count:', Array.isArray(appointmentsList) ? appointmentsList.length : 0);
-      } else {
-        const errorData = await appointmentsRes.json().catch(() => ({}));
-        console.error('Error loading appointments:', appointmentsRes.status, errorData);
+      // Load appointments
+      try {
+        const appointmentsRes = await fetch('/api/appointments?limit=50', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        console.log('Account Center: Appointments API response status:', appointmentsRes.status);
+
+        if (appointmentsRes.ok) {
+          const appointmentsData = await appointmentsRes.json();
+          console.log('Account Center: Raw appointments data:', appointmentsData);
+          
+          // Handle both response formats: { appointments: [...] } or [...]
+          let appointmentsList: Appointment[] = [];
+          if (Array.isArray(appointmentsData)) {
+            appointmentsList = appointmentsData;
+          } else if (appointmentsData && typeof appointmentsData === 'object' && 'appointments' in appointmentsData) {
+            appointmentsList = Array.isArray(appointmentsData.appointments) ? appointmentsData.appointments : [];
+          }
+          
+          // Validate appointment data structure
+          appointmentsList = appointmentsList.filter((a: any) => 
+            a && a.id && a.title && a.clientId && a.client && a.startDateTime && a.endDateTime
+          );
+          
+          console.log('Account Center: Parsed and validated appointments list:', appointmentsList);
+          console.log('Account Center: Number of appointments:', appointmentsList.length);
+          
+          setAppointments(appointmentsList);
+        } else {
+          const errorData = await appointmentsRes.json().catch(() => ({}));
+          console.error('Error loading appointments:', appointmentsRes.status, errorData);
+          setAppointments([]);
+          if (appointmentsRes.status !== 401) {
+            toast({
+              title: 'Error Loading Appointments',
+              description: errorData.error || `Failed to load appointments (${appointmentsRes.status})`,
+              variant: 'destructive'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
         setAppointments([]);
-        if (appointmentsRes.status !== 401) {
-          // Don't show toast for 401 as it's already shown for clients
-          toast({
-            title: 'Error Loading Appointments',
-            description: errorData.error || `Failed to load appointments (${appointmentsRes.status})`,
-            variant: 'destructive'
-          });
-        }
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch appointments. Please try again.',
+          variant: 'destructive'
+        });
       }
 
-      if (exportsRes.ok) {
-        const exportsData = await exportsRes.json();
-        console.log('Account Center: Loaded PDF exports:', exportsData);
-        const exportsList = exportsData.exports || exportsData || [];
-        setPdfExports(Array.isArray(exportsList) ? exportsList : []);
-        console.log('Account Center: Set PDF exports count:', Array.isArray(exportsList) ? exportsList.length : 0);
-      } else {
-        const errorData = await exportsRes.json().catch(() => ({}));
-        console.error('Error loading PDF exports:', exportsRes.status, errorData);
-        setPdfExports([]);
-        if (exportsRes.status !== 401) {
-          // Don't show toast for 401 as it's already shown for clients
-          toast({
-            title: 'Error Loading PDFs',
-            description: errorData.error || `Failed to load PDF exports (${exportsRes.status})`,
-            variant: 'destructive'
-          });
+      // Load PDF exports
+      try {
+        const exportsRes = await fetch('/api/pdf-exports?limit=50', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        console.log('Account Center: PDF exports API response status:', exportsRes.status);
+
+        if (exportsRes.ok) {
+          const exportsData = await exportsRes.json();
+          console.log('Account Center: Raw PDF exports data:', exportsData);
+          
+          // Handle both response formats: { exports: [...] } or [...]
+          let exportsList: PdfExport[] = [];
+          if (Array.isArray(exportsData)) {
+            exportsList = exportsData;
+          } else if (exportsData && typeof exportsData === 'object' && 'exports' in exportsData) {
+            exportsList = Array.isArray(exportsData.exports) ? exportsData.exports : [];
+          }
+          
+          // Validate PDF export data structure
+          exportsList = exportsList.filter((e: any) => e && e.id && e.fileName);
+          
+          console.log('Account Center: Parsed and validated PDF exports list:', exportsList);
+          console.log('Account Center: Number of PDF exports:', exportsList.length);
+          
+          setPdfExports(exportsList);
+        } else {
+          const errorData = await exportsRes.json().catch(() => ({}));
+          console.error('Error loading PDF exports:', exportsRes.status, errorData);
+          setPdfExports([]);
+          if (exportsRes.status !== 401) {
+            toast({
+              title: 'Error Loading PDFs',
+              description: errorData.error || `Failed to load PDF exports (${exportsRes.status})`,
+              variant: 'destructive'
+            });
+          }
         }
+      } catch (error) {
+        console.error('Error fetching PDF exports:', error);
+        setPdfExports([]);
       }
       
       console.log('Account Center: Data loading completed');
@@ -573,20 +640,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
       if (response.ok) {
         const appointment = await response.json();
+        console.log('Account Center: Appointment saved successfully:', appointment);
         
         // Dispatch event to notify other components
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('appointment-saved', { detail: appointment }));
         }
         
-        // Refresh appointments list
-        await loadData();
-        toast({
-          title: isEditingAppointment ? 'Appointment updated' : 'Appointment scheduled',
-          description: `Appointment with ${appointment.client.firstName} ${appointment.client.lastName} has been ${isEditingAppointment ? 'updated' : 'scheduled'}`
-        });
-        
-        // Reset form
+        // Reset form first
         setAppointmentClientId('');
         setAppointmentTitle('');
         setAppointmentDescription('');
@@ -597,6 +658,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         setIsEditingAppointment(false);
         setSelectedAppointment(null);
         setAppointmentDialogOpen(false);
+        
+        // Refresh appointments list
+        await loadData();
+        
+        toast({
+          title: isEditingAppointment ? 'Appointment updated' : 'Appointment scheduled',
+          description: `Appointment with ${appointment.client?.firstName || 'client'} ${appointment.client?.lastName || ''} has been ${isEditingAppointment ? 'updated' : 'scheduled'}`
+        });
       } else {
         const error = await response.json();
         throw new Error(error.error || `Failed to ${isEditingAppointment ? 'update' : 'schedule'} appointment`);
@@ -758,16 +827,24 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           </SheetHeader>
 
           <div className="mt-6">
+            {/* Debug info - shows counts even when 0 */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mb-4 p-2 bg-muted rounded text-xs text-muted-foreground">
+                <p>Clients: {clients.length} | Appointments: {appointments.length} | PDFs: {pdfExports.length}</p>
+                <p>Loading: {loading ? 'Yes' : 'No'}</p>
+              </div>
+            )}
+            
             <Tabs defaultValue="clients" className="space-y-4">
               <TabsList className="grid w-full grid-cols-3 bg-secondary">
                 <TabsTrigger value="clients" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Clients {clients.length > 0 && `(${clients.length})`}
+                  Clients ({clients.length})
                 </TabsTrigger>
                 <TabsTrigger value="appointments" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Appointments {appointments.length > 0 && `(${appointments.length})`}
+                  Appointments ({appointments.length})
                 </TabsTrigger>
                 <TabsTrigger value="exports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  PDFs {pdfExports.length > 0 && `(${pdfExports.length})`}
+                  PDFs ({pdfExports.length})
                 </TabsTrigger>
               </TabsList>
 
