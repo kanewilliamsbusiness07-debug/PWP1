@@ -731,12 +731,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full sm:max-w-md bg-white border-gray-200 overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-md bg-background border-border overflow-y-auto">
           <SheetHeader>
             <div className="flex items-center justify-between">
               <div>
-                <SheetTitle className="text-gray-900">Account Center</SheetTitle>
-                <SheetDescription className="text-gray-600">
+                <SheetTitle className="text-foreground">Account Center</SheetTitle>
+                <SheetDescription className="text-muted-foreground">
                   Manage clients, appointments, and quick actions
                 </SheetDescription>
               </div>
@@ -745,7 +745,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 variant="outline"
                 onClick={() => loadData()}
                 disabled={loading}
-                className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 title="Refresh data"
               >
                 {loading ? (
@@ -758,23 +758,15 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           </SheetHeader>
 
           <div className="mt-6">
-            {/* Debug info - remove in production */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
-                <p>Clients: {clients.length} | Appointments: {appointments.length} | PDFs: {pdfExports.length}</p>
-                <p>Loading: {loading ? 'Yes' : 'No'}</p>
-              </div>
-            )}
-            
             <Tabs defaultValue="clients" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="clients" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
+              <TabsList className="grid w-full grid-cols-3 bg-secondary">
+                <TabsTrigger value="clients" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   Clients {clients.length > 0 && `(${clients.length})`}
                 </TabsTrigger>
-                <TabsTrigger value="appointments" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
+                <TabsTrigger value="appointments" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   Appointments {appointments.length > 0 && `(${appointments.length})`}
                 </TabsTrigger>
-                <TabsTrigger value="exports" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
+                <TabsTrigger value="exports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   PDFs {pdfExports.length > 0 && `(${pdfExports.length})`}
                 </TabsTrigger>
               </TabsList>
@@ -782,10 +774,10 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
               <TabsContent value="clients" className="space-y-4">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
                       placeholder="Search clients..."
-                      className="pl-10 bg-white border-gray-300 text-gray-900"
+                      className="pl-10 bg-background border-border text-foreground"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -795,7 +787,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     variant="outline"
                     onClick={loadData}
                     disabled={loading}
-                    className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                    className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                   >
                     {loading ? '...' : '↻'}
                   </Button>
@@ -803,25 +795,25 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {loading ? (
-                    <div className="text-center py-8 text-gray-600">
-                      <Clock className="h-8 w-8 mx-auto mb-2 animate-spin text-yellow-500" />
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Clock className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
                       <p className="text-sm">Loading clients...</p>
                     </div>
                   ) : filteredClients.length === 0 ? (
-                    <div className="text-center py-8 text-gray-600">
+                    <div className="text-center py-8 text-muted-foreground">
                       <p className="text-sm font-medium mb-2">
                         {searchTerm ? 'No clients match your search' : clients.length === 0 ? 'No clients saved yet' : 'No clients match your search'}
                       </p>
                       {clients.length === 0 && (
                         <>
-                          <p className="text-xs text-gray-500 mt-2 mb-4">
+                          <p className="text-xs text-muted-foreground mt-2 mb-4">
                             Save a client from the Client Information page to see them here
                           </p>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => window.location.href = '/client-information'}
-                            className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                           >
                             Go to Client Information
                           </Button>
@@ -830,17 +822,17 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     </div>
                   ) : (
                     filteredClients.map((client) => (
-                      <Card key={client.id} className="cursor-pointer hover:bg-gray-50 bg-white border-gray-200">
+                      <Card key={client.id} className="cursor-pointer hover:bg-accent/10 bg-card border-border">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate text-gray-900">
+                              <p className="text-sm font-medium truncate text-card-foreground">
                                 {client.firstName} {client.lastName}
                               </p>
-                              <p className="text-xs text-gray-600 truncate">
+                              <p className="text-xs text-muted-foreground truncate">
                                 {client.email || 'No email'}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-muted-foreground">
                                 Updated {format(new Date(client.updatedAt), 'MMM dd, yyyy')}
                               </p>
                             </div>
@@ -850,7 +842,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-6 w-6 p-0 border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                                  className="h-6 w-6 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     window.location.href = `/client-information?load=${client.id}`;
@@ -862,7 +854,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-6 w-6 p-0 border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
+                                  className="h-6 w-6 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     window.location.href = `/summary?load=${client.id}`;
@@ -877,7 +869,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-6 w-6 p-0 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                                  className="h-6 w-6 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleGeneratePDF(client);
@@ -894,7 +886,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-6 w-6 p-0 border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                                  className="h-6 w-6 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleEmailClient(client);
@@ -914,7 +906,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-6 w-6 p-0 border-purple-500 text-purple-600 hover:bg-purple-500 hover:text-white"
+                                  className="h-6 w-6 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleExportLastPDF(client);
@@ -926,7 +918,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-6 w-6 p-0 border-red-400 text-red-400 hover:bg-red-400 hover:text-white"
+                                  className="h-6 w-6 p-0 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleDeleteDraft(client);
@@ -947,11 +939,11 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
               <TabsContent value="appointments" className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium text-gray-900">Appointments</h3>
+                  <h3 className="text-sm font-medium text-foreground">Appointments</h3>
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white" 
+                    className="border-primary text-primary hover:bg-primary hover:text-primary-foreground" 
                     onClick={handleScheduleAppointment}
                   >
                     <Plus className="h-4 w-4 mr-1" />
@@ -959,11 +951,11 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   </Button>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     size="sm"
                     variant={appointmentFilter === 'all' ? 'default' : 'outline'}
-                    className={appointmentFilter === 'all' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : ''}
+                    className={appointmentFilter === 'all' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-border text-foreground hover:bg-accent'}
                     onClick={() => setAppointmentFilter('all')}
                   >
                     All
@@ -971,7 +963,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   <Button
                     size="sm"
                     variant={appointmentFilter === 'upcoming' ? 'default' : 'outline'}
-                    className={appointmentFilter === 'upcoming' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : ''}
+                    className={appointmentFilter === 'upcoming' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-border text-foreground hover:bg-accent'}
                     onClick={() => setAppointmentFilter('upcoming')}
                   >
                     Upcoming
@@ -979,7 +971,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   <Button
                     size="sm"
                     variant={appointmentFilter === 'completed' ? 'default' : 'outline'}
-                    className={appointmentFilter === 'completed' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : ''}
+                    className={appointmentFilter === 'completed' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-border text-foreground hover:bg-accent'}
                     onClick={() => setAppointmentFilter('completed')}
                   >
                     Completed
@@ -987,7 +979,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   <Button
                     size="sm"
                     variant={appointmentFilter === 'cancelled' ? 'default' : 'outline'}
-                    className={appointmentFilter === 'cancelled' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : ''}
+                    className={appointmentFilter === 'cancelled' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-border text-foreground hover:bg-accent'}
                     onClick={() => setAppointmentFilter('cancelled')}
                   >
                     Cancelled
@@ -996,35 +988,46 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {loading ? (
-                    <div className="text-center py-8 text-gray-600">
-                      <Clock className="h-8 w-8 mx-auto mb-2 animate-spin text-yellow-500" />
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Clock className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
                       <p className="text-sm">Loading appointments...</p>
                     </div>
                   ) : filteredAppointments.length === 0 ? (
-                    <div className="text-center py-8 text-gray-600">
-                      <CalendarIcon className="h-8 w-8 mx-auto mb-2 opacity-50 text-gray-400" />
-                      <p className="text-sm">No {appointmentFilter === 'all' ? '' : appointmentFilter} appointments</p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <CalendarIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm font-medium mb-2">No {appointmentFilter === 'all' ? '' : appointmentFilter} appointments</p>
+                      {appointmentFilter === 'upcoming' && appointments.length === 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleScheduleAppointment}
+                          className="mt-4 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Schedule First Appointment
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     filteredAppointments.map((appointment) => (
-                      <Card key={appointment.id} className="bg-white border-gray-200 cursor-pointer hover:bg-gray-50">
+                      <Card key={appointment.id} className="bg-card border-border cursor-pointer hover:bg-accent/10">
                         <CardContent className="p-4">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">{appointment.title}</p>
+                                <p className="text-sm font-medium text-card-foreground">{appointment.title}</p>
                                 <div className="flex items-center gap-2 mt-1">
                                   <Badge 
                                     variant="outline"
                                     className={
-                                      appointment.status === 'COMPLETED' ? 'border-green-500 text-green-700' :
-                                      appointment.status === 'CANCELLED' ? 'border-red-500 text-red-700' :
-                                      'border-yellow-500 text-yellow-700'
+                                      appointment.status === 'COMPLETED' ? 'border-green-500 text-green-400' :
+                                      appointment.status === 'CANCELLED' ? 'border-destructive text-destructive' :
+                                      'border-primary text-primary'
                                     }
                                   >
                                     {appointment.status}
                                   </Badge>
-                                  <Badge variant="outline">
+                                  <Badge variant="outline" className="border-border text-muted-foreground">
                                     <Clock className="h-3 w-3 mr-1" />
                                     {format(new Date(appointment.startDateTime), 'MMM dd, yyyy')}
                                   </Badge>
@@ -1034,7 +1037,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-7 w-7 p-0 border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                                  className="h-7 w-7 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleViewAppointment(appointment);
@@ -1046,7 +1049,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 w-7 p-0 border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
+                                    className="h-7 w-7 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleEditAppointment(appointment);
@@ -1057,14 +1060,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                 )}
                               </div>
                             </div>
-                            <p className="text-xs text-gray-600">
+                            <p className="text-xs text-muted-foreground">
                               With: {appointment.client.firstName} {appointment.client.lastName}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               {format(new Date(appointment.startDateTime), 'h:mm a')} - {format(new Date(appointment.endDateTime), 'h:mm a')}
                             </p>
                             {appointment.description && (
-                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{appointment.description}</p>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{appointment.description}</p>
                             )}
                           </div>
                         </CardContent>
@@ -1076,37 +1079,37 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
               <TabsContent value="exports" className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium text-gray-900">Recent PDF Exports</h3>
+                  <h3 className="text-sm font-medium text-foreground">Recent PDF Exports</h3>
                 </div>
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {loading ? (
-                    <div className="text-center py-8 text-gray-600">
-                      <Clock className="h-8 w-8 mx-auto mb-2 animate-spin text-yellow-500" />
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Clock className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
                       <p className="text-sm">Loading PDFs...</p>
                     </div>
                   ) : recentPDFs.length === 0 ? (
-                    <div className="text-center py-8 text-gray-600">
-                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-50 text-gray-400" />
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                       <p className="text-sm font-medium mb-2">No PDF exports yet</p>
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-muted-foreground mt-2">
                         Generate a PDF from the Summary page to see it here
                       </p>
                     </div>
                   ) : (
                     recentPDFs.map((pdf) => (
-                      <Card key={pdf.id} className="cursor-pointer hover:bg-gray-50 bg-white border-gray-200">
+                      <Card key={pdf.id} className="cursor-pointer hover:bg-accent/10 bg-card border-border">
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
                             <div 
                               className="flex-1 min-w-0 cursor-pointer"
                               onClick={() => handleViewPDF(pdf)}
                             >
-                              <p className="text-sm font-medium truncate text-gray-900">{pdf.fileName}</p>
-                              <p className="text-xs text-gray-600">
+                              <p className="text-sm font-medium truncate text-card-foreground">{pdf.fileName}</p>
+                              <p className="text-xs text-muted-foreground">
                                 {pdf.client ? `${pdf.client.firstName} ${pdf.client.lastName}` : 'Unknown Client'}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-muted-foreground">
                                 {format(new Date(pdf.createdAt), 'MMM dd, yyyy')}
                               </p>
                             </div>
@@ -1114,22 +1117,24 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleViewPDF(pdf);
                                 }}
+                                title="View PDF"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDownloadPDF(pdf);
                                 }}
+                                title="Download PDF"
                               >
                                 <Download className="h-4 w-4" />
                               </Button>
@@ -1178,7 +1183,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 </SelectTrigger>
                 <SelectContent>
                   {clients.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-gray-500">
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
                       No clients available. Please save a client first.
                     </div>
                   ) : (
@@ -1278,9 +1283,9 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
             <Button 
               onClick={handleSaveAppointment}
               disabled={isSavingAppointment}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              {isSavingAppointment ? 'Saving...' : isEditingAppointment ? 'Update' : 'Schedule'}
+              {isSavingAppointment ? 'Saving...' : isEditingAppointment ? 'Update' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1302,9 +1307,9 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 <Badge 
                   variant="outline"
                   className={
-                    selectedAppointment.status === 'COMPLETED' ? 'border-green-500 text-green-700' :
-                    selectedAppointment.status === 'CANCELLED' ? 'border-red-500 text-red-700' :
-                    'border-yellow-500 text-yellow-700'
+                    selectedAppointment.status === 'COMPLETED' ? 'border-green-500 text-green-400' :
+                    selectedAppointment.status === 'CANCELLED' ? 'border-destructive text-destructive' :
+                    'border-primary text-primary'
                   }
                 >
                   {selectedAppointment.status}
@@ -1313,10 +1318,10 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
               <div className="space-y-2">
                 <Label>Date & Time</Label>
-                <p className="text-sm text-gray-900">
+                <p className="text-sm text-foreground">
                   {format(new Date(selectedAppointment.startDateTime), 'EEEE, MMMM dd, yyyy')}
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   {format(new Date(selectedAppointment.startDateTime), 'h:mm a')} - {format(new Date(selectedAppointment.endDateTime), 'h:mm a')}
                 </p>
               </div>
@@ -1324,25 +1329,25 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
               {selectedAppointment.description && (
                 <div className="space-y-2">
                   <Label>Description</Label>
-                  <p className="text-sm text-gray-900">{selectedAppointment.description}</p>
+                  <p className="text-sm text-foreground">{selectedAppointment.description}</p>
                 </div>
               )}
 
               {selectedAppointment.notes && (
                 <div className="space-y-2">
                   <Label>Notes</Label>
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedAppointment.notes}</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{selectedAppointment.notes}</p>
                 </div>
               )}
 
               <div className="space-y-2">
                 <Label>Client Contact</Label>
                 <div className="space-y-1">
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-foreground">
                     {selectedAppointment.client.firstName} {selectedAppointment.client.lastName}
                   </p>
                   {selectedAppointment.client.email && (
-                    <p className="text-sm text-gray-600">{selectedAppointment.client.email}</p>
+                    <p className="text-sm text-muted-foreground">{selectedAppointment.client.email}</p>
                   )}
                 </div>
               </div>
@@ -1353,7 +1358,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
               <>
                 <Button
                   variant="outline"
-                  className="border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                  className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                   onClick={() => handleCompleteAppointment(selectedAppointment)}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
@@ -1361,7 +1366,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
+                  className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                   onClick={() => {
                     setAppointmentDetailsOpen(false);
                     handleEditAppointment(selectedAppointment);
@@ -1372,7 +1377,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white"
+                  className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                   onClick={() => handleCancelAppointment(selectedAppointment)}
                 >
                   <XCircle className="h-4 w-4 mr-2" />
@@ -1383,7 +1388,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
             {selectedAppointment && selectedAppointment.status === 'CANCELLED' && (
               <Button
                 variant="outline"
-                className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white"
+                className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                 onClick={() => handleDeleteAppointment(selectedAppointment)}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -1423,7 +1428,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
             {selectedPdf && (
               <Button 
                 onClick={() => handleDownloadPDF(selectedPdf)}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download
@@ -1451,9 +1456,9 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   type="email"
                   value={selectedClientForEmail.email || ''}
                   disabled
-                  className="bg-gray-50"
+                  className="bg-muted"
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Email will be sent to both the client and your account email
                 </p>
               </div>
@@ -1480,8 +1485,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
               </div>
 
               {pdfExports.filter(pdf => pdf.clientId === selectedClientForEmail.id).length > 0 && (
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-700">
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <p className="text-sm text-primary">
                     <FileText className="h-4 w-4 inline mr-1" />
                     Most recent PDF will be attached automatically
                   </p>
@@ -1496,7 +1501,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
             <Button 
               onClick={handleSendEmail}
               disabled={!selectedClientForEmail || isSendingEmail !== null}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {isSendingEmail ? (
                 <>
