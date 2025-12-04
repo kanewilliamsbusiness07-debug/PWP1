@@ -573,98 +573,98 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                   Save Client
                 </Button>
               </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Save Client</DialogTitle>
-                <DialogDescription>
-                  Enter a name to save this client for later retrieval
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <Input
-                  placeholder={`${form.getValues('firstName')} ${form.getValues('lastName')}`}
-                  value={saveName}
-                  onChange={(e) => setSaveName(e.target.value)}
-                />
-              </div>
-              <DialogFooter>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSaveDialogOpen(false)}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleSaveByName}
-                  disabled={isSaving}
-                >
-                  {isSaving ? 'Saving...' : 'Save'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          
-          {client && (client as any)?.id && (
-            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Client
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Client</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete this client? This action cannot be undone and will permanently remove all client information.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={async () => {
-                      setIsDeleting(true);
-                      try {
-                        const clientId = (client as any)?.id;
-                        if (clientId) {
-                          const success = await deleteClient(clientId);
-                          if (success) {
-                            // Clear the client from the store by setting to empty object
-                            financialStore.setClientData(clientSlot, {
-                              firstName: '',
-                              lastName: '',
-                            } as any);
-                            // Clear active client if it was this one
-                            if (financialStore.activeClient === clientSlot) {
-                              financialStore.setActiveClient(null as any);
-                            }
-                            setDeleteDialogOpen(false);
-                            // Redirect to client list or home
-                            router.push('/client-information');
-                          }
-                        }
-                      } catch (error) {
-                        console.error('Error deleting client:', error);
-                        toast({
-                          title: 'Error',
-                          description: 'Failed to delete client. Please try again.',
-                          variant: 'destructive',
-                        });
-                      } finally {
-                        setIsDeleting(false);
-                      }
-                    }}
-                    disabled={isDeleting}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Save Client</DialogTitle>
+                  <DialogDescription>
+                    Enter a name to save this client for later retrieval
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Input
+                    placeholder={`${form.getValues('firstName')} ${form.getValues('lastName')}`}
+                    value={saveName}
+                    onChange={(e) => setSaveName(e.target.value)}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setSaveDialogOpen(false)}
+                    disabled={isSaving}
                   >
-                    {isDeleting ? 'Deleting...' : 'Delete'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSaveByName}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            
+            {client && (client as any)?.id && (
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Client
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Client</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this client? This action cannot be undone and will permanently remove all client information.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async () => {
+                        setIsDeleting(true);
+                        try {
+                          const clientId = (client as any)?.id;
+                          if (clientId) {
+                            const success = await deleteClient(clientId);
+                            if (success) {
+                              // Clear the client from the store by setting to empty object
+                              financialStore.setClientData(clientSlot, {
+                                firstName: '',
+                                lastName: '',
+                              } as any);
+                              // Clear active client if it was this one
+                              if (financialStore.activeClient === clientSlot) {
+                                financialStore.setActiveClient(null as any);
+                              }
+                              setDeleteDialogOpen(false);
+                              // Redirect to client list or home
+                              router.push('/client-information');
+                            }
+                          }
+                        } catch (error) {
+                          console.error('Error deleting client:', error);
+                          toast({
+                            title: 'Error',
+                            description: 'Failed to delete client. Please try again.',
+                            variant: 'destructive',
+                          });
+                        } finally {
+                          setIsDeleting(false);
+                        }
+                      }}
+                      disabled={isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
