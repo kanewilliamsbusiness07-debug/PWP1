@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Mail, FileText, Trash2, Search, Plus, Eye, Download, Clock, X, Edit, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Mail, FileText, Trash2, Search, Plus, Eye, Download, Clock, X, Edit, CheckCircle, XCircle, Send, FileDown } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -23,6 +23,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -89,6 +91,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   const [appointmentNotes, setAppointmentNotes] = useState('');
   const [isSavingAppointment, setIsSavingAppointment] = useState(false);
   const [isEditingAppointment, setIsEditingAppointment] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState<string | null>(null); // Track which client is generating PDF
+  const [isSendingEmail, setIsSendingEmail] = useState<string | null>(null); // Track which client is sending email
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [selectedClientForEmail, setSelectedClientForEmail] = useState<Client | null>(null);
+  const [emailSubject, setEmailSubject] = useState('Your Financial Planning Report - Perpetual Wealth Partners');
+  const [emailMessage, setEmailMessage] = useState('Please find attached your comprehensive financial planning report. If you have any questions, please don\'t hesitate to contact us.');
   
   const { toast } = useToast();
 
@@ -239,7 +247,29 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     };
   }, [open, loadData]);
 
-  const handleEmailClient = async (client: Client) => {
+  const handleGeneratePDF = async (client: Client) => {
+    setIsGeneratingPDF(client.id);
+    try {
+      // Navigate to summary page with client loaded
+      window.location.href = `/summary?load=${client.id}`;
+      
+      toast({
+        title: 'Opening Summary Page',
+        description: `Loading ${client.firstName} ${client.lastName}'s summary. Click "Download PDF" on the summary page to generate the report.`
+      });
+    } catch (error) {
+      console.error('Error navigating to summary:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to open summary page',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGeneratingPDF(null);
+    }
+  };
+
+  const handleOpenEmailDialog = (client: Client) => {
     if (!client.email) {
       toast({
         title: 'No email address',
@@ -248,29 +278,47 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       });
       return;
     }
+    setSelectedClientForEmail(client);
+    setEmailSubject('Your Financial Planning Report - Perpetual Wealth Partners');
+    setEmailMessage('Please find attached your comprehensive financial planning report. If you have any questions, please don\'t hesitate to contact us.');
+    setEmailDialogOpen(true);
+  };
 
+  const handleSendEmail = async () => {
+    if (!selectedClientForEmail) return;
+    
+    setIsSendingEmail(selectedClientForEmail.id);
+    
     try {
-      // Use the send-summary endpoint with minimal data
+      // Find the most recent PDF for this client
+      const clientPdf = pdfExports
+        .filter(pdf => pdf.clientId === selectedClientForEmail.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+      // Send email via API with optional PDF attachment
       const response = await fetch('/api/email/send-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clientEmail: client.email,
-          clientId: client.id,
-          clientName: `${client.firstName} ${client.lastName}`,
-          subject: 'Follow-up from Perpetual Wealth Partners',
-          message: 'This is a follow-up email from your financial advisor.',
+          clientEmail: selectedClientForEmail.email,
+          clientId: selectedClientForEmail.id,
+          clientName: `${selectedClientForEmail.firstName} ${selectedClientForEmail.lastName}`,
+          subject: emailSubject,
+          message: emailMessage,
           summaryData: {
-            clientName: `${client.firstName} ${client.lastName}`
-          }
+            clientName: `${selectedClientForEmail.firstName} ${selectedClientForEmail.lastName}`
+          },
+          pdfId: clientPdf?.id || undefined
         })
       });
 
       if (response.ok) {
         toast({
           title: 'Email sent',
-          description: `Email sent to ${client.firstName} ${client.lastName}`
+          description: `Email${clientPdf ? ' with PDF attachment' : ''} sent to ${selectedClientForEmail.firstName} ${selectedClientForEmail.lastName}`
         });
+        setEmailDialogOpen(false);
+        setSelectedClientForEmail(null);
       } else {
         const error = await response.json().catch(() => ({ error: 'Failed to send email' }));
         throw new Error(error.error || 'Failed to send email');
@@ -282,7 +330,13 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
         description: error instanceof Error ? error.message : 'Failed to send email',
         variant: 'destructive'
       });
+    } finally {
+      setIsSendingEmail(null);
     }
+  };
+
+  const handleEmailClient = async (client: Client) => {
+    handleOpenEmailDialog(client);
   };
 
   const handleScheduleAppointment = () => {
@@ -695,8 +749,41 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                     e.stopPropagation();
                                     window.location.href = `/client-information?load=${client.id}`;
                                   }}
+                                  title="View/Edit Client"
                                 >
                                   <Eye className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 w-6 p-0 border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.location.href = `/summary?load=${client.id}`;
+                                  }}
+                                  title="View Summary"
+                                >
+                                  <FileText className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 w-6 p-0 border-green-500 text-green-600 hover:bg-green-500 hover:text-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGeneratePDF(client);
+                                  }}
+                                  disabled={isGeneratingPDF === client.id}
+                                  title="Generate PDF"
+                                >
+                                  {isGeneratingPDF === client.id ? (
+                                    <Clock className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <FileDown className="h-3 w-3" />
+                                  )}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -706,8 +793,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                     e.stopPropagation();
                                     handleEmailClient(client);
                                   }}
+                                  disabled={!client.email || isSendingEmail === client.id}
+                                  title="Send Email"
                                 >
-                                  <Mail className="h-3 w-3" />
+                                  {isSendingEmail === client.id ? (
+                                    <Clock className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Mail className="h-3 w-3" />
+                                  )}
                                 </Button>
                               </div>
                               
@@ -715,11 +808,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-6 w-6 p-0 border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white"
+                                  className="h-6 w-6 p-0 border-purple-500 text-purple-600 hover:bg-purple-500 hover:text-white"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleExportLastPDF(client);
                                   }}
+                                  title="Download Last PDF"
                                 >
                                   <Download className="h-3 w-3" />
                                 </Button>
@@ -731,6 +825,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                     e.stopPropagation();
                                     handleDeleteDraft(client);
                                   }}
+                                  title="Delete Client"
                                 >
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
@@ -1216,6 +1311,87 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 Download
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Send Email to {selectedClientForEmail ? `${selectedClientForEmail.firstName} ${selectedClientForEmail.lastName}` : 'Client'}</DialogTitle>
+            <DialogDescription>
+              Send a financial planning report email with optional PDF attachment
+            </DialogDescription>
+          </DialogHeader>
+          {selectedClientForEmail && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="email-address">Client Email</Label>
+                <Input
+                  id="email-address"
+                  type="email"
+                  value={selectedClientForEmail.email || ''}
+                  disabled
+                  className="bg-gray-50"
+                />
+                <p className="text-xs text-gray-500">
+                  Email will be sent to both the client and your account email
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email-subject">Subject</Label>
+                <Input
+                  id="email-subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="Email subject"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email-message">Message</Label>
+                <Textarea
+                  id="email-message"
+                  value={emailMessage}
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  placeholder="Email message"
+                  rows={4}
+                />
+              </div>
+
+              {pdfExports.filter(pdf => pdf.clientId === selectedClientForEmail.id).length > 0 && (
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    <FileText className="h-4 w-4 inline mr-1" />
+                    Most recent PDF will be attached automatically
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendEmail}
+              disabled={!selectedClientForEmail || isSendingEmail !== null}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white"
+            >
+              {isSendingEmail ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Email
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
