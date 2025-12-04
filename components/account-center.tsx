@@ -1033,7 +1033,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     size="sm" 
                     variant="outline" 
                     className="border-primary text-primary hover:bg-primary hover:text-primary-foreground" 
-                    onClick={handleScheduleAppointment}
+                    onClick={() => handleScheduleAppointment()}
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Schedule
@@ -1089,7 +1089,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={handleScheduleAppointment}
+                          onClick={() => handleScheduleAppointment()}
                           className="mt-4 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                         >
                           <Plus className="h-4 w-4 mr-2" />
