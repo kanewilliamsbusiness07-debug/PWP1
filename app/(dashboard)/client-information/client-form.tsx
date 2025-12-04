@@ -420,15 +420,36 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
   const onSubmit = async (data: ClientFormData) => {
     setIsSaving(true);
     try {
+      // Validate required fields before saving
+      if (!data.firstName || !data.lastName) {
+        toast({
+          title: 'Validation Error',
+          description: 'First name and last name are required',
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      // Validate date of birth for new clients (required by API)
+      const currentClient = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
+      const clientId = (currentClient as any)?.id;
+      
+      if (!clientId && !data.dob) {
+        toast({
+          title: 'Validation Error',
+          description: 'Date of birth is required to save a new client. Please fill in the date of birth field.',
+          variant: 'destructive',
+        });
+        setIsSaving(false);
+        return;
+      }
+
       // Update store first
       financialStore.setClientData(clientSlot, {
         ...data,
         dateOfBirth: data.dob,
       } as any);
-
-      // Get current client ID if editing
-      const currentClient = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
-      const clientId = (currentClient as any)?.id;
 
       // Prepare data for API - sanitize and format
       // Ensure dob is a string (YYYY-MM-DD format) for the API
@@ -450,6 +471,8 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         agesOfDependants: data.agesOfDependants?.trim() || '',
       };
 
+      console.log('Saving client data:', { ...clientData, dob: dobString ? 'provided' : 'missing' });
+
       // Use the storage hook to save
       const savedClient = await saveClient({
         ...clientData,
@@ -457,16 +480,28 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       });
 
       if (savedClient) {
+        console.log('Client saved successfully:', savedClient.id);
         // Update store with saved client ID
         financialStore.setClientData(clientSlot, {
           ...data,
           dateOfBirth: data.dob,
           id: savedClient.id,
         } as any);
+        
+        toast({
+          title: 'Client Saved',
+          description: `${data.firstName} ${data.lastName} has been saved successfully.`,
+        });
+      } else {
+        console.error('Client save returned null - check error messages above');
       }
     } catch (error) {
       console.error('Error saving client data:', error);
-      // Error handling is done in the hook, but we can add additional handling here if needed
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to save client. Please check all required fields.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSaving(false);
     }
