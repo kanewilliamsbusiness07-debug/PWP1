@@ -258,10 +258,18 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
           }
         }
         
+        // Mark that we're updating from form (not external change) to prevent reset
+        skipNextClientUpdateRef.current = true;
+        
         financialStore.setClientData(clientSlot, {
           ...value,
           dateOfBirth: dateOfBirth,
         } as any);
+        
+        // Reset flag after a short delay
+        setTimeout(() => {
+          skipNextClientUpdateRef.current = false;
+        }, 50);
       }, debounceTime);
     });
     
@@ -273,6 +281,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
 
   // Track if user is actively changing date to prevent sync conflicts
   const isUserChangingDateRef = React.useRef(false);
+  const skipNextClientUpdateRef = React.useRef(false);
 
   // Handle date change from dropdowns
   const handleDateChange = (day: string, month: string, year: string) => {
@@ -318,6 +327,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
   // Load client data when it changes (only reset if client actually changed, not on every render)
   const previousClientIdRef = React.useRef<string | null>(null);
   const previousClientDbIdRef = React.useRef<string | null>(null);
+  const isInitialMountRef = React.useRef(true);
   
   useEffect(() => {
     // Only reset if we're loading a different client (by comparing a unique identifier)
@@ -326,8 +336,9 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     const currentClientId = client ? `${client.firstName || ''}-${client.lastName || ''}-${clientSlot}` : null;
     
     // Check if client actually changed by comparing IDs
-    const clientIdChanged = previousClientIdRef.current !== currentClientId;
-    const clientDbIdChanged = previousClientDbIdRef.current !== clientDbId;
+    // Only consider it changed if we had a previous ID and it's different (not initial mount)
+    const clientIdChanged = previousClientIdRef.current !== null && previousClientIdRef.current !== currentClientId;
+    const clientDbIdChanged = previousClientDbIdRef.current !== null && previousClientDbIdRef.current !== clientDbId;
     
     // Detect if this is a new/empty client (all key fields are empty)
     const isNewClient = client && 
@@ -335,10 +346,24 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       (!client.lastName || client.lastName === '') &&
       (!client.email || client.email === '');
     
-    // Only reset if the client ID actually changed (different client loaded), not just data updates
-    const shouldReset = client && (clientIdChanged || clientDbIdChanged || (isNewClient && previousClientIdRef.current !== null));
+    // Skip reset if this update is from form changes (not external client change)
+    if (skipNextClientUpdateRef.current) {
+      return;
+    }
+    
+    // Only reset if:
+    // 1. This is the initial mount (first load)
+    // 2. The client ID actually changed (different client loaded)
+    // 3. It's a new client and we had a previous client
+    const shouldReset = client && (
+      isInitialMountRef.current || 
+      clientIdChanged || 
+      clientDbIdChanged || 
+      (isNewClient && previousClientIdRef.current !== null)
+    );
     
     if (shouldReset) {
+      isInitialMountRef.current = false;
       previousClientIdRef.current = currentClientId;
       previousClientDbIdRef.current = clientDbId;
       
