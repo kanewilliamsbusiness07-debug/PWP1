@@ -103,10 +103,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     setLoading(true);
     setAuthError(false); // Reset auth error on each load attempt
     try {
+      console.log('=== ACCOUNT CENTER: LOADING DATA ===');
       console.log('Account Center: Starting to load data...');
       
       // Load clients
       try {
+        console.log('=== LOADING CLIENTS DEBUG ===');
+        console.log('Fetching from: /api/clients?limit=50');
+        
         const clientsRes = await fetch('/api/clients?limit=50', {
           credentials: 'include',
           headers: {
@@ -114,19 +118,51 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           }
         });
 
-        console.log('Account Center: Clients API response status:', clientsRes.status);
+        console.log('Response status:', clientsRes.status);
+        console.log('Response ok:', clientsRes.ok);
+        console.log('Response headers:', Object.fromEntries(clientsRes.headers.entries()));
 
         if (clientsRes.ok) {
-          const clientsData = await clientsRes.json();
-          console.log('Account Center: Raw clients data:', clientsData);
+          const rawData = await clientsRes.text();
+          console.log('Raw response text:', rawData);
           
-          // Handle both response formats: { clients: [...] } or [...]
-          let clientsList: Client[] = [];
-          if (Array.isArray(clientsData)) {
-            clientsList = clientsData;
-          } else if (clientsData && typeof clientsData === 'object' && 'clients' in clientsData) {
-            clientsList = Array.isArray(clientsData.clients) ? clientsData.clients : [];
+          let parsedData;
+          try {
+            parsedData = JSON.parse(rawData);
+            console.log('Parsed data:', parsedData);
+            console.log('Is array?', Array.isArray(parsedData));
+            console.log('Data type:', typeof parsedData);
+            
+            if (parsedData && typeof parsedData === 'object') {
+              console.log('Object keys:', Object.keys(parsedData));
+            }
+          } catch (parseError) {
+            console.error('Failed to parse JSON:', parseError);
+            console.error('Raw text that failed to parse:', rawData);
+            setClients([]);
+            return;
           }
+          
+          // Try multiple ways to extract the clients array
+          let clientsList: Client[] = [];
+          
+          if (Array.isArray(parsedData)) {
+            console.log('Data is already an array');
+            clientsList = parsedData;
+          } else if (parsedData?.clients && Array.isArray(parsedData.clients)) {
+            console.log('Data has clients property');
+            clientsList = parsedData.clients;
+          } else if (parsedData?.data && Array.isArray(parsedData.data)) {
+            console.log('Data has data property');
+            clientsList = parsedData.data;
+          } else {
+            console.error('Could not find clients array in response');
+            console.error('Response structure:', parsedData);
+            clientsList = [];
+          }
+          
+          console.log('Final clients array length:', clientsList.length);
+          console.log('Final clients array:', clientsList);
           
           // Validate client data structure - ensure all required fields exist
           clientsList = clientsList.filter((c: any) => {
@@ -142,18 +178,22 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           });
           
           console.log('Account Center: Parsed and validated clients list:', clientsList);
-          console.log('Account Center: Number of clients:', clientsList.length);
+          console.log('Account Center: Number of clients after validation:', clientsList.length);
           
           setClients(clientsList);
+          console.log('=== CLIENTS LOADED ===');
           
           if (clientsList.length === 0) {
             console.warn('Account Center: No valid clients found in response');
-            console.warn('Account Center: Raw response data was:', clientsData);
+            console.warn('Account Center: Raw response data was:', parsedData);
           } else {
             console.log('Account Center: Successfully loaded clients:', clientsList.map((c: Client) => `${c.firstName} ${c.lastName}`));
           }
         } else {
           const errorText = await clientsRes.text();
+          console.error('Response not OK:', clientsRes.status, clientsRes.statusText);
+          console.error('Error response text:', errorText);
+          
           let errorData = {};
           try {
             errorData = JSON.parse(errorText);
@@ -174,7 +214,9 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           }
         }
       } catch (error) {
-        console.error('Error fetching clients:', error);
+        console.error('=== ERROR FETCHING CLIENTS ===');
+        console.error('Error:', error);
+        console.error('Error message:', error instanceof Error ? error.message : String(error));
         setClients([]);
         toast({
           title: 'Error',
@@ -761,38 +803,94 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   };
 
   const handleDeleteDraft = async (client: Client) => {
-    if (confirm(`Are you sure you want to delete ${client.firstName} ${client.lastName}?`)) {
-      try {
-        const response = await fetch(`/api/clients/${client.id}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
+    console.log('=== DELETE CLIENT CALLED ===');
+    console.log('Client ID:', client.id);
+    console.log('Client ID type:', typeof client.id);
+    console.log('Client ID is valid:', !!client.id);
+    console.log('Client name:', `${client.firstName} ${client.lastName}`);
+    
+    if (!client.id) {
+      console.error('No client ID provided!');
+      toast({
+        title: "Error",
+        description: "No client selected for deletion",
+        variant: "destructive"
+      });
+      return;
+    }
 
-        if (response.ok) {
-          // Dispatch event to notify other components
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id: client.id } }));
-          }
-          
-          // Refresh the list
-          await loadData();
-          
-          toast({
-            title: 'Client deleted',
-            description: `${client.firstName} ${client.lastName} has been deleted`
-          });
-        } else {
-          const error = await response.json().catch(() => ({ error: 'Failed to delete client' }));
-          throw new Error(error.error || 'Failed to delete client');
-        }
-      } catch (error) {
-        console.error('Error deleting client:', error);
-        toast({
-          title: 'Error',
-          description: error instanceof Error ? error.message : 'Failed to delete client',
-          variant: 'destructive'
-        });
+    try {
+      console.log('Showing confirmation dialog...');
+      
+      // Check if confirmation dialog is being shown
+      const confirmed = window.confirm(`Are you sure you want to delete ${client.firstName} ${client.lastName}?`);
+      console.log('User confirmed deletion:', confirmed);
+      
+      if (!confirmed) {
+        console.log('User cancelled deletion');
+        return;
       }
+
+      console.log('Sending DELETE request to API...');
+      console.log('URL:', `/api/clients/${client.id}`);
+      
+      const response = await fetch(`/api/clients/${client.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('DELETE response status:', response.status);
+      console.log('DELETE response ok:', response.ok);
+      
+      const responseText = await response.text();
+      console.log('DELETE response raw text:', responseText);
+      
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+        console.log('DELETE response parsed:', responseData);
+      } catch (e) {
+        console.log('Could not parse response as JSON');
+        console.log('Parse error:', e);
+      }
+
+      if (!response.ok) {
+        console.error('DELETE failed with status:', response.status);
+        throw new Error(responseData?.error || 'Failed to delete client');
+      }
+
+      console.log('DELETE successful!');
+      
+      // Dispatch event to notify other components
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id: client.id } }));
+      }
+      
+      toast({
+        title: "Success",
+        description: `${client.firstName} ${client.lastName} has been deleted`,
+      });
+
+      // Refresh the clients list
+      console.log('Refreshing clients list...');
+      await loadData();
+      
+      console.log('=== DELETE CLIENT COMPLETE ===');
+
+    } catch (error: any) {
+      console.error('=== DELETE CLIENT ERROR ===');
+      console.error('Error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete client",
+        variant: "destructive"
+      });
     }
   };
 

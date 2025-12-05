@@ -131,14 +131,23 @@ export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  console.log('=== DELETE CLIENT API ===');
+  
   try {
     const session = (await getServerSession(authOptions)) as Session | null;
+    console.log('Session exists:', !!session);
+    console.log('User ID:', session?.user?.id || 'none');
+    
     if (!session?.user?.id) {
+      console.log('No session - unauthorized');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const params = await context.params;
     const clientId = params.id;
+    
+    console.log('Client ID to delete:', clientId);
+    console.log('Client ID type:', typeof clientId);
 
     // Verify client belongs to user
     const client = await prisma.client.findFirst({
@@ -148,18 +157,39 @@ export async function DELETE(
       }
     });
 
+    console.log('Client exists:', !!client);
+    console.log('Client found:', client ? `${client.firstName} ${client.lastName}` : 'none');
+
     if (!client) {
+      console.log('Client not found in database');
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
+
+    console.log('Deleting client:', client.firstName, client.lastName);
 
     // Delete client (cascade will handle related records)
     await prisma.client.delete({
       where: { id: clientId }
     });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting client:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.log('Client deleted successfully!');
+    console.log('=== DELETE CLIENT COMPLETE ===');
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Client deleted successfully',
+      deletedId: clientId 
+    });
+  } catch (error: any) {
+    console.error('=== DELETE CLIENT ERROR ===');
+    console.error('Error:', error);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error stack:', error.stack);
+    
+    return NextResponse.json({ 
+      error: 'Failed to delete client',
+      details: error.message 
+    }, { status: 500 });
   }
 }
