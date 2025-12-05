@@ -334,13 +334,25 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
 
   // Load client data when it changes (only reset if client actually changed, not on every render)
   const previousClientIdRef = React.useRef<string | null>(null);
+  const previousClientDataRef = React.useRef<any>(null);
+  
   useEffect(() => {
     // Only reset if we're loading a different client (by comparing a unique identifier)
-    const currentClientId = client ? `${client.firstName}-${client.lastName}-${clientSlot}` : null;
+    const currentClientId = client ? `${client.firstName || ''}-${client.lastName || ''}-${clientSlot}` : null;
     const clientChanged = previousClientIdRef.current !== currentClientId;
     
-    if (client && clientChanged) {
+    // Detect if this is a new/empty client (all key fields are empty)
+    const isNewClient = client && 
+      (!client.firstName || client.firstName === '') && 
+      (!client.lastName || client.lastName === '') &&
+      (!client.email || client.email === '');
+    
+    // Also check if the client data object reference changed (new object = new client)
+    const clientDataChanged = previousClientDataRef.current !== client;
+    
+    if (client && (clientChanged || isNewClient || clientDataChanged)) {
       previousClientIdRef.current = currentClientId;
+      previousClientDataRef.current = client;
       
       // Initialize date dropdowns
       if (client.dateOfBirth) {
@@ -415,7 +427,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         privateHealthInsurance: client.privateHealthInsurance || false,
       }, { keepDefaultValues: true });
     }
-  }, [client, form]);
+  }, [client, form, clientSlot]);
 
   const onSubmit = async (data: ClientFormData) => {
     setIsSaving(true);
