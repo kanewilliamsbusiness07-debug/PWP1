@@ -721,8 +721,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                   <AlertDialogFooter>
                     <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={async (e) => {
-                        e.preventDefault();
+                      onClick={async () => {
                         setIsDeleting(true);
                         try {
                           const clientId = (client as any)?.id;
@@ -744,7 +743,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                           console.log('Delete result:', success);
                           
                           if (success) {
-                            // Dispatch event to notify account center to refresh
+                            // Dispatch event to notify account center to refresh (deleteClient already dispatches, but doing it here too for safety)
                             if (typeof window !== 'undefined') {
                               window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id: clientId } }));
                             }
@@ -843,6 +842,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 description: 'Failed to delete client from database. Please try again.',
                                 variant: 'destructive',
                               });
+                              setIsDeleting(false);
                             }
                         } catch (error) {
                           console.error('Error deleting client:', error);
@@ -851,7 +851,6 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             description: error instanceof Error ? error.message : 'Failed to delete client. Please try again.',
                             variant: 'destructive',
                           });
-                        } finally {
                           setIsDeleting(false);
                         }
                       }}
