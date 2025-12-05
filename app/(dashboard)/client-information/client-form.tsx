@@ -271,8 +271,8 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     };
   }, [form, financialStore, clientSlot]);
 
-  // Initialize date dropdowns from existing date - only when client changes, not on form updates
-  // This is handled in the client change useEffect below to avoid conflicts
+  // Track if user is actively changing date to prevent sync conflicts
+  const isUserChangingDateRef = React.useRef(false);
 
   // Handle date change from dropdowns
   const handleDateChange = (day: string, month: string, year: string) => {
@@ -281,13 +281,14 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         if (!isNaN(date.getTime())) {
           // Store as Date object for form validation, but will convert to string on save
-          form.setValue('dob', date, { shouldValidate: true });
+          // Use shouldTouch: false to prevent triggering validation immediately
+          form.setValue('dob', date, { shouldValidate: true, shouldDirty: true });
         }
       } catch (error) {
         console.error('Error creating date:', error);
       }
     } else {
-      form.setValue('dob', null, { shouldValidate: true });
+      form.setValue('dob', null, { shouldValidate: true, shouldDirty: true });
     }
   };
 
@@ -316,12 +317,17 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
 
   // Load client data when it changes (only reset if client actually changed, not on every render)
   const previousClientIdRef = React.useRef<string | null>(null);
-  const previousClientDataRef = React.useRef<any>(null);
+  const previousClientDbIdRef = React.useRef<string | null>(null);
   
   useEffect(() => {
     // Only reset if we're loading a different client (by comparing a unique identifier)
+    // Use database ID if available, otherwise use name-based ID
+    const clientDbId = (client as any)?.id || null;
     const currentClientId = client ? `${client.firstName || ''}-${client.lastName || ''}-${clientSlot}` : null;
-    const clientChanged = previousClientIdRef.current !== currentClientId;
+    
+    // Check if client actually changed by comparing IDs
+    const clientIdChanged = previousClientIdRef.current !== currentClientId;
+    const clientDbIdChanged = previousClientDbIdRef.current !== clientDbId;
     
     // Detect if this is a new/empty client (all key fields are empty)
     const isNewClient = client && 
@@ -329,12 +335,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       (!client.lastName || client.lastName === '') &&
       (!client.email || client.email === '');
     
-    // Also check if the client data object reference changed (new object = new client)
-    const clientDataChanged = previousClientDataRef.current !== client;
+    // Only reset if the client ID actually changed (different client loaded), not just data updates
+    const shouldReset = client && (clientIdChanged || clientDbIdChanged || (isNewClient && previousClientIdRef.current !== null));
     
-    if (client && (clientChanged || isNewClient || clientDataChanged)) {
+    if (shouldReset) {
       previousClientIdRef.current = currentClientId;
-      previousClientDataRef.current = client;
+      previousClientDbIdRef.current = clientDbId;
       
       // Initialize date dropdowns from client data
       let dobValue: Date | null = null;
