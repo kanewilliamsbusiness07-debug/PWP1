@@ -37,7 +37,7 @@ export function ClientPage() {
     if (previousActiveClientRef.current !== null && previousActiveClientRef.current !== currentActiveClient) {
       setFormKey(prev => prev + 1);
     }
-    previousActiveClientRef.current = currentActiveClient;
+    previousActiveClientRef.current = currentActiveClient || null;
   }, [financialStore.activeClient]);
 
   // Load client from query parameter
