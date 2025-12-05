@@ -271,26 +271,8 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     };
   }, [form, financialStore, clientSlot]);
 
-  // Initialize date dropdowns from existing date
-  useEffect(() => {
-    const currentDob = form.getValues('dob');
-    if (currentDob && currentDob instanceof Date) {
-      setDobDay(currentDob.getDate().toString());
-      setDobMonth((currentDob.getMonth() + 1).toString());
-      setDobYear(currentDob.getFullYear().toString());
-    } else if (currentDob && typeof currentDob === 'string') {
-      const date = new Date(currentDob);
-      if (!isNaN(date.getTime())) {
-        setDobDay(date.getDate().toString());
-        setDobMonth((date.getMonth() + 1).toString());
-        setDobYear(date.getFullYear().toString());
-      }
-    } else {
-      setDobDay('');
-      setDobMonth('');
-      setDobYear('');
-    }
-  }, [form, client?.dateOfBirth]);
+  // Initialize date dropdowns from existing date - only when client changes, not on form updates
+  // This is handled in the client change useEffect below to avoid conflicts
 
   // Handle date change from dropdowns
   const handleDateChange = (day: string, month: string, year: string) => {
@@ -354,13 +336,19 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       previousClientIdRef.current = currentClientId;
       previousClientDataRef.current = client;
       
-      // Initialize date dropdowns
+      // Initialize date dropdowns from client data
+      let dobValue: Date | null = null;
       if (client.dateOfBirth) {
         const dob = client.dateOfBirth instanceof Date ? client.dateOfBirth : new Date(client.dateOfBirth);
         if (!isNaN(dob.getTime())) {
+          dobValue = dob;
           setDobDay(dob.getDate().toString());
           setDobMonth((dob.getMonth() + 1).toString());
           setDobYear(dob.getFullYear().toString());
+        } else {
+          setDobDay('');
+          setDobMonth('');
+          setDobYear('');
         }
       } else {
         setDobDay('');
@@ -372,7 +360,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         firstName: client.firstName || '',
         lastName: client.lastName || '',
         middleName: client.middleName || '',
-        dob: client.dateOfBirth,
+        dob: dobValue,
         maritalStatus: (client.maritalStatus as 'SINGLE' | 'MARRIED' | 'DEFACTO' | 'DIVORCED' | 'WIDOWED' | undefined) || 'SINGLE',
         numberOfDependants: client.numberOfDependants || 0,
         agesOfDependants: client.agesOfDependants || '',
