@@ -791,9 +791,6 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 title: 'Success',
                                 description: 'Client deleted successfully',
                               });
-                              
-                              // Force form reset
-                              setFormKey(prev => prev + 1);
                             } else {
                               toast({
                                 title: 'Error',
