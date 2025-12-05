@@ -82,8 +82,8 @@ export function ClientPage() {
 
   // Handle creating a new client
   const handleNewClient = () => {
-    // Initialize an empty client in slot A
-    financialStore.setClientData('A', {
+    // Helper function to create empty client data
+    const emptyClientData = {
       firstName: '',
       lastName: '',
       middleName: '',
@@ -139,7 +139,11 @@ export function ClientPage() {
       helpDebt: 0,
       hecsBalance: 0,
       privateHealthInsurance: false,
-    } as any);
+    } as any;
+
+    // Reset both client A and client B
+    financialStore.setClientData('A', emptyClientData);
+    financialStore.setClientData('B', emptyClientData);
     financialStore.setActiveClient('A');
     // Increment form key to force form reset
     setFormKey(prev => prev + 1);
