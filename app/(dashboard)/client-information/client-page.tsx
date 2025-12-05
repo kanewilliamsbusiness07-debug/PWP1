@@ -21,12 +21,24 @@ export function ClientPage() {
   const { loadClient } = useClientStorage();
   const { toast } = useToast();
   const [isLoadingClient, setIsLoadingClient] = useState(false);
+  const [formKey, setFormKey] = useState(0); // Key to force form reset
 
   useEffect(() => {
     if (!user && !loading) {
       router.push('/auth/login');
     }
   }, [user, loading, router]);
+
+  // Reset form when active client slot changes (but not on initial mount or when explicitly handled)
+  const previousActiveClientRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    const currentActiveClient = financialStore.activeClient;
+    // Only reset if the active client slot actually changed (not on initial mount)
+    if (previousActiveClientRef.current !== null && previousActiveClientRef.current !== currentActiveClient) {
+      setFormKey(prev => prev + 1);
+    }
+    previousActiveClientRef.current = currentActiveClient;
+  }, [financialStore.activeClient]);
 
   // Load client from query parameter
   useEffect(() => {
@@ -42,6 +54,8 @@ export function ClientPage() {
               dateOfBirth: client.dob ? (typeof client.dob === 'string' ? new Date(client.dob) : client.dob) : undefined,
             } as any);
             financialStore.setActiveClient('A');
+            // Increment form key to force form reset
+            setFormKey(prev => prev + 1);
             
             // Remove query parameter from URL
             router.replace('/client-information');
@@ -127,6 +141,8 @@ export function ClientPage() {
       privateHealthInsurance: false,
     } as any);
     financialStore.setActiveClient('A');
+    // Increment form key to force form reset
+    setFormKey(prev => prev + 1);
   };
 
   return (
@@ -151,7 +167,7 @@ export function ClientPage() {
         {/* Client Information Form */}
         <div>
           {financialStore.activeClient ? (
-            <ClientForm clientSlot={financialStore.activeClient} />
+            <ClientForm key={formKey} clientSlot={financialStore.activeClient} />
           ) : (
             <Card>
               <CardContent className="p-6">
