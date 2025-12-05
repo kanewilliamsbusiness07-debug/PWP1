@@ -297,16 +297,6 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     }
   }, [toast]);
 
-  useEffect(() => {
-    if (open) {
-      console.log('Account Center: Drawer opened, loading data...');
-      // Always reload data when drawer opens
-      loadData();
-    } else {
-      console.log('Account Center: Drawer closed');
-    }
-  }, [open, loadData]); // Include loadData to ensure it refreshes
-
   // Use a ref to store the latest loadData function for event handlers
   const loadDataRef = useRef(loadData);
   
@@ -314,6 +304,16 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   useEffect(() => {
     loadDataRef.current = loadData;
   }, [loadData]);
+
+  useEffect(() => {
+    if (open) {
+      console.log('Account Center: Drawer opened, loading data...');
+      // Always reload data when drawer opens
+      loadDataRef.current();
+    } else {
+      console.log('Account Center: Drawer closed');
+    }
+  }, [open]); // Only depend on open, use ref for loadData
 
   // Listen for client save/update events to refresh the list
   useEffect(() => {
