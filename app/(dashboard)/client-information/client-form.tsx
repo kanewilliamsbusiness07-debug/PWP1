@@ -707,25 +707,112 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                           if (clientId) {
                             const success = await deleteClient(clientId);
                             if (success) {
-                              // Clear the client from the store by setting to empty object
-                              financialStore.setClientData(clientSlot, {
+                              // Dispatch event to notify account center to refresh
+                              if (typeof window !== 'undefined') {
+                                window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id: clientId } }));
+                              }
+                              
+                              // Clear the client from the store
+                              const emptyClientData = {
                                 firstName: '',
                                 lastName: '',
-                              } as any);
-                              // Clear active client if it was this one
+                                middleName: '',
+                                email: '',
+                                mobile: '',
+                                addressLine1: '',
+                                addressLine2: '',
+                                suburb: '',
+                                state: undefined,
+                                postcode: '',
+                                maritalStatus: 'SINGLE',
+                                numberOfDependants: 0,
+                                agesOfDependants: '',
+                                ownOrRent: undefined,
+                                annualIncome: 0,
+                                rentalIncome: 0,
+                                dividends: 0,
+                                frankedDividends: 0,
+                                capitalGains: 0,
+                                otherIncome: 0,
+                                assets: [],
+                                liabilities: [],
+                                properties: [],
+                                currentAge: 0,
+                                retirementAge: 0,
+                                currentSuper: 0,
+                                currentSavings: 0,
+                                currentShares: 0,
+                                propertyEquity: 0,
+                                monthlyDebtPayments: 0,
+                                monthlyRentalIncome: 0,
+                                inflationRate: 0,
+                                salaryGrowthRate: 0,
+                                superReturn: 0,
+                                shareReturn: 0,
+                                propertyGrowthRate: 0,
+                                withdrawalRate: 0,
+                                rentGrowthRate: 0,
+                                employmentIncome: 0,
+                                investmentIncome: 0,
+                                workRelatedExpenses: 0,
+                                vehicleExpenses: 0,
+                                uniformsAndLaundry: 0,
+                                homeOfficeExpenses: 0,
+                                selfEducationExpenses: 0,
+                                investmentExpenses: 0,
+                                charityDonations: 0,
+                                accountingFees: 0,
+                                rentalExpenses: 0,
+                                superContributions: 0,
+                                healthInsurance: false,
+                                hecs: false,
+                                helpDebt: 0,
+                                hecsBalance: 0,
+                                privateHealthInsurance: false,
+                              } as any;
+                              
+                              financialStore.setClientData(clientSlot, emptyClientData);
+                              
+                              // Clear active client if it was this one, otherwise keep current
                               if (financialStore.activeClient === clientSlot) {
-                                financialStore.setActiveClient(null as any);
+                                // Switch to the other slot if available, otherwise set to null
+                                const otherSlot = clientSlot === 'A' ? 'B' : 'A';
+                                const otherClient = otherSlot === 'A' ? financialStore.clientA : financialStore.clientB;
+                                if (otherClient && (otherClient.firstName || otherClient.lastName)) {
+                                  financialStore.setActiveClient(otherSlot);
+                                } else {
+                                  financialStore.setActiveClient(undefined as any);
+                                }
                               }
+                              
                               setDeleteDialogOpen(false);
-                              // Redirect to client list or home
-                              router.push('/client-information');
+                              
+                              toast({
+                                title: 'Success',
+                                description: 'Client deleted successfully',
+                              });
+                              
+                              // Force form reset
+                              setFormKey(prev => prev + 1);
+                            } else {
+                              toast({
+                                title: 'Error',
+                                description: 'Failed to delete client. Please try again.',
+                                variant: 'destructive',
+                              });
                             }
+                          } else {
+                            toast({
+                              title: 'Error',
+                              description: 'Client ID not found',
+                              variant: 'destructive',
+                            });
                           }
                         } catch (error) {
                           console.error('Error deleting client:', error);
                           toast({
                             title: 'Error',
-                            description: 'Failed to delete client. Please try again.',
+                            description: error instanceof Error ? error.message : 'Failed to delete client. Please try again.',
                             variant: 'destructive',
                           });
                         } finally {
