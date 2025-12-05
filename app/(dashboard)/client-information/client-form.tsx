@@ -538,6 +538,11 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         });
       } else {
         console.error('Client save returned null - check error messages above');
+        toast({
+          title: 'Error',
+          description: 'Failed to save client. Please check all required fields and try again.',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Error saving client data:', error);
@@ -608,8 +613,19 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
           id: savedClient.id,
         } as any);
 
+        toast({
+          title: 'Client Saved',
+          description: `${formData.firstName} ${formData.lastName} has been saved successfully.`,
+        });
+
         setSaveDialogOpen(false);
         setSaveName('');
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to save client. Please check all required fields and try again.',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Error saving client:', error);
@@ -682,10 +698,15 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
               </DialogContent>
             </Dialog>
             
-            {client && (client as any)?.id && (
+            {client && (
               <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    disabled={!((client as any)?.id)}
+                    title={!((client as any)?.id) ? 'Save the client first to enable deletion' : 'Delete this client'}
+                  >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete Client
                   </Button>
@@ -700,20 +721,45 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                   <AlertDialogFooter>
                     <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.preventDefault();
                         setIsDeleting(true);
                         try {
                           const clientId = (client as any)?.id;
-                          if (clientId) {
-                            const success = await deleteClient(clientId);
-                            if (success) {
-                              // Dispatch event to notify account center to refresh
-                              if (typeof window !== 'undefined') {
-                                window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id: clientId } }));
+                          console.log('Delete client clicked, clientId:', clientId);
+                          
+                          if (!clientId) {
+                            toast({
+                              title: 'Error',
+                              description: 'Cannot delete: Client has not been saved to the database. Please save the client first.',
+                              variant: 'destructive',
+                            });
+                            setIsDeleting(false);
+                            setDeleteDialogOpen(false);
+                            return;
+                          }
+                          
+                          console.log('Calling deleteClient with ID:', clientId);
+                          const success = await deleteClient(clientId);
+                          console.log('Delete result:', success);
+                          
+                          if (success) {
+                            // Dispatch event to notify account center to refresh
+                            if (typeof window !== 'undefined') {
+                              window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id: clientId } }));
+                            }
+                            
+                            // Also remove from local storage if it exists there
+                            const clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim();
+                            if (clientName) {
+                              const savedNames = financialStore.getAllSavedClientNames();
+                              if (savedNames.includes(clientName)) {
+                                financialStore.deleteClientByName(clientName);
                               }
-                              
-                              // Clear the client from the store
-                              const emptyClientData = {
+                            }
+                            
+                            // Clear the client from the store
+                            const emptyClientData = {
                                 firstName: '',
                                 lastName: '',
                                 middleName: '',
@@ -794,17 +840,10 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             } else {
                               toast({
                                 title: 'Error',
-                                description: 'Failed to delete client. Please try again.',
+                                description: 'Failed to delete client from database. Please try again.',
                                 variant: 'destructive',
                               });
                             }
-                          } else {
-                            toast({
-                              title: 'Error',
-                              description: 'Client ID not found',
-                              variant: 'destructive',
-                            });
-                          }
                         } catch (error) {
                           console.error('Error deleting client:', error);
                           toast({
