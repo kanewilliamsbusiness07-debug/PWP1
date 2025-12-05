@@ -7,10 +7,15 @@ import { normalizeFields } from '@/lib/utils/field-mapping';
 
 // GET /api/clients - List clients (account-scoped) with recent clients support
 export async function GET(req: NextRequest) {
+  console.log('=== CLIENTS API GET CALLED ===');
+  
   try {
     const session = (await getServerSession(authOptions)) as Session | null;
-    console.log('Clients API - Session check:', session ? `User ID: ${session.user?.id}` : 'No session');
+    console.log('Session exists:', !!session);
+    console.log('User ID:', session?.user?.id || 'none');
+    
     if (!session?.user?.id) {
+      console.log('No session - returning 401');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -18,6 +23,10 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || '';
     const limit = parseInt(searchParams.get('limit') || '50');
     const recent = searchParams.get('recent') === 'true';
+
+    console.log('Fetching clients with limit:', limit);
+    console.log('Search term:', search || 'none');
+    console.log('Recent only:', recent);
 
     if (recent) {
       // Get recently accessed clients
@@ -30,7 +39,10 @@ export async function GET(req: NextRequest) {
         }
       });
 
-      return NextResponse.json(recentAccess.map(ra => ra.client));
+      const clients = recentAccess.map(ra => ra.client);
+      console.log('Found recent clients:', clients.length);
+      console.log('=== CLIENTS API GET COMPLETE (RECENT) ===');
+      return NextResponse.json(clients);
     }
 
     // Get all clients for this user
@@ -52,13 +64,35 @@ export async function GET(req: NextRequest) {
       take: limit
     });
 
-    console.log(`[Clients API] Returning ${clients.length} clients`);
+    console.log('Found clients in database:', clients.length);
+    console.log('First client:', clients[0] || 'none');
+    if (clients.length > 0) {
+      console.log('Sample client data:', {
+        id: clients[0].id,
+        name: `${clients[0].firstName} ${clients[0].lastName}`,
+        email: clients[0].email,
+        createdAt: clients[0].createdAt,
+        updatedAt: clients[0].updatedAt
+      });
+    }
     
-    // Return array directly instead of wrapped object
-    return NextResponse.json(clients);
-  } catch (error) {
-    console.error('Error getting clients:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // CRITICAL: Check what format you're returning
+    const response = NextResponse.json(clients); // Should return array directly
+    
+    console.log('Returning response - clients array length:', clients.length);
+    console.log('=== CLIENTS API GET COMPLETE ===');
+    
+    return response;
+  } catch (error: any) {
+    console.error('=== CLIENTS API ERROR ===');
+    console.error('Error:', error);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error stack:', error.stack);
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error.message 
+    }, { status: 500 });
   }
 }
 
