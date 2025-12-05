@@ -211,7 +211,12 @@ export function useClientStorage(): UseClientStorageReturn {
    * Delete a client
    */
   const deleteClient = useCallback(async (clientId: string): Promise<boolean> => {
+    console.log('=== DELETE CLIENT HOOK CALLED ===');
+    console.log('Client ID:', clientId);
+    console.log('Client ID type:', typeof clientId);
+    
     if (!clientId) {
+      console.error('No client ID provided to deleteClient');
       setError('Client ID is required');
       return false;
     }
@@ -220,13 +225,32 @@ export function useClientStorage(): UseClientStorageReturn {
     setError(null);
 
     try {
-      const response = await fetch(`/api/clients/${clientId}`, {
+      const url = `/api/clients/${clientId}`;
+      console.log('Making DELETE request to:', url);
+      console.log('Full URL will be:', window.location.origin + url);
+      
+      const response = await fetch(url, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
+      console.log('DELETE response status:', response.status);
+      console.log('DELETE response ok:', response.ok);
+      
+      const responseText = await response.text();
+      console.log('DELETE response text:', responseText);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to delete client' }));
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          errorData = { error: responseText || 'Failed to delete client' };
+        }
+        console.error('DELETE failed:', errorData);
         throw new Error(errorData.error || 'Failed to delete client');
       }
 
