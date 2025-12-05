@@ -1113,7 +1113,7 @@ export default function SummaryPage() {
                     <p>• Insurance and council rates</p>
                     <p>• Depreciation (2.5% of building value)</p>
                     <p className="pt-2"><strong>Tax Benefit:</strong></p>
-                    <p>If Net Loss > 0, the loss can be deducted from taxable income</p>
+                    <p>If Net Loss {'>'} 0, the loss can be deducted from taxable income</p>
                     <p>Tax Benefit = Net Loss × Marginal Tax Rate</p>
                     <p className="text-xs text-muted-foreground pt-1">Note: This reduces taxable income, resulting in tax savings at your marginal rate.</p>
                   </div>
