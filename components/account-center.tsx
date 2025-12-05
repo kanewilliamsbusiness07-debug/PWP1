@@ -305,7 +305,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     } else {
       console.log('Account Center: Drawer closed');
     }
-  }, [open, loadData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]); // Only depend on open, loadData is stable from useCallback
 
   // Use a ref to store the latest loadData function for event handlers
   const loadDataRef = useRef(loadData);
