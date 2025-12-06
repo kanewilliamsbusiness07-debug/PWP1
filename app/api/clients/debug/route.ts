@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       userId: session.user.id,
       debug: {
         allClientsSample: allClients,
-        userIdsInDatabase: [...new Set(allClients.map(c => c.userId))]
+        userIdsInDatabase: Array.from(new Set(allClients.map(c => c.userId)))
       }
     });
   } catch (error: any) {
