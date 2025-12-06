@@ -148,6 +148,23 @@ export async function DELETE(
     
     console.log('Client ID to delete:', clientId);
     console.log('Client ID type:', typeof clientId);
+    console.log('Session user ID:', session.user.id);
+    console.log('Session user ID type:', typeof session.user.id);
+
+    // First, check if client exists at all (regardless of user)
+    const anyClient = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, userId: true, firstName: true, lastName: true }
+    });
+
+    console.log('Client exists in database (any user):', !!anyClient);
+    if (anyClient) {
+      console.log('Client userId:', anyClient.userId);
+      console.log('Client userId type:', typeof anyClient.userId);
+      console.log('Client name:', `${anyClient.firstName} ${anyClient.lastName}`);
+      console.log('User ID match:', anyClient.userId === session.user.id);
+      console.log('User ID string comparison:', String(anyClient.userId) === String(session.user.id));
+    }
 
     // Verify client belongs to user
     const client = await prisma.client.findFirst({
@@ -157,12 +174,22 @@ export async function DELETE(
       }
     });
 
-    console.log('Client exists:', !!client);
+    console.log('Client exists for this user:', !!client);
     console.log('Client found:', client ? `${client.firstName} ${client.lastName}` : 'none');
 
     if (!client) {
-      console.log('Client not found in database');
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+      if (anyClient) {
+        console.log('Client exists but belongs to different user');
+        console.log('Client userId:', anyClient.userId);
+        console.log('Session userId:', session.user.id);
+        return NextResponse.json({ 
+          error: 'Client not found or access denied',
+          details: 'Client exists but does not belong to your account'
+        }, { status: 404 });
+      } else {
+        console.log('Client does not exist in database');
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+      }
     }
 
     console.log('Deleting client:', client.firstName, client.lastName);
