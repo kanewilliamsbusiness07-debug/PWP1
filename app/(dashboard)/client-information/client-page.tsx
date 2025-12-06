@@ -99,6 +99,8 @@ export function ClientPage() {
       agesOfDependants: '',
       ownOrRent: undefined,
       annualIncome: 0,
+      grossIncome: 0,
+      grossSalary: 0,
       rentalIncome: 0,
       dividends: 0,
       frankedDividends: 0,
@@ -144,6 +146,15 @@ export function ClientPage() {
     // Reset both client A and client B
     financialStore.setClientData('A', emptyClientData);
     financialStore.setClientData('B', emptyClientData);
+    // Also explicitly reset the store's financial fields to ensure they're cleared
+    financialStore.setIncomeData({
+      grossIncome: 0,
+      employmentIncome: 0,
+      investmentIncome: 0,
+      rentalIncome: 0,
+      frankedDividends: 0,
+      otherIncome: 0
+    });
     financialStore.setActiveClient('A');
     // Increment form key to force form reset
     setFormKey(prev => prev + 1);
