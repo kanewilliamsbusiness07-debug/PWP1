@@ -259,6 +259,11 @@ export default function SummaryPage() {
     setIsGeneratingPDF(true);
     
     try {
+      // Verify @react-pdf/renderer is available
+      if (typeof pdf === 'undefined') {
+        throw new Error('PDF generation library (@react-pdf/renderer) is not installed. Please install it with: npm install @react-pdf/renderer');
+      }
+
       // Get active client for saving PDF
       const activeClient = financialStore.activeClient 
         ? financialStore[`client${financialStore.activeClient}` as keyof typeof financialStore] as any
@@ -317,6 +322,11 @@ export default function SummaryPage() {
 
       // Calculate summary data
       const summaryData = calculateSummary();
+
+      // Check if we're in the browser
+      if (typeof window === 'undefined' || typeof document === 'undefined') {
+        throw new Error('PDF generation must run in the browser');
+      }
 
       // Generate all charts
       console.log('Generating charts for PDF...');
@@ -514,11 +524,28 @@ export default function SummaryPage() {
       }
     } catch (error) {
       console.error('Error generating PDF:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to generate PDF',
-        variant: 'destructive'
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate PDF';
+      
+      // Check for specific error types
+      if (errorMessage.includes('Cannot find module') || errorMessage.includes('@react-pdf')) {
+        toast({
+          title: 'PDF Library Not Installed',
+          description: 'The PDF generation library is not installed. Please run: npm install @react-pdf/renderer',
+          variant: 'destructive'
+        });
+      } else if (errorMessage.includes('document') || errorMessage.includes('canvas')) {
+        toast({
+          title: 'Browser API Error',
+          description: 'PDF generation requires browser APIs. Please ensure you are running this in a browser environment.',
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'Error Generating PDF',
+          description: errorMessage,
+          variant: 'destructive'
+        });
+      }
       return null;
     } finally {
       setIsGeneratingPDF(false);
