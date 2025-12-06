@@ -99,6 +99,27 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   
   const { toast } = useToast();
 
+  // Debug: Log when appointment dialog state changes
+  useEffect(() => {
+    console.log('=== Appointment Dialog State Changed ===', {
+      appointmentDialogOpen,
+      isEditingAppointment,
+      appointmentClientId,
+      appointmentTitle,
+      appointmentDate
+    });
+  }, [appointmentDialogOpen, isEditingAppointment, appointmentClientId, appointmentTitle, appointmentDate]);
+
+  // Debug: Log when component mounts/updates
+  useEffect(() => {
+    console.log('=== Account Center Component Rendered ===', {
+      open,
+      clientsCount: clients.length,
+      appointmentsCount: appointments.length,
+      appointmentDialogOpen
+    });
+  }, [open, clients.length, appointments.length, appointmentDialogOpen]);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setAuthError(false); // Reset auth error on each load attempt
@@ -507,10 +528,13 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   };
 
   const handleScheduleAppointment = (clientId?: string) => {
-    console.log('handleScheduleAppointment called with clientId:', clientId);
+    console.log('=== handleScheduleAppointment CALLED ===');
+    console.log('ClientId:', clientId);
     console.log('Current clients count:', clients.length);
+    console.log('Current appointmentDialogOpen state:', appointmentDialogOpen);
     
     if (clients.length === 0) {
+      console.log('No clients available, showing toast');
       toast({
         title: 'No Clients Available',
         description: 'Please save at least one client before scheduling an appointment. Go to Client Information page to create a client.',
@@ -530,10 +554,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     setAppointmentEndTime('10:00');
     setAppointmentNotes('');
     setAppointmentDialogOpen(true);
-    console.log('Appointment dialog state set to open');
+    console.log('Appointment dialog state set to open, new state should be: true');
   };
 
   const handleEditAppointment = (appointment: Appointment) => {
+    console.log('=== handleEditAppointment CALLED ===');
+    console.log('Appointment:', appointment);
     setIsEditingAppointment(true);
     setSelectedAppointment(appointment);
     setAppointmentClientId(appointment.clientId);
@@ -544,11 +570,15 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     setAppointmentEndTime(format(new Date(appointment.endDateTime), 'HH:mm'));
     setAppointmentNotes(appointment.notes || '');
     setAppointmentDialogOpen(true);
+    console.log('Edit appointment dialog opened');
   };
 
   const handleViewAppointment = (appointment: Appointment) => {
+    console.log('=== handleViewAppointment CALLED ===');
+    console.log('Appointment:', appointment);
     setSelectedAppointment(appointment);
     setAppointmentDetailsOpen(true);
+    console.log('Appointment details dialog opened');
   };
 
   const handleCancelAppointment = async (appointment: Appointment) => {
@@ -1194,7 +1224,16 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     size="sm" 
                     variant="outline" 
                     className="border-primary text-primary hover:bg-primary hover:text-primary-foreground" 
-                    onClick={() => handleScheduleAppointment()}
+                    onClick={(e) => {
+                      console.log('=== Schedule Button CLICKED ===');
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleScheduleAppointment();
+                    }}
+                    onMouseDown={(e) => {
+                      console.log('Schedule button mouse down');
+                      e.stopPropagation();
+                    }}
                     disabled={clients.length === 0}
                     title={clients.length === 0 ? 'Create a client first before scheduling an appointment' : 'Schedule Appointment'}
                   >
@@ -1208,7 +1247,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     size="sm"
                     variant={appointmentFilter === 'all' ? 'default' : 'outline'}
                     className={appointmentFilter === 'all' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-border text-foreground hover:bg-accent'}
-                    onClick={() => setAppointmentFilter('all')}
+                    onClick={(e) => {
+                      console.log('Filter button clicked: all');
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setAppointmentFilter('all');
+                    }}
                   >
                     All
                   </Button>
@@ -1216,7 +1260,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     size="sm"
                     variant={appointmentFilter === 'upcoming' ? 'default' : 'outline'}
                     className={appointmentFilter === 'upcoming' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-border text-foreground hover:bg-accent'}
-                    onClick={() => setAppointmentFilter('upcoming')}
+                    onClick={(e) => {
+                      console.log('Filter button clicked: upcoming');
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setAppointmentFilter('upcoming');
+                    }}
                   >
                     Upcoming
                   </Button>
@@ -1224,7 +1273,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     size="sm"
                     variant={appointmentFilter === 'completed' ? 'default' : 'outline'}
                     className={appointmentFilter === 'completed' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-border text-foreground hover:bg-accent'}
-                    onClick={() => setAppointmentFilter('completed')}
+                    onClick={(e) => {
+                      console.log('Filter button clicked: completed');
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setAppointmentFilter('completed');
+                    }}
                   >
                     Completed
                   </Button>
@@ -1232,7 +1286,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     size="sm"
                     variant={appointmentFilter === 'cancelled' ? 'default' : 'outline'}
                     className={appointmentFilter === 'cancelled' ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-border text-foreground hover:bg-accent'}
-                    onClick={() => setAppointmentFilter('cancelled')}
+                    onClick={(e) => {
+                      console.log('Filter button clicked: cancelled');
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setAppointmentFilter('cancelled');
+                    }}
                   >
                     Cancelled
                   </Button>
@@ -1252,7 +1311,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleScheduleAppointment()}
+                          onClick={(e) => {
+                            console.log('=== Schedule First Appointment Button CLICKED ===');
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleScheduleAppointment();
+                          }}
                           disabled={clients.length === 0}
                           className="mt-4 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                           title={clients.length === 0 ? 'Create a client first before scheduling an appointment' : 'Schedule First Appointment'}
@@ -1264,7 +1328,16 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     </div>
                   ) : (
                     filteredAppointments.map((appointment) => (
-                      <Card key={appointment.id} className="bg-card border-border cursor-pointer hover:bg-accent/10">
+                      <Card 
+                        key={appointment.id} 
+                        className="bg-card border-border cursor-pointer hover:bg-accent/10"
+                        onClick={(e) => {
+                          console.log('Card clicked for appointment:', appointment.id);
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleViewAppointment(appointment);
+                        }}
+                      >
                         <CardContent className="p-4">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
@@ -1287,14 +1360,20 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                   </Badge>
                                 </div>
                               </div>
-                              <div className="flex gap-1">
+                              <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="h-7 w-7 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                   onClick={(e) => {
+                                    console.log('View button clicked for appointment:', appointment.id);
+                                    e.preventDefault();
                                     e.stopPropagation();
                                     handleViewAppointment(appointment);
+                                  }}
+                                  onMouseDown={(e) => {
+                                    console.log('View button mouse down');
+                                    e.stopPropagation();
                                   }}
                                 >
                                   <Eye className="h-3 w-3" />
@@ -1305,8 +1384,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                     variant="outline"
                                     className="h-7 w-7 p-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                                     onClick={(e) => {
+                                      console.log('Edit button clicked for appointment:', appointment.id);
+                                      e.preventDefault();
                                       e.stopPropagation();
                                       handleEditAppointment(appointment);
+                                    }}
+                                    onMouseDown={(e) => {
+                                      console.log('Edit button mouse down');
+                                      e.stopPropagation();
                                     }}
                                   >
                                     <Edit className="h-3 w-3" />
@@ -1491,16 +1576,23 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                       "w-full justify-start text-left font-normal",
                       !appointmentDate && "text-muted-foreground"
                     )}
+                    onClick={(e) => {
+                      console.log('=== Date Picker Button CLICKED ===');
+                      e.stopPropagation();
+                    }}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {appointmentDate ? format(appointmentDate, "PPP") : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
                   <Calendar
                     mode="single"
                     selected={appointmentDate}
-                    onSelect={setAppointmentDate}
+                    onSelect={(date) => {
+                      console.log('=== Calendar Date Selected ===', date);
+                      setAppointmentDate(date);
+                    }}
                     initialFocus
                     disabled={(date) => {
                       // Allow past dates when editing, but not for new appointments
@@ -1550,13 +1642,23 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           <DialogFooter>
             <Button 
               variant="outline" 
-              onClick={() => setAppointmentDialogOpen(false)}
+              onClick={(e) => {
+                console.log('=== Cancel Button CLICKED ===');
+                e.preventDefault();
+                e.stopPropagation();
+                setAppointmentDialogOpen(false);
+              }}
               disabled={isSavingAppointment}
             >
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveAppointment}
+              onClick={(e) => {
+                console.log('=== Save/Update Button CLICKED ===');
+                e.preventDefault();
+                e.stopPropagation();
+                handleSaveAppointment();
+              }}
               disabled={isSavingAppointment || !appointmentClientId || !appointmentTitle || !appointmentDate}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
