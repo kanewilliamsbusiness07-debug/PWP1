@@ -3,8 +3,6 @@
  * Converts financial data into chart images for PDF embedding
  */
 
-import { toPng } from 'html-to-image';
-
 export interface ChartData {
   labels: string[];
   values: number[];
@@ -373,10 +371,6 @@ export async function generateAssetLiabilityChart(
 
     return canvas.toDataURL('image/png');
   } catch (error) {
-    console.error('Error generating asset/liability chart:', error);
-    return '';
-  }
-} catch (error) {
     console.error('Error generating asset/liability chart:', error);
     return '';
   }
