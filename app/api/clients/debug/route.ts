@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       }, { status: 401 });
     }
 
-    // Get ALL clients with full details
+    // Get ALL clients with full details for this user
     const clients = await prisma.client.findMany({
       where: {
         userId: session.user.id
@@ -28,21 +28,40 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Get count
+    // Get count for this user
     const count = await prisma.client.count({
       where: {
         userId: session.user.id
       }
     });
 
+    // Also get ALL clients (for debugging - to see if clients exist with different user IDs)
+    const allClients = await prisma.client.findMany({
+      select: {
+        id: true,
+        userId: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10 // Limit to first 10 for debugging
+    });
+
     console.log(`Found ${count} clients in database for user ${session.user.id}`);
+    console.log(`Total clients in database (first 10): ${allClients.length}`);
 
     return NextResponse.json({
       success: true,
       count: count,
       clients: clients,
-      message: `Found ${count} clients in database`,
-      userId: session.user.id
+      message: `Found ${count} clients in database for user ${session.user.id}`,
+      userId: session.user.id,
+      debug: {
+        allClientsSample: allClients,
+        userIdsInDatabase: [...new Set(allClients.map(c => c.userId))]
+      }
     });
   } catch (error: any) {
     console.error('=== DEBUG ENDPOINT ERROR ===');
