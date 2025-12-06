@@ -150,6 +150,9 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
   const [dobMonth, setDobMonth] = useState<string>('');
   const [dobYear, setDobYear] = useState<string>('');
   
+  // Check if this is a new client (no firstName or lastName)
+  const isNewClient = !client?.firstName && !client?.lastName;
+  
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
@@ -168,7 +171,8 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       state: (client?.state as 'ACT' | 'NSW' | 'NT' | 'QLD' | 'SA' | 'TAS' | 'VIC' | 'WA' | undefined) || undefined,
       postcode: client?.postcode || '',
       ownOrRent: (client?.ownOrRent as 'OWN' | 'RENT' | undefined) || undefined,
-      annualIncome: client?.grossSalary || client?.grossIncome || client?.annualIncome || 0,
+      // For new clients, always default to 0. For existing clients, use their value or 0.
+      annualIncome: isNewClient ? 0 : (client?.grossSalary || client?.grossIncome || client?.annualIncome || 0),
       rentalIncome: client?.rentalIncome || 0,
       dividends: client?.dividends || 0,
       frankedDividends: client?.frankedDividends || 0,
@@ -403,7 +407,8 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         state: (client.state as 'ACT' | 'NSW' | 'NT' | 'QLD' | 'SA' | 'TAS' | 'VIC' | 'WA' | undefined) || undefined,
         postcode: client.postcode || '',
         ownOrRent: (client.ownOrRent as 'OWN' | 'RENT' | undefined) || undefined,
-        annualIncome: client.grossSalary || client.grossIncome || client.annualIncome || 0,
+        // For new clients, always default to 0. For existing clients, use their value or 0.
+        annualIncome: isNewClient ? 0 : (client.grossSalary || client.grossIncome || client.annualIncome || 0),
         rentalIncome: client.rentalIncome || 0,
         dividends: client.dividends || 0,
         frankedDividends: client.frankedDividends || 0,
