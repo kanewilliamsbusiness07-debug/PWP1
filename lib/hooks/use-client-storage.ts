@@ -75,7 +75,8 @@ export function useClientStorage(): UseClientStorageReturn {
       let savedClient: ClientData;
 
       if (clientData.id) {
-        // Update existing client
+        // Try to update existing client first
+        console.log('[use-client-storage] Attempting to update existing client:', clientData.id);
         const response = await fetch(`/api/clients/${clientData.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -84,20 +85,61 @@ export function useClientStorage(): UseClientStorageReturn {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to update client' }));
-          throw new Error(errorData.error || 'Failed to update client');
-        }
+          // If client doesn't exist (404), fall back to creating a new client
+          if (response.status === 404) {
+            console.log('[use-client-storage] Client not found, falling back to creating new client');
+            // Remove the ID so we create a new client
+            const { id, ...dataWithoutId } = dataToSave;
+            
+            const createResponse = await fetch('/api/clients', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify(dataWithoutId),
+            });
 
-        savedClient = await response.json();
-        toast({
-          title: 'Success',
-          description: 'Client information updated successfully',
-        });
-        
-        // Dispatch event to notify other components (like Account Center) that a client was updated
-        if (typeof window !== 'undefined') {
-          console.log('Dispatching client-saved event for updated client:', savedClient);
-          window.dispatchEvent(new CustomEvent('client-saved', { detail: savedClient }));
+            if (!createResponse.ok) {
+              let errorData: any = {};
+              try {
+                const errorText = await createResponse.text();
+                console.error('[use-client-storage] Client create error response:', errorText);
+                errorData = JSON.parse(errorText);
+              } catch (parseError) {
+                errorData = { error: `Failed to create client (${createResponse.status})` };
+              }
+              console.error('[use-client-storage] Client create error details:', errorData);
+              throw new Error(errorData.error || errorData.details || 'Failed to create client');
+            }
+
+            savedClient = await createResponse.json();
+            toast({
+              title: 'Success',
+              description: 'Client saved successfully (created new)',
+            });
+            
+            // Dispatch event to notify other components
+            if (typeof window !== 'undefined') {
+              console.log('Dispatching client-saved event for new client:', savedClient);
+              window.dispatchEvent(new CustomEvent('client-saved', { detail: savedClient }));
+            }
+          } else {
+            // Other errors (401, 500, etc.)
+            const errorData = await response.json().catch(() => ({ error: 'Failed to update client' }));
+            throw new Error(errorData.error || 'Failed to update client');
+          }
+        } else {
+          // Update successful
+          savedClient = await response.json();
+          toast({
+            title: 'Success',
+            description: 'Client information updated successfully',
+          });
+          
+          // Dispatch event to notify other components (like Account Center) that a client was updated
+          if (typeof window !== 'undefined') {
+            console.log('Dispatching client-saved event for updated client:', savedClient);
+            window.dispatchEvent(new CustomEvent('client-saved', { detail: savedClient }));
+          }
         }
       } else {
         // Create new client
