@@ -1506,32 +1506,62 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           setAppointmentNotes('');
         }
       }}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent 
+          className="sm:max-w-[500px]"
+          onInteractOutside={(e) => {
+            // Allow interactions with Select and Popover portals
+            const target = e.target as HTMLElement;
+            if (target.closest('[data-radix-portal]')) {
+              e.preventDefault();
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{isEditingAppointment ? 'Edit Appointment' : 'Schedule Appointment'}</DialogTitle>
             <DialogDescription>
               {isEditingAppointment ? 'Update appointment details' : 'Create a new appointment with a client'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-2">
               <Label htmlFor="client">Client *</Label>
               <Select 
                 value={appointmentClientId} 
-                onValueChange={setAppointmentClientId}
+                onValueChange={(value) => {
+                  console.log('=== Client Selected ===', value);
+                  setAppointmentClientId(value);
+                }}
                 disabled={isEditingAppointment}
               >
-                <SelectTrigger>
+                <SelectTrigger
+                  onClick={(e) => {
+                    console.log('=== Select Trigger Clicked ===');
+                    e.stopPropagation();
+                  }}
+                >
                   <SelectValue placeholder="Select a client" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent 
+                  className="z-[200]"
+                  onClick={(e) => {
+                    console.log('=== Select Content Clicked ===');
+                    e.stopPropagation();
+                  }}
+                >
                   {clients.length === 0 ? (
                     <div className="px-2 py-1.5 text-sm text-muted-foreground">
                       No clients available. Please save a client first.
                     </div>
                   ) : (
                     clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
+                      <SelectItem 
+                        key={client.id} 
+                        value={client.id}
+                        onClick={(e) => {
+                          console.log('=== Select Item Clicked ===', client.id, client.firstName, client.lastName);
+                          e.stopPropagation();
+                        }}
+                      >
                         {client.firstName} {client.lastName}
                       </SelectItem>
                     ))
@@ -1571,6 +1601,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
+                    type="button"
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
@@ -1578,6 +1609,11 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     )}
                     onClick={(e) => {
                       console.log('=== Date Picker Button CLICKED ===');
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onMouseDown={(e) => {
+                      console.log('=== Date Picker Button Mouse Down ===');
                       e.stopPropagation();
                     }}
                   >
@@ -1585,13 +1621,26 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     {appointmentDate ? format(appointmentDate, "PPP") : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+                <PopoverContent 
+                  className="w-auto p-0 z-[200]" 
+                  align="start" 
+                  onClick={(e) => {
+                    console.log('=== Popover Content Clicked ===');
+                    e.stopPropagation();
+                  }}
+                  onPointerDownOutside={(e) => {
+                    console.log('=== Popover Pointer Down Outside ===');
+                    // Don't prevent default to allow closing
+                  }}
+                >
                   <Calendar
                     mode="single"
                     selected={appointmentDate}
                     onSelect={(date) => {
                       console.log('=== Calendar Date Selected ===', date);
-                      setAppointmentDate(date);
+                      if (date) {
+                        setAppointmentDate(date);
+                      }
                     }}
                     initialFocus
                     disabled={(date) => {
