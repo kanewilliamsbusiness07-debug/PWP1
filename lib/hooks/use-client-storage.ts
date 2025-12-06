@@ -286,6 +286,27 @@ export function useClientStorage(): UseClientStorageReturn {
       console.log('DELETE response text:', responseText);
 
       if (!response.ok) {
+        // If client doesn't exist (404), treat it as success since the goal is achieved
+        if (response.status === 404) {
+          console.log('Client not found - treating as successful deletion (client already doesn\'t exist)');
+          
+          // Remove from local state anyway
+          setClients((prev) => prev.filter((c) => c.id !== clientId));
+
+          // Dispatch event to notify other components
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id: clientId } }));
+          }
+
+          toast({
+            title: 'Client removed',
+            description: 'Client has been removed (it did not exist in the database)',
+          });
+
+          return true;
+        }
+        
+        // Other errors (401, 500, etc.)
         let errorData;
         try {
           errorData = JSON.parse(responseText);
