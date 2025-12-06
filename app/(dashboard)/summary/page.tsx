@@ -11,8 +11,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FileText, Download, Mail, Printer, Share2, TrendingUp, TrendingDown, DollarSign, Calculator, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { pdf } from '@react-pdf/renderer';
+import { PDFReport } from '@/lib/pdf/pdf-generator';
+import {
+  generateIncomeChart,
+  generateExpenseChart,
+  generateAssetLiabilityChart,
+  generateCashFlowChart,
+  generateRetirementChart,
+} from '@/lib/pdf/chart-generator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -252,12 +259,6 @@ export default function SummaryPage() {
     setIsGeneratingPDF(true);
     
     try {
-      // Get the summary content element
-      const element = summaryContentRef.current || document.getElementById('summary-content');
-      if (!element) {
-        throw new Error('Summary content not found');
-      }
-
       // Get active client for saving PDF
       const activeClient = financialStore.activeClient 
         ? financialStore[`client${financialStore.activeClient}` as keyof typeof financialStore] as any
@@ -274,7 +275,6 @@ export default function SummaryPage() {
       }
 
       // Check if client has been saved (has an ID)
-      // If not, try to save it first or use a temporary ID
       let clientId: string | undefined = activeClient.id;
       if (!clientId) {
         // Try to save the client first
@@ -293,14 +293,12 @@ export default function SummaryPage() {
           if (saveResponse.ok) {
             const savedClient = await saveResponse.json();
             clientId = savedClient.id;
-            // Update store with saved client ID
             financialStore.setClientData(financialStore.activeClient || 'A', { ...activeClient, id: clientId } as any);
             toast({
               title: 'Client saved',
               description: 'Client has been saved automatically'
             });
           } else {
-            // If save fails, still allow PDF generation but warn user
             toast({
               title: 'Warning',
               description: 'Client not saved to database. PDF will be generated but not stored.',
@@ -317,43 +315,112 @@ export default function SummaryPage() {
         }
       }
 
-      // Capture the content as canvas
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
+      // Calculate summary data
+      const summaryData = calculateSummary();
 
-      const imgData = canvas.toDataURL('image/png');
+      // Generate all charts
+      console.log('Generating charts for PDF...');
       
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+      const annualIncome = financialStore.grossIncome || financialStore.employmentIncome || activeClient?.annualIncome || activeClient?.grossSalary || 0;
+      const rentalIncome = financialStore.rentalIncome || activeClient?.rentalIncome || 0;
+      const investmentIncome = financialStore.investmentIncome || activeClient?.dividends || 0;
+      const otherIncome = financialStore.otherIncome || activeClient?.otherIncome || 0;
 
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      const workExpenses = financialStore.workRelatedExpenses || activeClient?.workRelatedExpenses || 0;
+      const investmentExpenses = financialStore.investmentExpenses || activeClient?.investmentExpenses || 0;
+      const rentalExpenses = financialStore.rentalExpenses || activeClient?.rentalExpenses || 0;
+      const vehicleExpenses = activeClient?.vehicleExpenses || 0;
+      const homeOfficeExpenses = activeClient?.homeOfficeExpenses || 0;
 
-      // Add additional pages if content is longer than one page
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
+      const homeValue = activeClient?.homeValue || 0;
+      const investment1Value = activeClient?.investment1Value || 0;
+      const investment2Value = activeClient?.investment2Value || 0;
+      const investment3Value = activeClient?.investment3Value || 0;
+      const investment4Value = activeClient?.investment4Value || 0;
+      const vehicleValue = activeClient?.vehicleValue || 0;
+      const savingsValue = activeClient?.savingsValue || activeClient?.currentSavings || financialStore.cashSavings || 0;
+      const homeContentsValue = activeClient?.homeContentsValue || 0;
+      const superFundValue = activeClient?.superFundValue || activeClient?.currentSuper || financialStore.superBalance || 0;
+      const sharesValue = activeClient?.sharesTotalValue || activeClient?.currentShares || financialStore.investments || 0;
 
+      const homeBalance = activeClient?.homeBalance || 0;
+      const investment1Balance = activeClient?.investment1Balance || 0;
+      const investment2Balance = activeClient?.investment2Balance || 0;
+      const investment3Balance = activeClient?.investment3Balance || 0;
+      const investment4Balance = activeClient?.investment4Balance || 0;
+      const creditCardBalance = activeClient?.creditCardBalance || 0;
+      const personalLoanBalance = activeClient?.personalLoanBalance || 0;
+      const hecsBalance = activeClient?.hecsBalance || activeClient?.helpDebt || 0;
+
+      const currentAge = activeClient?.currentAge || 35;
+      const retirementAge = activeClient?.retirementAge || 65;
+      const yearsToRetirement = Math.max(0, retirementAge - currentAge);
+      const projectedSuper = superFundValue * Math.pow(1.07, yearsToRetirement);
+
+      // Generate all chart images
+      const [incomeChart, expenseChart, assetChart, cashFlowChart, retirementChart] = await Promise.all([
+        generateIncomeChart({
+          employment: annualIncome,
+          rental: rentalIncome,
+          investment: investmentIncome,
+          other: otherIncome,
+        }),
+        generateExpenseChart({
+          workRelated: workExpenses,
+          investment: investmentExpenses,
+          rental: rentalExpenses,
+          vehicle: vehicleExpenses,
+          homeOffice: homeOfficeExpenses,
+        }),
+        generateAssetLiabilityChart(
+          {
+            home: homeValue,
+            investments: investment1Value + investment2Value + investment3Value + investment4Value,
+            super: superFundValue,
+            shares: sharesValue,
+            savings: savingsValue,
+            vehicle: vehicleValue,
+            other: homeContentsValue,
+          },
+          {
+            homeLoan: homeBalance,
+            investmentLoans: investment1Balance + investment2Balance + investment3Balance + investment4Balance,
+            creditCard: creditCardBalance,
+            personalLoan: personalLoanBalance,
+            hecs: hecsBalance,
+          }
+        ),
+        generateCashFlowChart(summaryData.monthlyIncome, summaryData.monthlyExpenses),
+        generateRetirementChart(currentAge, retirementAge, superFundValue, projectedSuper),
+      ]);
+
+      // Prepare chart images array
+      const chartImages = [
+        { dataUrl: incomeChart, type: 'income' as const },
+        { dataUrl: expenseChart, type: 'expenses' as const },
+        { dataUrl: assetChart, type: 'assets' as const },
+        { dataUrl: cashFlowChart, type: 'cashflow' as const },
+        { dataUrl: retirementChart, type: 'retirement' as const },
+      ].filter(chart => chart.dataUrl); // Filter out empty charts
+
+      console.log('Charts generated, creating PDF document...');
+
+      // Create PDF document
+      const pdfDoc = (
+        <PDFReport 
+          summary={summaryData} 
+          chartImages={chartImages}
+          clientData={activeClient}
+        />
+      );
+
+      // Generate PDF blob
+      const pdfBlob = await pdf(pdfDoc).toBlob();
+      
       // Generate filename
-      const fileName = `Financial_Report_${summary.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = `Financial_Report_${summaryData.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       
       if (attachToEmail) {
-        // Convert to blob for upload
-        const pdfBlob = pdf.output('blob');
-        
         // Save to server if client ID exists
         if (clientId) {
           const formData = new FormData();
@@ -372,7 +439,7 @@ export default function SummaryPage() {
             
             toast({
               title: 'PDF Generated',
-              description: 'PDF has been generated and saved'
+              description: 'Professional PDF report has been generated and saved'
             });
 
             return savedPdf.id;
@@ -395,11 +462,17 @@ export default function SummaryPage() {
         }
       } else {
         // Download PDF
-        pdf.save(fileName);
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
         
         // Also save to server if client ID exists
         if (clientId) {
-          const pdfBlob = pdf.output('blob');
           const formData = new FormData();
           formData.append('file', pdfBlob, fileName);
           formData.append('clientId', clientId);
@@ -421,7 +494,7 @@ export default function SummaryPage() {
             
             toast({
               title: 'PDF Generated',
-              description: 'Your financial planning report has been generated, downloaded, and saved'
+              description: 'Your professional financial planning report has been generated, downloaded, and saved'
             });
           } else {
             toast({
@@ -433,7 +506,7 @@ export default function SummaryPage() {
         } else {
           toast({
             title: 'PDF Generated',
-            description: 'Your financial planning report has been generated and downloaded'
+            description: 'Your professional financial planning report has been generated and downloaded'
           });
         }
 
