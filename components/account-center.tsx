@@ -79,6 +79,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   const [selectedPdf, setSelectedPdf] = useState<PdfExport | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [appointmentFilter, setAppointmentFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('upcoming');
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   
   // Appointment form state
   const [appointmentClientId, setAppointmentClientId] = useState('');
@@ -1504,6 +1505,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
           setAppointmentStartTime('09:00');
           setAppointmentEndTime('10:00');
           setAppointmentNotes('');
+          setDatePickerOpen(false);
         }
       }}>
         <DialogContent 
@@ -1598,7 +1600,10 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
             <div className="space-y-2">
               <Label>Date *</Label>
-              <Popover>
+              <Popover open={datePickerOpen} onOpenChange={(open) => {
+                console.log('=== Popover Open State Changed ===', open);
+                setDatePickerOpen(open);
+              }}>
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
@@ -1609,12 +1614,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     )}
                     onClick={(e) => {
                       console.log('=== Date Picker Button CLICKED ===');
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onMouseDown={(e) => {
-                      console.log('=== Date Picker Button Mouse Down ===');
-                      e.stopPropagation();
+                      // Don't prevent default or stop propagation - let PopoverTrigger handle it
                     }}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -1623,14 +1623,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 </PopoverTrigger>
                 <PopoverContent 
                   className="w-auto p-0 z-[200]" 
-                  align="start" 
-                  onClick={(e) => {
-                    console.log('=== Popover Content Clicked ===');
-                    e.stopPropagation();
+                  align="start"
+                  onOpenAutoFocus={(e) => {
+                    // Prevent auto-focus from stealing focus
+                    e.preventDefault();
                   }}
-                  onPointerDownOutside={(e) => {
-                    console.log('=== Popover Pointer Down Outside ===');
-                    // Don't prevent default to allow closing
+                  onInteractOutside={(e) => {
+                    console.log('=== Popover Interact Outside ===');
+                    // Allow closing when clicking outside
                   }}
                 >
                   <Calendar
@@ -1640,6 +1640,8 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                       console.log('=== Calendar Date Selected ===', date);
                       if (date) {
                         setAppointmentDate(date);
+                        // Close popover after selection
+                        setDatePickerOpen(false);
                       }
                     }}
                     initialFocus
