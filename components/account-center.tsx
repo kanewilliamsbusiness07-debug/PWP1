@@ -662,15 +662,38 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
     setIsSavingAppointment(true);
     try {
-      // Combine date and time
+      // Combine date and time - ensure we use local time correctly
       const [startHours, startMinutes] = appointmentStartTime.split(':').map(Number);
       const [endHours, endMinutes] = appointmentEndTime.split(':').map(Number);
       
+      // Create date objects in local timezone
       const startDateTime = new Date(appointmentDate);
       startDateTime.setHours(startHours, startMinutes, 0, 0);
       
       const endDateTime = new Date(appointmentDate);
       endDateTime.setHours(endHours, endMinutes, 0, 0);
+      
+      // Validate that end time is after start time
+      if (endDateTime <= startDateTime) {
+        toast({
+          title: 'Validation Error',
+          description: 'End time must be after start time',
+          variant: 'destructive'
+        });
+        setIsSavingAppointment(false);
+        return;
+      }
+      
+      // For new appointments, validate that the appointment is not in the past
+      if (!isEditingAppointment && startDateTime < new Date()) {
+        toast({
+          title: 'Validation Error',
+          description: 'Cannot schedule appointments in the past',
+          variant: 'destructive'
+        });
+        setIsSavingAppointment(false);
+        return;
+      }
 
       if (endDateTime <= startDateTime) {
         toast({
