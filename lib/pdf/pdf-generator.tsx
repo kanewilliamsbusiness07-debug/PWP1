@@ -289,9 +289,8 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
 
   const reportDate = format(new Date(), 'MMMM dd, yyyy');
   
-  // Use validated summary throughout the component
-  // (The original summary parameter is now replaced with validatedSummary)
-  const summary = validatedSummary;
+  // Use validatedSummary throughout the component instead of the original summary parameter
+  // All references below use validatedSummary which has all required properties with defaults
   
   const getChartImage = (type: ChartImage['type']): string | null => {
     try {
@@ -416,7 +415,7 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
               <Text style={validatedCompanyNameStyle}>Perpetual Wealth Partners</Text>
               <Text style={validatedClientInfoStyle}>
                 Report Date: {reportDate || 'N/A'}{'\n'}
-                Prepared for: {(summary && summary.clientName) ? String(summary.clientName) : 'Client'}
+                Prepared for: {validatedSummary.clientName || 'Client'}
               </Text>
             </View>
           </View>
@@ -429,7 +428,7 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
           <View style={validateStyle(getStyle('summaryBox'), 'summaryBox')}>
             <View style={validateStyle(getStyle('metricBox'), 'metricBox')}>
               <Text style={[validateStyle(getStyle('metricValue'), 'metricValue'), { color: '#27ae60' }]}>
-                ${(summary && typeof summary.netWorth === 'number' ? summary.netWorth : 0).toLocaleString()}
+                ${validatedSummary.netWorth.toLocaleString()}
               </Text>
               <Text style={validateStyle(getStyle('metricLabel'), 'metricLabel')}>Net Worth</Text>
             </View>
@@ -437,16 +436,16 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
               <Text style={[
                 validateStyle(getStyle('metricValue'), 'metricValue'),
                 { 
-                  color: (summary && typeof summary.monthlyCashFlow === 'number' && summary.monthlyCashFlow >= 0) ? '#27ae60' : '#e74c3c' 
+                  color: validatedSummary.monthlyCashFlow >= 0 ? '#27ae60' : '#e74c3c' 
                 }
               ]}>
-                ${(summary && typeof summary.monthlyCashFlow === 'number' ? summary.monthlyCashFlow : 0).toLocaleString()}
+                ${validatedSummary.monthlyCashFlow.toLocaleString()}
               </Text>
               <Text style={validateStyle(getStyle('metricLabel'), 'metricLabel')}>Monthly Cash Flow</Text>
             </View>
             <View style={validateStyle(getStyle('metricBox'), 'metricBox')}>
               <Text style={[validateStyle(getStyle('metricValue'), 'metricValue'), { color: '#3498db' }]}>
-                ${(summary && typeof summary.taxSavings === 'number' ? summary.taxSavings : 0).toLocaleString()}
+                ${validatedSummary.taxSavings.toLocaleString()}
               </Text>
               <Text style={validateStyle(getStyle('metricLabel'), 'metricLabel')}>Tax Savings Potential</Text>
             </View>
@@ -469,8 +468,8 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
                 <View style={explanationStyle}>
                   <Text style={explanationTitleStyle}>Understanding Your Income</Text>
                   <Text style={explanationTextStyle}>
-                    Your total annual income is ${((summary && typeof summary.monthlyIncome === 'number' ? summary.monthlyIncome : 0) * 12).toLocaleString()}, 
-                    which breaks down to ${(summary && typeof summary.monthlyIncome === 'number' ? summary.monthlyIncome : 0).toLocaleString()} per month. 
+                    Your total annual income is ${(validatedSummary.monthlyIncome * 12).toLocaleString()}, 
+                    which breaks down to ${validatedSummary.monthlyIncome.toLocaleString()} per month. 
                     {'\n\n'}
                     • Primary income source: Employment income
                     {'\n'}
@@ -502,8 +501,8 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
                 <View style={explanationStyle}>
                   <Text style={explanationTitleStyle}>Understanding Your Expenses</Text>
                   <Text style={explanationTextStyle}>
-                    Your monthly expenses total ${(summary && typeof summary.monthlyExpenses === 'number' ? summary.monthlyExpenses : 0).toLocaleString()}, 
-                    representing {(summary && typeof summary.monthlyIncome === 'number' && summary.monthlyIncome > 0) ? (((summary.monthlyExpenses || 0) / (summary.monthlyIncome || 1)) * 100).toFixed(1) : 0}% 
+                    Your monthly expenses total ${validatedSummary.monthlyExpenses.toLocaleString()}, 
+                    representing {validatedSummary.monthlyIncome > 0 ? ((validatedSummary.monthlyExpenses / validatedSummary.monthlyIncome) * 100).toFixed(1) : 0}% 
                     of your monthly income.
                     {'\n\n'}
                     • Work-related expenses: Tax-deductible expenses that reduce your taxable income
@@ -540,13 +539,13 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
                   <View style={explanationStyle}>
                     <Text style={explanationTitleStyle}>Understanding Your Financial Position</Text>
                     <Text style={explanationTextStyle}>
-                      Your total assets of ${(summary.totalAssets || 0).toLocaleString()} are offset by 
-                      liabilities of ${(summary.totalLiabilities || 0).toLocaleString()}, resulting in a net worth 
-                      of ${(summary.netWorth || 0).toLocaleString()}.
+                      Your total assets of ${validatedSummary.totalAssets.toLocaleString()} are offset by 
+                      liabilities of ${validatedSummary.totalLiabilities.toLocaleString()}, resulting in a net worth 
+                      of ${validatedSummary.netWorth.toLocaleString()}.
                       {'\n\n'}
                       • Asset allocation: Diversification across property, superannuation, and investments
                       {'\n'}
-                      • Debt-to-asset ratio: {(summary.totalAssets || 0) > 0 ? (((summary.totalLiabilities || 0) / (summary.totalAssets || 1)) * 100).toFixed(1) : 0}% 
+                      • Debt-to-asset ratio: {validatedSummary.totalAssets > 0 ? ((validatedSummary.totalLiabilities / validatedSummary.totalAssets) * 100).toFixed(1) : 0}% 
                       (lower is generally better)
                       {'\n'}
                       • Recommendation: Focus on building assets while strategically managing debt
@@ -588,8 +587,8 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
         {/* Cash Flow Analysis - Temporarily disabled charts to debug */}
         {(() => {
           try {
-            const cashFlow = summary && typeof summary.monthlyCashFlow === 'number' ? summary.monthlyCashFlow : 0;
-            const monthlyIncome = summary && typeof summary.monthlyIncome === 'number' ? summary.monthlyIncome : 0;
+            const cashFlow = validatedSummary.monthlyCashFlow;
+            const monthlyIncome = validatedSummary.monthlyIncome;
             const savingsRate = monthlyIncome > 0 ? ((cashFlow / monthlyIncome) * 100).toFixed(1) : '0';
             const cashFlowText = cashFlow >= 0 
               ? `You have a positive monthly cash flow of ${cashFlow.toLocaleString()}, representing a savings rate of ${savingsRate}%. This surplus can be used for investments, debt reduction, or building emergency funds.`
@@ -625,10 +624,10 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
         {/* Retirement Projection - Temporarily disabled charts to debug */}
         {(() => {
           try {
-            const isDeficit = summary && typeof summary.isRetirementDeficit === 'boolean' ? summary.isRetirementDeficit : false;
+            const isDeficit = validatedSummary.isRetirementDeficit;
             const retirementText = isDeficit
-              ? `Based on current projections, you may face a retirement shortfall. With ${summary && typeof summary.yearsToRetirement === 'number' ? summary.yearsToRetirement : 0} years until retirement, consider increasing superannuation contributions or adjusting your retirement timeline.`
-              : `Your retirement planning is on track. Your projected retirement lump sum of ${(summary && typeof summary.projectedRetirementLumpSum === 'number' ? summary.projectedRetirementLumpSum : 0).toLocaleString()} provides a solid foundation for your retirement years.`;
+              ? `Based on current projections, you may face a retirement shortfall. With ${validatedSummary.yearsToRetirement} years until retirement, consider increasing superannuation contributions or adjusting your retirement timeline.`
+              : `Your retirement planning is on track. Your projected retirement lump sum of ${validatedSummary.projectedRetirementLumpSum.toLocaleString()} provides a solid foundation for your retirement years.`;
             
             const sectionStyle = getStyle('section');
             const sectionTitleStyle = getStyle('sectionTitle');
@@ -660,7 +659,7 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
         {/* Recommendations */}
         <View style={getStyle('section')}>
           <Text style={getStyle('sectionTitle')}>Recommendations & Action Items</Text>
-          {(summary && Array.isArray(summary.recommendations) ? summary.recommendations : []).map((rec, index) => {
+          {validatedSummary.recommendations.map((rec, index) => {
             if (!rec || typeof rec !== 'string') return null;
             return (
               <View key={index} style={getStyle('recommendationBox')}>
