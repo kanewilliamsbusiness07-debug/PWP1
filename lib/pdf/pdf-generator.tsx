@@ -221,26 +221,52 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
     chartImages = [];
   }
 
+  // Validate and clean chartImages array
+  const validChartImages = chartImages.filter((chart, index) => {
+    if (!chart || typeof chart !== 'object') {
+      console.warn(`Invalid chart at index ${index}:`, chart);
+      return false;
+    }
+    if (!chart.type || typeof chart.type !== 'string') {
+      console.warn(`Chart at index ${index} missing or invalid type:`, chart);
+      return false;
+    }
+    if (!chart.dataUrl || typeof chart.dataUrl !== 'string' || !chart.dataUrl.startsWith('data:')) {
+      console.warn(`Chart at index ${index} has invalid dataUrl:`, chart);
+      return false;
+    }
+    return true;
+  });
+
   // Ensure clientData is always a valid object
   const safeClientData = clientData && typeof clientData === 'object' ? clientData : {};
 
   const reportDate = format(new Date(), 'MMMM dd, yyyy');
   
+  // Helper function to safely get style objects
+  const getStyle = (styleKey: keyof typeof styles): any => {
+    const style = styles[styleKey];
+    return style && typeof style === 'object' ? style : {};
+  };
+  
   const getChartImage = (type: ChartImage['type']): string | null => {
     try {
-      if (!chartImages || !Array.isArray(chartImages)) {
+      if (!validChartImages || !Array.isArray(validChartImages)) {
         return null;
       }
-      const chart = chartImages.find(chart => {
-        return chart && 
-               typeof chart === 'object' && 
-               chart.type === type && 
-               chart.dataUrl && 
-               typeof chart.dataUrl === 'string' && 
-               chart.dataUrl.length > 0 &&
-               chart.dataUrl.startsWith('data:');
+      const chart = validChartImages.find(chart => {
+        if (!chart || typeof chart !== 'object') return false;
+        if (chart.type !== type) return false;
+        if (!chart.dataUrl || typeof chart.dataUrl !== 'string') return false;
+        if (chart.dataUrl.length === 0) return false;
+        if (!chart.dataUrl.startsWith('data:image/')) return false;
+        return true;
       });
-      return chart?.dataUrl || null;
+      const dataUrl = chart?.dataUrl;
+      if (dataUrl && typeof dataUrl === 'string' && dataUrl.length > 0) {
+        return dataUrl;
+      }
+      return null;
     } catch (error) {
       console.error('Error getting chart image:', error);
       return null;
@@ -252,118 +278,248 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
     throw new Error('Styles object is invalid');
   }
 
+  // Ensure page style exists
+  const pageStyle = styles.page && typeof styles.page === 'object' ? styles.page : {
+    padding: 40,
+    fontFamily: 'Helvetica',
+    fontSize: 11,
+    lineHeight: 1.6,
+    backgroundColor: '#ffffff',
+  };
+
+  // Validate all style objects before using them
+  const headerStyle = styles.header && typeof styles.header === 'object' ? styles.header : {};
+  const headerRowStyle = styles.headerRow && typeof styles.headerRow === 'object' ? styles.headerRow : {};
+  const headerTextStyle = styles.headerText && typeof styles.headerText === 'object' ? styles.headerText : {};
+  const companyNameStyle = styles.companyName && typeof styles.companyName === 'object' ? styles.companyName : {};
+  const clientInfoStyle = styles.clientInfo && typeof styles.clientInfo === 'object' ? styles.clientInfo : {};
+  const reportTitleStyle = styles.reportTitle && typeof styles.reportTitle === 'object' ? styles.reportTitle : {};
+
   return (
     <Document>
-      <Page size="A4" style={styles.page || {}}>
+      <Page size="A4" style={pageStyle}>
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerText}>
-              <Text style={styles.companyName}>Perpetual Wealth Partners</Text>
-              <Text style={styles.clientInfo}>
+        <View style={headerStyle}>
+          <View style={headerRowStyle}>
+            <View style={headerTextStyle}>
+              <Text style={companyNameStyle}>Perpetual Wealth Partners</Text>
+              <Text style={clientInfoStyle}>
                 Report Date: {reportDate}{'\n'}
-                Prepared for: {summary.clientName}
+                Prepared for: {summary.clientName || 'Client'}
               </Text>
             </View>
           </View>
-          <Text style={styles.reportTitle}>Financial Planning Report</Text>
+          <Text style={reportTitleStyle}>Financial Planning Report</Text>
         </View>
 
         {/* Executive Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Executive Summary</Text>
-          <View style={styles.summaryBox}>
-            <View style={styles.metricBox}>
-              <Text style={[styles.metricValue, { color: '#27ae60' }]}>
+        <View style={getStyle('section')}>
+          <Text style={getStyle('sectionTitle')}>Executive Summary</Text>
+          <View style={getStyle('summaryBox')}>
+            <View style={getStyle('metricBox')}>
+              <Text style={[getStyle('metricValue'), { color: '#27ae60' }]}>
                 ${(summary.netWorth || 0).toLocaleString()}
               </Text>
-              <Text style={styles.metricLabel}>Net Worth</Text>
+              <Text style={getStyle('metricLabel')}>Net Worth</Text>
             </View>
-            <View style={styles.metricBox}>
-              <Text style={[styles.metricValue, { 
-                color: (summary.monthlyCashFlow || 0) >= 0 ? '#27ae60' : '#e74c3c' 
-              }]}>
+            <View style={getStyle('metricBox')}>
+              <Text style={[
+                getStyle('metricValue'),
+                { 
+                  color: (summary.monthlyCashFlow || 0) >= 0 ? '#27ae60' : '#e74c3c' 
+                }
+              ]}>
                 ${(summary.monthlyCashFlow || 0).toLocaleString()}
               </Text>
-              <Text style={styles.metricLabel}>Monthly Cash Flow</Text>
+              <Text style={getStyle('metricLabel')}>Monthly Cash Flow</Text>
             </View>
-            <View style={styles.metricBox}>
-              <Text style={[styles.metricValue, { color: '#3498db' }]}>
+            <View style={getStyle('metricBox')}>
+              <Text style={[getStyle('metricValue'), { color: '#3498db' }]}>
                 ${(summary.taxSavings || 0).toLocaleString()}
               </Text>
-              <Text style={styles.metricLabel}>Tax Savings Potential</Text>
+              <Text style={getStyle('metricLabel')}>Tax Savings Potential</Text>
             </View>
           </View>
         </View>
 
         {/* Financial Overview Chart */}
         {(() => {
-          const incomeChartSrc = getChartImage('income');
-          if (!incomeChartSrc) return null;
-          return (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Income Analysis</Text>
-              <View style={styles.chartContainer}>
-                <Image src={incomeChartSrc} style={styles.chart} />
+          try {
+            const incomeChartSrc = getChartImage('income');
+            const chartStyle = getStyle('chart');
+            const sectionStyle = getStyle('section');
+            const sectionTitleStyle = getStyle('sectionTitle');
+            const chartContainerStyle = getStyle('chartContainer');
+            const explanationStyle = getStyle('explanation');
+            const explanationTitleStyle = getStyle('explanationTitle');
+            const explanationTextStyle = getStyle('explanationText');
+            
+            if (!incomeChartSrc || typeof incomeChartSrc !== 'string' || incomeChartSrc.length === 0 || !incomeChartSrc.startsWith('data:image/')) {
+              // Still show the section even without chart
+              return (
+                <View style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>Income Analysis</Text>
+                  <View style={explanationStyle}>
+                    <Text style={explanationTitleStyle}>Understanding Your Income</Text>
+                    <Text style={explanationTextStyle}>
+                      Your total annual income is ${((summary.monthlyIncome || 0) * 12).toLocaleString()}, 
+                      which breaks down to ${(summary.monthlyIncome || 0).toLocaleString()} per month. 
+                      {'\n\n'}
+                      • Primary income source: Employment income
+                      {'\n'}
+                      • Additional income streams: Rental and investment income provide diversification
+                      {'\n'}
+                      • Recommendation: Consider increasing passive income sources to build financial resilience
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+            
+            // Ensure we have a valid data URL before rendering Image
+            const validImageSrc = incomeChartSrc.startsWith('data:image/') ? incomeChartSrc : null;
+            if (!validImageSrc) {
+              return null;
+            }
+            
+            return (
+              <View style={sectionStyle}>
+                <Text style={sectionTitleStyle}>Income Analysis</Text>
+                <View style={chartContainerStyle}>
+                  {validImageSrc ? <Image src={validImageSrc} style={chartStyle} /> : null}
+                </View>
+                <View style={explanationStyle}>
+                  <Text style={explanationTitleStyle}>Understanding Your Income</Text>
+                  <Text style={explanationTextStyle}>
+                    Your total annual income is ${((summary.monthlyIncome || 0) * 12).toLocaleString()}, 
+                    which breaks down to ${(summary.monthlyIncome || 0).toLocaleString()} per month. 
+                    {'\n\n'}
+                    • Primary income source: Employment income
+                    {'\n'}
+                    • Additional income streams: Rental and investment income provide diversification
+                    {'\n'}
+                    • Recommendation: Consider increasing passive income sources to build financial resilience
+                  </Text>
+                </View>
               </View>
-              <View style={styles.explanation}>
-                <Text style={styles.explanationTitle}>Understanding Your Income</Text>
-                <Text style={styles.explanationText}>
-                  Your total annual income is ${((summary.monthlyIncome || 0) * 12).toLocaleString()}, 
-                  which breaks down to ${(summary.monthlyIncome || 0).toLocaleString()} per month. 
-                  {'\n\n'}
-                  • Primary income source: Employment income
-                  {'\n'}
-                  • Additional income streams: Rental and investment income provide diversification
-                  {'\n'}
-                  • Recommendation: Consider increasing passive income sources to build financial resilience
-                </Text>
-              </View>
-            </View>
-          );
+            );
+          } catch (error) {
+            console.error('Error rendering income chart:', error);
+            return null;
+          }
         })()}
 
         {/* Expenses Breakdown */}
         {(() => {
-          const expenseChartSrc = getChartImage('expenses');
-          if (!expenseChartSrc) return null;
-          return (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Expense Breakdown</Text>
-              <View style={styles.chartContainer}>
-                <Image src={expenseChartSrc} style={styles.chart} />
+          try {
+            const expenseChartSrc = getChartImage('expenses');
+            const sectionStyle = styles.section && typeof styles.section === 'object' ? styles.section : {};
+            const sectionTitleStyle = styles.sectionTitle && typeof styles.sectionTitle === 'object' ? styles.sectionTitle : {};
+            const chartContainerStyle = styles.chartContainer && typeof styles.chartContainer === 'object' ? styles.chartContainer : {};
+            const chartStyle = styles.chart && typeof styles.chart === 'object' ? styles.chart : {};
+            const explanationStyle = styles.explanation && typeof styles.explanation === 'object' ? styles.explanation : {};
+            const explanationTitleStyle = styles.explanationTitle && typeof styles.explanationTitle === 'object' ? styles.explanationTitle : {};
+            const explanationTextStyle = styles.explanationText && typeof styles.explanationText === 'object' ? styles.explanationText : {};
+            
+            if (!expenseChartSrc || typeof expenseChartSrc !== 'string' || expenseChartSrc.length === 0 || !expenseChartSrc.startsWith('data:image/')) {
+              return (
+                <View style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>Expense Breakdown</Text>
+                  <View style={explanationStyle}>
+                    <Text style={explanationTitleStyle}>Understanding Your Expenses</Text>
+                    <Text style={explanationTextStyle}>
+                      Your monthly expenses total ${(summary.monthlyExpenses || 0).toLocaleString()}, 
+                      representing {(summary.monthlyIncome || 0) > 0 ? (((summary.monthlyExpenses || 0) / (summary.monthlyIncome || 1)) * 100).toFixed(1) : 0}% 
+                      of your monthly income.
+                      {'\n\n'}
+                      • Work-related expenses: Tax-deductible expenses that reduce your taxable income
+                      {'\n'}
+                      • Investment expenses: Costs associated with managing your investment portfolio
+                      {'\n'}
+                      • Recommendation: Review expense categories regularly to identify optimization opportunities
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+            
+            const validExpenseImageSrc = expenseChartSrc.startsWith('data:image/') ? expenseChartSrc : null;
+            if (!validExpenseImageSrc) {
+              return null;
+            }
+            
+            return (
+              <View style={sectionStyle}>
+                <Text style={sectionTitleStyle}>Expense Breakdown</Text>
+                <View style={chartContainerStyle}>
+                  <Image src={validExpenseImageSrc} style={chartStyle} />
+                </View>
+                <View style={explanationStyle}>
+                  <Text style={explanationTitleStyle}>Understanding Your Expenses</Text>
+                  <Text style={explanationTextStyle}>
+                    Your monthly expenses total ${(summary.monthlyExpenses || 0).toLocaleString()}, 
+                    representing {(summary.monthlyIncome || 0) > 0 ? (((summary.monthlyExpenses || 0) / (summary.monthlyIncome || 1)) * 100).toFixed(1) : 0}% 
+                    of your monthly income.
+                    {'\n\n'}
+                    • Work-related expenses: Tax-deductible expenses that reduce your taxable income
+                    {'\n'}
+                    • Investment expenses: Costs associated with managing your investment portfolio
+                    {'\n'}
+                    • Recommendation: Review expense categories regularly to identify optimization opportunities
+                  </Text>
+                </View>
               </View>
-              <View style={styles.explanation}>
-                <Text style={styles.explanationTitle}>Understanding Your Expenses</Text>
-                <Text style={styles.explanationText}>
-                  Your monthly expenses total ${(summary.monthlyExpenses || 0).toLocaleString()}, 
-                  representing {(summary.monthlyIncome || 0) > 0 ? (((summary.monthlyExpenses || 0) / (summary.monthlyIncome || 1)) * 100).toFixed(1) : 0}% 
-                  of your monthly income.
-                  {'\n\n'}
-                  • Work-related expenses: Tax-deductible expenses that reduce your taxable income
-                  {'\n'}
-                  • Investment expenses: Costs associated with managing your investment portfolio
-                  {'\n'}
-                  • Recommendation: Review expense categories regularly to identify optimization opportunities
-                </Text>
-              </View>
-            </View>
-          );
+            );
+          } catch (error) {
+            console.error('Error rendering expense chart:', error);
+            return null;
+          }
         })()}
 
         {/* Assets vs Liabilities */}
         {(() => {
-          const assetChartSrc = getChartImage('assets');
-          if (!assetChartSrc) return null;
-          return (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Assets & Liabilities Overview</Text>
-              <View style={styles.chartContainer}>
-                <Image src={assetChartSrc} style={styles.chart} />
-              </View>
-              <View style={styles.explanation}>
-                <Text style={styles.explanationTitle}>Understanding Your Financial Position</Text>
-                <Text style={styles.explanationText}>
+          try {
+            const assetChartSrc = getChartImage('assets');
+            const chartStyle = getStyle('chart');
+            const sectionStyle = getStyle('section');
+            const sectionTitleStyle = getStyle('sectionTitle');
+            const chartContainerStyle = getStyle('chartContainer');
+            const explanationStyle = getStyle('explanation');
+            const explanationTitleStyle = getStyle('explanationTitle');
+            const explanationTextStyle = getStyle('explanationText');
+            
+            if (!assetChartSrc || typeof assetChartSrc !== 'string' || assetChartSrc.length === 0) {
+              return (
+                <View style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>Assets & Liabilities Overview</Text>
+                  <View style={explanationStyle}>
+                    <Text style={explanationTitleStyle}>Understanding Your Financial Position</Text>
+                    <Text style={explanationTextStyle}>
+                      Your total assets of ${(summary.totalAssets || 0).toLocaleString()} are offset by 
+                      liabilities of ${(summary.totalLiabilities || 0).toLocaleString()}, resulting in a net worth 
+                      of ${(summary.netWorth || 0).toLocaleString()}.
+                      {'\n\n'}
+                      • Asset allocation: Diversification across property, superannuation, and investments
+                      {'\n'}
+                      • Debt-to-asset ratio: {(summary.totalAssets || 0) > 0 ? (((summary.totalLiabilities || 0) / (summary.totalAssets || 1)) * 100).toFixed(1) : 0}% 
+                      (lower is generally better)
+                      {'\n'}
+                      • Recommendation: Focus on building assets while strategically managing debt
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+            
+            return (
+              <View style={sectionStyle}>
+                <Text style={sectionTitleStyle}>Assets & Liabilities Overview</Text>
+                <View style={chartContainerStyle}>
+                  <Image src={assetChartSrc} style={chartStyle} />
+                </View>
+                <View style={explanationStyle}>
+                  <Text style={explanationTitleStyle}>Understanding Your Financial Position</Text>
+                  <Text style={explanationTextStyle}>
                   Your total assets of ${(summary.totalAssets || 0).toLocaleString()} are offset by 
                   liabilities of ${(summary.totalLiabilities || 0).toLocaleString()}, resulting in a net worth 
                   of ${(summary.netWorth || 0).toLocaleString()}.
@@ -374,83 +530,160 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
                   (lower is generally better)
                   {'\n'}
                   • Recommendation: Focus on building assets while strategically managing debt
-                </Text>
-              </View>
-            </View>
-          );
+                    </Text>
+                  </View>
+                </View>
+              );
+          } catch (error) {
+            console.error('Error rendering asset chart:', error);
+            return null;
+          }
         })()}
 
         {/* Cash Flow Analysis */}
         {(() => {
-          const cashFlowChartSrc = getChartImage('cashflow');
-          if (!cashFlowChartSrc) return null;
-          const cashFlow = summary.monthlyCashFlow || 0;
-          const monthlyIncome = summary.monthlyIncome || 0;
-          const savingsRate = monthlyIncome > 0 ? ((cashFlow / monthlyIncome) * 100).toFixed(1) : '0';
-          const cashFlowText = cashFlow >= 0 
-            ? `You have a positive monthly cash flow of ${cashFlow.toLocaleString()}, representing a savings rate of ${savingsRate}%. This surplus can be used for investments, debt reduction, or building emergency funds.`
-            : `Your monthly expenses exceed income by ${Math.abs(cashFlow).toLocaleString()}. Consider reviewing expenses, increasing income, or adjusting your financial strategy.`;
-          
-          return (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Cash Flow Analysis</Text>
-              <View style={styles.chartContainer}>
-                <Image src={cashFlowChartSrc} style={styles.chart} />
+          try {
+            const cashFlowChartSrc = getChartImage('cashflow');
+            const cashFlow = summary.monthlyCashFlow || 0;
+            const monthlyIncome = summary.monthlyIncome || 0;
+            const savingsRate = monthlyIncome > 0 ? ((cashFlow / monthlyIncome) * 100).toFixed(1) : '0';
+            const cashFlowText = cashFlow >= 0 
+              ? `You have a positive monthly cash flow of ${cashFlow.toLocaleString()}, representing a savings rate of ${savingsRate}%. This surplus can be used for investments, debt reduction, or building emergency funds.`
+              : `Your monthly expenses exceed income by ${Math.abs(cashFlow).toLocaleString()}. Consider reviewing expenses, increasing income, or adjusting your financial strategy.`;
+            
+            const chartStyle = getStyle('chart');
+            const sectionStyle = getStyle('section');
+            const sectionTitleStyle = getStyle('sectionTitle');
+            const chartContainerStyle = getStyle('chartContainer');
+            const highlightBoxStyle = getStyle('highlightBox');
+            const warningBoxStyle = getStyle('warningBox');
+            const explanationTitleStyle = getStyle('explanationTitle');
+            const explanationTextStyle = getStyle('explanationText');
+            const boxStyle = cashFlow >= 0 ? highlightBoxStyle : warningBoxStyle;
+            
+            if (!cashFlowChartSrc || typeof cashFlowChartSrc !== 'string' || cashFlowChartSrc.length === 0 || !cashFlowChartSrc.startsWith('data:image/')) {
+              return (
+                <View style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>Cash Flow Analysis</Text>
+                  <View style={boxStyle}>
+                    <Text style={explanationTitleStyle}>
+                      {cashFlow >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
+                    </Text>
+                    <Text style={explanationTextStyle}>
+                      {cashFlowText}
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+            
+            const validCashFlowImageSrc = cashFlowChartSrc.startsWith('data:image/') ? cashFlowChartSrc : null;
+            if (!validCashFlowImageSrc) {
+              return null;
+            }
+            
+            return (
+              <View style={sectionStyle}>
+                <Text style={sectionTitleStyle}>Cash Flow Analysis</Text>
+                <View style={chartContainerStyle}>
+                  <Image src={validCashFlowImageSrc} style={chartStyle} />
+                </View>
+                <View style={boxStyle}>
+                  <Text style={explanationTitleStyle}>
+                    {cashFlow >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
+                  </Text>
+                  <Text style={explanationTextStyle}>
+                    {cashFlowText}
+                  </Text>
+                </View>
               </View>
-              <View style={[(summary.monthlyCashFlow || 0) >= 0 ? styles.highlightBox : styles.warningBox]}>
-                <Text style={styles.explanationTitle}>
-                  {(summary.monthlyCashFlow || 0) >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
-                </Text>
-                <Text style={styles.explanationText}>
-                  {cashFlowText}
-                </Text>
-              </View>
-            </View>
-          );
+            );
+          } catch (error) {
+            console.error('Error rendering cash flow chart:', error);
+            return null;
+          }
         })()}
 
         {/* Retirement Projection */}
         {(() => {
-          const retirementChartSrc = getChartImage('retirement');
-          if (!retirementChartSrc) return null;
-          const isDeficit = summary.isRetirementDeficit || false;
-          const retirementText = isDeficit
-            ? `Based on current projections, you may face a retirement shortfall. With ${summary.yearsToRetirement || 0} years until retirement, consider increasing superannuation contributions or adjusting your retirement timeline.`
-            : `Your retirement planning is on track. Your projected retirement lump sum of ${(summary.projectedRetirementLumpSum || 0).toLocaleString()} provides a solid foundation for your retirement years.`;
-          
-          return (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Retirement Planning</Text>
-              <View style={styles.chartContainer}>
-                <Image src={retirementChartSrc} style={styles.chart} />
+          try {
+            const retirementChartSrc = getChartImage('retirement');
+            const isDeficit = summary.isRetirementDeficit || false;
+            const retirementText = isDeficit
+              ? `Based on current projections, you may face a retirement shortfall. With ${summary.yearsToRetirement || 0} years until retirement, consider increasing superannuation contributions or adjusting your retirement timeline.`
+              : `Your retirement planning is on track. Your projected retirement lump sum of ${(summary.projectedRetirementLumpSum || 0).toLocaleString()} provides a solid foundation for your retirement years.`;
+            
+            const chartStyle = getStyle('chart');
+            const sectionStyle = getStyle('section');
+            const sectionTitleStyle = getStyle('sectionTitle');
+            const chartContainerStyle = getStyle('chartContainer');
+            const highlightBoxStyle = getStyle('highlightBox');
+            const warningBoxStyle = getStyle('warningBox');
+            const explanationTitleStyle = getStyle('explanationTitle');
+            const explanationTextStyle = getStyle('explanationText');
+            const boxStyle = isDeficit ? warningBoxStyle : highlightBoxStyle;
+            
+            if (!retirementChartSrc || typeof retirementChartSrc !== 'string' || retirementChartSrc.length === 0 || !retirementChartSrc.startsWith('data:image/')) {
+              return (
+                <View style={sectionStyle}>
+                  <Text style={sectionTitleStyle}>Retirement Planning</Text>
+                  <View style={boxStyle}>
+                    <Text style={explanationTitleStyle}>
+                      {isDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
+                    </Text>
+                    <Text style={explanationTextStyle}>
+                      {retirementText}
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+            
+            const validRetirementImageSrc = retirementChartSrc.startsWith('data:image/') ? retirementChartSrc : null;
+            if (!validRetirementImageSrc) {
+              return null;
+            }
+            
+            return (
+              <View style={sectionStyle}>
+                <Text style={sectionTitleStyle}>Retirement Planning</Text>
+                <View style={chartContainerStyle}>
+                  <Image src={validRetirementImageSrc} style={chartStyle} />
+                </View>
+                <View style={boxStyle}>
+                  <Text style={explanationTitleStyle}>
+                    {isDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
+                  </Text>
+                  <Text style={explanationTextStyle}>
+                    {retirementText}
+                  </Text>
+                </View>
               </View>
-              <View style={isDeficit ? styles.warningBox : styles.highlightBox}>
-                <Text style={styles.explanationTitle}>
-                  {isDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
-                </Text>
-                <Text style={styles.explanationText}>
-                  {retirementText}
-                </Text>
-              </View>
-            </View>
-          );
+            );
+          } catch (error) {
+            console.error('Error rendering retirement chart:', error);
+            return null;
+          }
         })()}
 
         {/* Recommendations */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recommendations & Action Items</Text>
-          {(Array.isArray(summary.recommendations) ? summary.recommendations : []).map((rec, index) => (
-            <View key={index} style={styles.recommendationBox}>
-              <Text style={styles.explanationText}>
-                {index + 1}. {rec}
-              </Text>
-            </View>
-          ))}
+        <View style={getStyle('section')}>
+          <Text style={getStyle('sectionTitle')}>Recommendations & Action Items</Text>
+          {(Array.isArray(summary.recommendations) ? summary.recommendations : []).map((rec, index) => {
+            if (!rec || typeof rec !== 'string') return null;
+            return (
+              <View key={index} style={getStyle('recommendationBox')}>
+                <Text style={getStyle('explanationText')}>
+                  {index + 1}. {rec}
+                </Text>
+              </View>
+            );
+          })}
         </View>
 
         {/* Footer */}
         <Text 
-          style={styles.footer} 
+          style={getStyle('footer')} 
           render={({ pageNumber, totalPages }) => 
             `Page ${pageNumber} of ${totalPages} | Generated on ${reportDate} | Perpetual Wealth Partners`
           } 
