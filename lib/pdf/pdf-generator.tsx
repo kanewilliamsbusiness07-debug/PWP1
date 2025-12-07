@@ -243,12 +243,6 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
 
   const reportDate = format(new Date(), 'MMMM dd, yyyy');
   
-  // Helper function to safely get style objects
-  const getStyle = (styleKey: keyof typeof styles): any => {
-    const style = styles[styleKey];
-    return style && typeof style === 'object' ? style : {};
-  };
-  
   const getChartImage = (type: ChartImage['type']): string | null => {
     try {
       if (!validChartImages || !Array.isArray(validChartImages)) {
@@ -288,19 +282,54 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
   };
   
   // Ensure all style properties are valid objects (not arrays, not null, not undefined)
-  const safeGetStyle = (styleKey: keyof typeof styles): any => {
+  // This function MUST always return an object, never undefined or null
+  const safeGetStyle = (styleKey: keyof typeof styles): Record<string, any> => {
     try {
-      const style = styles[styleKey];
-      if (style && typeof style === 'object' && !Array.isArray(style) && style !== null) {
-        // Deep clone to avoid mutation issues
-        return JSON.parse(JSON.stringify(style));
+      if (!styles || typeof styles !== 'object') {
+        console.warn('Styles object is invalid');
+        return {};
       }
-      return {};
+      
+      const style = styles[styleKey];
+      
+      // Validate that style exists and is a valid object
+      if (!style) {
+        return {};
+      }
+      
+      if (typeof style !== 'object') {
+        return {};
+      }
+      
+      if (Array.isArray(style)) {
+        return {};
+      }
+      
+      if (style === null) {
+        return {};
+      }
+      
+      // Deep clone to avoid mutation issues
+      try {
+        const cloned = JSON.parse(JSON.stringify(style));
+        // Ensure cloned is still an object
+        if (cloned && typeof cloned === 'object' && !Array.isArray(cloned)) {
+          return cloned;
+        }
+        return {};
+      } catch (cloneError) {
+        // If cloning fails, return a safe empty object
+        console.warn(`Failed to clone style ${String(styleKey)}:`, cloneError);
+        return {};
+      }
     } catch (error) {
       console.error(`Error getting style ${String(styleKey)}:`, error);
       return {};
     }
   };
+  
+  // Alias for consistency - use safeGetStyle everywhere
+  const getStyle = safeGetStyle;
 
   // Validate all style objects before using them
   const headerStyle = safeGetStyle('header');
@@ -318,7 +347,7 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
           <View style={headerRowStyle}>
             <View style={headerTextStyle}>
               <Text style={companyNameStyle}>Perpetual Wealth Partners</Text>
-              <Text style={clientInfoStyle}>
+              <Text style={clientInfoStyle || {}}>
                 Report Date: {reportDate || 'N/A'}{'\n'}
                 Prepared for: {(summary && summary.clientName) ? String(summary.clientName) : 'Client'}
               </Text>
@@ -331,28 +360,28 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
         <View style={getStyle('section')}>
           <Text style={getStyle('sectionTitle')}>Executive Summary</Text>
           <View style={getStyle('summaryBox')}>
-            <View style={getStyle('metricBox')}>
-              <Text style={[getStyle('metricValue'), { color: '#27ae60' }]}>
+            <View style={getStyle('metricBox') || {}}>
+              <Text style={[getStyle('metricValue') || {}, { color: '#27ae60' }]}>
                 ${(summary && typeof summary.netWorth === 'number' ? summary.netWorth : 0).toLocaleString()}
               </Text>
-              <Text style={getStyle('metricLabel')}>Net Worth</Text>
+              <Text style={getStyle('metricLabel') || {}}>Net Worth</Text>
             </View>
-            <View style={getStyle('metricBox')}>
+            <View style={getStyle('metricBox') || {}}>
               <Text style={[
-                getStyle('metricValue'),
+                getStyle('metricValue') || {},
                 { 
                   color: (summary && typeof summary.monthlyCashFlow === 'number' && summary.monthlyCashFlow >= 0) ? '#27ae60' : '#e74c3c' 
                 }
               ]}>
                 ${(summary && typeof summary.monthlyCashFlow === 'number' ? summary.monthlyCashFlow : 0).toLocaleString()}
               </Text>
-              <Text style={getStyle('metricLabel')}>Monthly Cash Flow</Text>
+              <Text style={getStyle('metricLabel') || {}}>Monthly Cash Flow</Text>
             </View>
-            <View style={getStyle('metricBox')}>
-              <Text style={[getStyle('metricValue'), { color: '#3498db' }]}>
+            <View style={getStyle('metricBox') || {}}>
+              <Text style={[getStyle('metricValue') || {}, { color: '#3498db' }]}>
                 ${(summary && typeof summary.taxSavings === 'number' ? summary.taxSavings : 0).toLocaleString()}
               </Text>
-              <Text style={getStyle('metricLabel')}>Tax Savings Potential</Text>
+              <Text style={getStyle('metricLabel') || {}}>Tax Savings Potential</Text>
             </View>
           </View>
         </View>
@@ -564,12 +593,12 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
         {/* Recommendations */}
         <View style={getStyle('section')}>
           <Text style={getStyle('sectionTitle')}>Recommendations & Action Items</Text>
-          {(Array.isArray(summary.recommendations) ? summary.recommendations : []).map((rec, index) => {
+          {(summary && Array.isArray(summary.recommendations) ? summary.recommendations : []).map((rec, index) => {
             if (!rec || typeof rec !== 'string') return null;
             return (
               <View key={index} style={getStyle('recommendationBox')}>
                 <Text style={getStyle('explanationText')}>
-                  {index + 1}. {rec}
+                  {index + 1}. {String(rec)}
                 </Text>
               </View>
             );
