@@ -414,13 +414,46 @@ export default function SummaryPage() {
       ].filter(chart => chart.dataUrl); // Filter out empty charts
 
       console.log('Charts generated, creating PDF document...');
+      console.log('Summary data:', summaryData);
+      console.log('Chart images count:', chartImages.length);
+
+      // Validate summaryData
+      if (!summaryData || typeof summaryData !== 'object') {
+        throw new Error('Summary data is invalid or undefined');
+      }
+
+      // Ensure all required summary properties exist
+      const validatedSummary = {
+        clientName: summaryData.clientName || 'Client',
+        totalAssets: summaryData.totalAssets || 0,
+        totalLiabilities: summaryData.totalLiabilities || 0,
+        netWorth: summaryData.netWorth || 0,
+        monthlyIncome: summaryData.monthlyIncome || 0,
+        monthlyExpenses: summaryData.monthlyExpenses || 0,
+        monthlyCashFlow: summaryData.monthlyCashFlow || 0,
+        projectedRetirementLumpSum: summaryData.projectedRetirementLumpSum || 0,
+        retirementDeficitSurplus: summaryData.retirementDeficitSurplus || 0,
+        isRetirementDeficit: summaryData.isRetirementDeficit || false,
+        yearsToRetirement: summaryData.yearsToRetirement || 0,
+        currentTax: summaryData.currentTax || 0,
+        optimizedTax: summaryData.optimizedTax || 0,
+        taxSavings: summaryData.taxSavings || 0,
+        investmentProperties: summaryData.investmentProperties || 0,
+        totalPropertyValue: summaryData.totalPropertyValue || 0,
+        totalPropertyDebt: summaryData.totalPropertyDebt || 0,
+        propertyEquity: summaryData.propertyEquity || 0,
+        recommendations: Array.isArray(summaryData.recommendations) ? summaryData.recommendations : [],
+      };
+
+      // Validate chartImages array
+      const validatedChartImages = Array.isArray(chartImages) ? chartImages : [];
 
       // Create PDF document
       const pdfDoc = (
         <PDFReport 
-          summary={summaryData} 
-          chartImages={chartImages}
-          clientData={activeClient}
+          summary={validatedSummary} 
+          chartImages={validatedChartImages}
+          clientData={activeClient || {}}
         />
       );
 
