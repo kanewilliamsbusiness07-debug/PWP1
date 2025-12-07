@@ -299,136 +299,141 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
         {/* Financial Overview Chart */}
         {(() => {
           const incomeChartSrc = getChartImage('income');
-          return incomeChartSrc ? (
+          if (!incomeChartSrc) return null;
+          return (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Income Analysis</Text>
               <View style={styles.chartContainer}>
                 <Image src={incomeChartSrc} style={styles.chart} />
+              </View>
+              <View style={styles.explanation}>
+                <Text style={styles.explanationTitle}>Understanding Your Income</Text>
+                <Text style={styles.explanationText}>
+                  Your total annual income is ${((summary.monthlyIncome || 0) * 12).toLocaleString()}, 
+                  which breaks down to ${(summary.monthlyIncome || 0).toLocaleString()} per month. 
+                  {'\n\n'}
+                  • Primary income source: Employment income
+                  {'\n'}
+                  • Additional income streams: Rental and investment income provide diversification
+                  {'\n'}
+                  • Recommendation: Consider increasing passive income sources to build financial resilience
+                </Text>
+              </View>
             </View>
-            <View style={styles.explanation}>
-              <Text style={styles.explanationTitle}>Understanding Your Income</Text>
-              <Text style={styles.explanationText}>
-                Your total annual income is ${((summary.monthlyIncome || 0) * 12).toLocaleString()}, 
-                which breaks down to ${(summary.monthlyIncome || 0).toLocaleString()} per month. 
-                {'\n\n'}
-                • Primary income source: Employment income
-                {'\n'}
-                • Additional income streams: Rental and investment income provide diversification
-                {'\n'}
-                • Recommendation: Consider increasing passive income sources to build financial resilience
-              </Text>
-            </View>
-          </View>
-          ) : null;
+          );
         })()}
 
         {/* Expenses Breakdown */}
         {(() => {
           const expenseChartSrc = getChartImage('expenses');
-          return expenseChartSrc ? (
+          if (!expenseChartSrc) return null;
+          return (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Expense Breakdown</Text>
               <View style={styles.chartContainer}>
                 <Image src={expenseChartSrc} style={styles.chart} />
+              </View>
+              <View style={styles.explanation}>
+                <Text style={styles.explanationTitle}>Understanding Your Expenses</Text>
+                <Text style={styles.explanationText}>
+                  Your monthly expenses total ${(summary.monthlyExpenses || 0).toLocaleString()}, 
+                  representing {(summary.monthlyIncome || 0) > 0 ? (((summary.monthlyExpenses || 0) / (summary.monthlyIncome || 1)) * 100).toFixed(1) : 0}% 
+                  of your monthly income.
+                  {'\n\n'}
+                  • Work-related expenses: Tax-deductible expenses that reduce your taxable income
+                  {'\n'}
+                  • Investment expenses: Costs associated with managing your investment portfolio
+                  {'\n'}
+                  • Recommendation: Review expense categories regularly to identify optimization opportunities
+                </Text>
+              </View>
             </View>
-            <View style={styles.explanation}>
-              <Text style={styles.explanationTitle}>Understanding Your Expenses</Text>
-              <Text style={styles.explanationText}>
-                Your monthly expenses total ${(summary.monthlyExpenses || 0).toLocaleString()}, 
-                representing {(summary.monthlyIncome || 0) > 0 ? (((summary.monthlyExpenses || 0) / (summary.monthlyIncome || 1)) * 100).toFixed(1) : 0}% 
-                of your monthly income.
-                {'\n\n'}
-                • Work-related expenses: Tax-deductible expenses that reduce your taxable income
-                {'\n'}
-                • Investment expenses: Costs associated with managing your investment portfolio
-                {'\n'}
-                • Recommendation: Review expense categories regularly to identify optimization opportunities
-              </Text>
-            </View>
-          </View>
-          ) : null;
+          );
         })()}
 
         {/* Assets vs Liabilities */}
-        {getChartImage('assets') ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Assets & Liabilities Overview</Text>
-            <View style={styles.chartContainer}>
-              <Image src={getChartImage('assets')!} style={styles.chart} />
+        {(() => {
+          const assetChartSrc = getChartImage('assets');
+          if (!assetChartSrc) return null;
+          return (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Assets & Liabilities Overview</Text>
+              <View style={styles.chartContainer}>
+                <Image src={assetChartSrc} style={styles.chart} />
+              </View>
+              <View style={styles.explanation}>
+                <Text style={styles.explanationTitle}>Understanding Your Financial Position</Text>
+                <Text style={styles.explanationText}>
+                  Your total assets of ${(summary.totalAssets || 0).toLocaleString()} are offset by 
+                  liabilities of ${(summary.totalLiabilities || 0).toLocaleString()}, resulting in a net worth 
+                  of ${(summary.netWorth || 0).toLocaleString()}.
+                  {'\n\n'}
+                  • Asset allocation: Diversification across property, superannuation, and investments
+                  {'\n'}
+                  • Debt-to-asset ratio: {(summary.totalAssets || 0) > 0 ? (((summary.totalLiabilities || 0) / (summary.totalAssets || 1)) * 100).toFixed(1) : 0}% 
+                  (lower is generally better)
+                  {'\n'}
+                  • Recommendation: Focus on building assets while strategically managing debt
+                </Text>
+              </View>
             </View>
-            <View style={styles.explanation}>
-              <Text style={styles.explanationTitle}>Understanding Your Financial Position</Text>
-              <Text style={styles.explanationText}>
-                Your total assets of ${(summary.totalAssets || 0).toLocaleString()} are offset by 
-                liabilities of ${(summary.totalLiabilities || 0).toLocaleString()}, resulting in a net worth 
-                of ${(summary.netWorth || 0).toLocaleString()}.
-                {'\n\n'}
-                • Asset allocation: Diversification across property, superannuation, and investments
-                {'\n'}
-                • Debt-to-asset ratio: {(summary.totalAssets || 0) > 0 ? (((summary.totalLiabilities || 0) / (summary.totalAssets || 1)) * 100).toFixed(1) : 0}% 
-                (lower is generally better)
-                {'\n'}
-                • Recommendation: Focus on building assets while strategically managing debt
-              </Text>
-            </View>
-          </View>
-          ) : null;
+          );
         })()}
 
         {/* Cash Flow Analysis */}
         {(() => {
           const cashFlowChartSrc = getChartImage('cashflow');
-          return cashFlowChartSrc ? (
+          if (!cashFlowChartSrc) return null;
+          const cashFlow = summary.monthlyCashFlow || 0;
+          const monthlyIncome = summary.monthlyIncome || 0;
+          const savingsRate = monthlyIncome > 0 ? ((cashFlow / monthlyIncome) * 100).toFixed(1) : '0';
+          const cashFlowText = cashFlow >= 0 
+            ? `You have a positive monthly cash flow of ${cashFlow.toLocaleString()}, representing a savings rate of ${savingsRate}%. This surplus can be used for investments, debt reduction, or building emergency funds.`
+            : `Your monthly expenses exceed income by ${Math.abs(cashFlow).toLocaleString()}. Consider reviewing expenses, increasing income, or adjusting your financial strategy.`;
+          
+          return (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Cash Flow Analysis</Text>
               <View style={styles.chartContainer}>
                 <Image src={cashFlowChartSrc} style={styles.chart} />
+              </View>
+              <View style={[(summary.monthlyCashFlow || 0) >= 0 ? styles.highlightBox : styles.warningBox]}>
+                <Text style={styles.explanationTitle}>
+                  {(summary.monthlyCashFlow || 0) >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
+                </Text>
+                <Text style={styles.explanationText}>
+                  {cashFlowText}
+                </Text>
+              </View>
             </View>
-            <View style={[(summary.monthlyCashFlow || 0) >= 0 ? styles.highlightBox : styles.warningBox]}>
-              <Text style={styles.explanationTitle}>
-                {(summary.monthlyCashFlow || 0) >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
-              </Text>
-              <Text style={styles.explanationText}>
-                {(() => {
-                  const cashFlow = summary.monthlyCashFlow || 0;
-                  const monthlyIncome = summary.monthlyIncome || 0;
-                  const savingsRate = monthlyIncome > 0 ? ((cashFlow / monthlyIncome) * 100).toFixed(1) : '0';
-                  
-                  return cashFlow >= 0 
-                    ? `You have a positive monthly cash flow of ${cashFlow.toLocaleString()}, representing a savings rate of ${savingsRate}%. This surplus can be used for investments, debt reduction, or building emergency funds.`
-                    : `Your monthly expenses exceed income by ${Math.abs(cashFlow).toLocaleString()}. Consider reviewing expenses, increasing income, or adjusting your financial strategy.`;
-                })()}
-              </Text>
-            </View>
-          </View>
-          ) : null;
+          );
         })()}
 
         {/* Retirement Projection */}
         {(() => {
           const retirementChartSrc = getChartImage('retirement');
-          return retirementChartSrc ? (
+          if (!retirementChartSrc) return null;
+          const isDeficit = summary.isRetirementDeficit || false;
+          const retirementText = isDeficit
+            ? `Based on current projections, you may face a retirement shortfall. With ${summary.yearsToRetirement || 0} years until retirement, consider increasing superannuation contributions or adjusting your retirement timeline.`
+            : `Your retirement planning is on track. Your projected retirement lump sum of ${(summary.projectedRetirementLumpSum || 0).toLocaleString()} provides a solid foundation for your retirement years.`;
+          
+          return (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Retirement Planning</Text>
               <View style={styles.chartContainer}>
                 <Image src={retirementChartSrc} style={styles.chart} />
               </View>
-              <View style={[(summary.isRetirementDeficit || false) ? styles.warningBox : styles.highlightBox]}>
+              <View style={isDeficit ? styles.warningBox : styles.highlightBox]}>
                 <Text style={styles.explanationTitle}>
-                  {(summary.isRetirementDeficit || false) ? 'Retirement Planning Alert' : 'Retirement On Track'}
+                  {isDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
                 </Text>
                 <Text style={styles.explanationText}>
-                  {(summary.isRetirementDeficit || false)
-                    ? `Based on current projections, you may face a retirement shortfall. 
-                       With ${summary.yearsToRetirement || 0} years until retirement, consider increasing 
-                       superannuation contributions or adjusting your retirement timeline.`
-                    : `Your retirement planning is on track. Your projected retirement lump sum of 
-                       ${(summary.projectedRetirementLumpSum || 0).toLocaleString()} provides a solid foundation 
-                       for your retirement years.`}
+                  {retirementText}
                 </Text>
               </View>
             </View>
-          ) : null;
+          );
         })()}
 
         {/* Recommendations */}
