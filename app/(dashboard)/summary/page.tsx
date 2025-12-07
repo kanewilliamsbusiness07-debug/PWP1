@@ -481,7 +481,31 @@ export default function SummaryPage() {
       console.log('Validated chart images:', validatedChartImages.length, 'out of', chartImages.length);
 
       // Ensure clientData is a plain object (not undefined or null)
-      const safeClientData = activeClient && typeof activeClient === 'object' ? activeClient : {};
+      // Deep clean to remove any undefined values that could cause issues
+      const cleanClientData = (obj: any): any => {
+        if (obj === null || obj === undefined) {
+          return {};
+        }
+        if (typeof obj !== 'object' || Array.isArray(obj)) {
+          return obj;
+        }
+        const cleaned: any = {};
+        for (const key in obj) {
+          if (obj.hasOwnProperty(key)) {
+            const value = obj[key];
+            if (value !== undefined) {
+              if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                cleaned[key] = cleanClientData(value);
+              } else {
+                cleaned[key] = value;
+              }
+            }
+          }
+        }
+        return cleaned;
+      };
+      
+      const safeClientData = activeClient && typeof activeClient === 'object' ? cleanClientData(activeClient) : {};
 
       // Ensure all summary values are valid (no undefined, null, or non-serializable values)
       const sanitizedSummary = {
@@ -606,6 +630,32 @@ export default function SummaryPage() {
       let pdfDoc;
       try {
         console.log('Creating PDF document JSX...');
+        console.log('Sanitized Summary:', {
+          type: typeof sanitizedSummary,
+          keys: Object.keys(sanitizedSummary || {}),
+          sample: {
+            clientName: sanitizedSummary?.clientName,
+            netWorth: sanitizedSummary?.netWorth,
+            recommendationsLength: sanitizedSummary?.recommendations?.length
+          }
+        });
+        console.log('Sanitized Chart Images:', {
+          type: typeof sanitizedChartImages,
+          isArray: Array.isArray(sanitizedChartImages),
+          length: sanitizedChartImages?.length,
+          firstImage: sanitizedChartImages?.[0] ? {
+            type: sanitizedChartImages[0].type,
+            hasDataUrl: !!sanitizedChartImages[0].dataUrl,
+            dataUrlType: typeof sanitizedChartImages[0].dataUrl
+          } : null
+        });
+        console.log('Safe Client Data:', {
+          type: typeof safeClientData,
+          isObject: typeof safeClientData === 'object',
+          keys: Object.keys(safeClientData || {}),
+          keysCount: Object.keys(safeClientData || {}).length
+        });
+        
         pdfDoc = (
           <PDFReport 
             summary={sanitizedSummary} 
