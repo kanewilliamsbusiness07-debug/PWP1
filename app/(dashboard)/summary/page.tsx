@@ -11,8 +11,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FileText, Download, Mail, Printer, Share2, TrendingUp, TrendingDown, DollarSign, Calculator, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle } from 'lucide-react';
-import { pdf } from '@react-pdf/renderer';
-import FinancialPDFDocument from '@/components/financial-pdf-document';
+import React from 'react';
+import { pdf, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import {
   generateIncomeChart,
   generateExpenseChart,
@@ -255,6 +255,50 @@ export default function SummaryPage() {
 
   const summary = calculateSummary();
 
+  // CRITICAL: Define PDF styles OUTSIDE any function
+  const pdfStyles = StyleSheet.create({
+    page: {
+      padding: 30,
+      backgroundColor: '#ffffff',
+    },
+    header: {
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 24,
+      marginBottom: 10,
+      color: '#000000',
+    },
+    section: {
+      marginBottom: 15,
+    },
+    subtitle: {
+      fontSize: 16,
+      marginBottom: 8,
+      fontWeight: 'bold',
+      color: '#333333',
+    },
+    row: {
+      flexDirection: 'row',
+      marginBottom: 5,
+    },
+    label: {
+      width: '50%',
+      fontSize: 12,
+      color: '#666666',
+    },
+    value: {
+      width: '50%',
+      fontSize: 12,
+      color: '#000000',
+    },
+    chart: {
+      width: '100%',
+      height: 200,
+      marginTop: 10,
+    },
+  });
+
   // Helper function to validate chart images
   const validateChartImage = (dataUrl: string | undefined): string | undefined => {
     if (!dataUrl) return undefined;
@@ -449,33 +493,124 @@ export default function SummaryPage() {
       });
 
       // Step 2: Extract ONLY the data we need and validate
-      const pdfData = {
-        clientName: `${activeClient?.firstName || 'Unknown'} ${activeClient?.lastName || 'Client'}`.trim() || 'Client',
-        netWorth: Number(summaryData?.netWorth || 0),
-        totalAssets: Number(summaryData?.totalAssets || 0),
-        totalLiabilities: Number(summaryData?.totalLiabilities || 0),
-        monthlyIncome: Number(summaryData?.monthlyIncome || 0),
-        monthlyExpenses: Number(summaryData?.monthlyExpenses || 0),
-        chartNetWorth: validateChartImage(assetChart),
-        chartCashFlow: validateChartImage(cashFlowChart),
-        chartAssets: validateChartImage(assetChart),
-      };
+      const clientName = `${activeClient?.firstName || 'Unknown'} ${activeClient?.lastName || 'Client'}`.trim() || 'Client';
+      const netWorth = Number(summaryData?.netWorth || 0);
+      const totalAssets = Number(summaryData?.totalAssets || 0);
+      const totalLiabilities = Number(summaryData?.totalLiabilities || 0);
+      const monthlyIncome = Number(summaryData?.monthlyIncome || 0);
+      const monthlyExpenses = Number(summaryData?.monthlyExpenses || 0);
+      const chartNetWorth = validateChartImage(assetChart);
+      const chartCashFlow = validateChartImage(cashFlowChart);
+      const chartAssets = validateChartImage(assetChart);
 
       console.log('📋 PDF data prepared:', {
-        clientName: pdfData.clientName,
-        netWorth: pdfData.netWorth,
-        hasCharts: !!(pdfData.chartNetWorth || pdfData.chartCashFlow || pdfData.chartAssets),
+        clientName,
+        netWorth,
+        hasCharts: !!(chartNetWorth || chartCashFlow || chartAssets),
       });
 
-      // Step 3: Create PDF document
+      // Step 3: Format currency helper
+      const formatCurrency = (amount: number) => {
+        return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      };
+
+      // Step 4: Create PDF using React.createElement (NO JSX!)
       console.log('📄 Creating PDF document...');
-      const documentElement = (
-        <FinancialPDFDocument {...pdfData} />
+      const pdfDocument = React.createElement(
+        Document,
+        null,
+        React.createElement(
+          Page,
+          { size: 'A4', style: pdfStyles.page },
+          
+          // Header
+          React.createElement(
+            View,
+            { style: pdfStyles.header },
+            React.createElement(Text, { style: pdfStyles.title }, 'Financial Summary Report'),
+            React.createElement(Text, { style: { fontSize: 12, marginBottom: 5 } }, `Client: ${clientName}`),
+            React.createElement(Text, { style: { fontSize: 12 } }, `Date: ${new Date().toLocaleDateString()}`)
+          ),
+          
+          // Financial Overview
+          React.createElement(
+            View,
+            { style: pdfStyles.section },
+            React.createElement(Text, { style: pdfStyles.subtitle }, 'Financial Overview'),
+            React.createElement(
+              View,
+              { style: pdfStyles.row },
+              React.createElement(Text, { style: pdfStyles.label }, 'Total Assets:'),
+              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(totalAssets))
+            ),
+            React.createElement(
+              View,
+              { style: pdfStyles.row },
+              React.createElement(Text, { style: pdfStyles.label }, 'Total Liabilities:'),
+              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(totalLiabilities))
+            ),
+            React.createElement(
+              View,
+              { style: pdfStyles.row },
+              React.createElement(Text, { style: pdfStyles.label }, 'Net Worth:'),
+              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(netWorth))
+            )
+          ),
+          
+          // Cash Flow
+          React.createElement(
+            View,
+            { style: pdfStyles.section },
+            React.createElement(Text, { style: pdfStyles.subtitle }, 'Cash Flow Analysis'),
+            React.createElement(
+              View,
+              { style: pdfStyles.row },
+              React.createElement(Text, { style: pdfStyles.label }, 'Monthly Income:'),
+              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(monthlyIncome))
+            ),
+            React.createElement(
+              View,
+              { style: pdfStyles.row },
+              React.createElement(Text, { style: pdfStyles.label }, 'Monthly Expenses:'),
+              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(monthlyExpenses))
+            ),
+            React.createElement(
+              View,
+              { style: pdfStyles.row },
+              React.createElement(Text, { style: pdfStyles.label }, 'Net Monthly:'),
+              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(monthlyIncome - monthlyExpenses))
+            )
+          ),
+          
+          // Chart 1 (if exists)
+          chartNetWorth ? React.createElement(
+            View,
+            { style: pdfStyles.section },
+            React.createElement(Text, { style: pdfStyles.subtitle }, 'Net Worth Chart'),
+            React.createElement(Image, { src: chartNetWorth, style: pdfStyles.chart })
+          ) : null,
+          
+          // Chart 2 (if exists)
+          chartCashFlow ? React.createElement(
+            View,
+            { style: pdfStyles.section },
+            React.createElement(Text, { style: pdfStyles.subtitle }, 'Cash Flow Chart'),
+            React.createElement(Image, { src: chartCashFlow, style: pdfStyles.chart })
+          ) : null,
+          
+          // Chart 3 (if exists)
+          chartAssets ? React.createElement(
+            View,
+            { style: pdfStyles.section },
+            React.createElement(Text, { style: pdfStyles.subtitle }, 'Asset Allocation'),
+            React.createElement(Image, { src: chartAssets, style: pdfStyles.chart })
+          ) : null
+        )
       );
 
-      // Step 4: Generate blob
+      // Step 5: Generate blob
       console.log('🔄 Generating PDF blob...');
-      const pdfBlob = await pdf(documentElement).toBlob();
+      const pdfBlob = await pdf(pdfDocument).toBlob();
       console.log('✓ PDF blob created:', pdfBlob.size, 'bytes');
       
       // Generate filename
