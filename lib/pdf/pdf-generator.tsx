@@ -339,49 +339,66 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
   const clientInfoStyle = safeGetStyle('clientInfo');
   const reportTitleStyle = safeGetStyle('reportTitle');
 
+  // Validate all style objects one more time before rendering
+  const validateStyle = (style: any, name: string): Record<string, any> => {
+    if (!style || typeof style !== 'object' || Array.isArray(style)) {
+      console.warn(`Invalid style for ${name}, using empty object`);
+      return {};
+    }
+    return style;
+  };
+
+  const validatedPageStyle = validateStyle(pageStyle, 'page');
+  const validatedHeaderStyle = validateStyle(headerStyle, 'header');
+  const validatedHeaderRowStyle = validateStyle(headerRowStyle, 'headerRow');
+  const validatedHeaderTextStyle = validateStyle(headerTextStyle, 'headerText');
+  const validatedCompanyNameStyle = validateStyle(companyNameStyle, 'companyName');
+  const validatedClientInfoStyle = validateStyle(clientInfoStyle, 'clientInfo');
+  const validatedReportTitleStyle = validateStyle(reportTitleStyle, 'reportTitle');
+
   return (
     <Document>
-      <Page size="A4" style={pageStyle}>
+      <Page size="A4" style={validatedPageStyle}>
         {/* Header */}
-        <View style={headerStyle}>
-          <View style={headerRowStyle}>
-            <View style={headerTextStyle}>
-              <Text style={companyNameStyle}>Perpetual Wealth Partners</Text>
-              <Text style={clientInfoStyle || {}}>
+        <View style={validatedHeaderStyle}>
+          <View style={validatedHeaderRowStyle}>
+            <View style={validatedHeaderTextStyle}>
+              <Text style={validatedCompanyNameStyle}>Perpetual Wealth Partners</Text>
+              <Text style={validatedClientInfoStyle}>
                 Report Date: {reportDate || 'N/A'}{'\n'}
                 Prepared for: {(summary && summary.clientName) ? String(summary.clientName) : 'Client'}
               </Text>
             </View>
           </View>
-          <Text style={reportTitleStyle}>Financial Planning Report</Text>
+          <Text style={validatedReportTitleStyle}>Financial Planning Report</Text>
         </View>
 
         {/* Executive Summary */}
-        <View style={getStyle('section')}>
-          <Text style={getStyle('sectionTitle')}>Executive Summary</Text>
-          <View style={getStyle('summaryBox')}>
-            <View style={getStyle('metricBox') || {}}>
-              <Text style={[getStyle('metricValue') || {}, { color: '#27ae60' }]}>
+        <View style={validateStyle(getStyle('section'), 'section')}>
+          <Text style={validateStyle(getStyle('sectionTitle'), 'sectionTitle')}>Executive Summary</Text>
+          <View style={validateStyle(getStyle('summaryBox'), 'summaryBox')}>
+            <View style={validateStyle(getStyle('metricBox'), 'metricBox')}>
+              <Text style={[validateStyle(getStyle('metricValue'), 'metricValue'), { color: '#27ae60' }]}>
                 ${(summary && typeof summary.netWorth === 'number' ? summary.netWorth : 0).toLocaleString()}
               </Text>
-              <Text style={getStyle('metricLabel') || {}}>Net Worth</Text>
+              <Text style={validateStyle(getStyle('metricLabel'), 'metricLabel')}>Net Worth</Text>
             </View>
-            <View style={getStyle('metricBox') || {}}>
+            <View style={validateStyle(getStyle('metricBox'), 'metricBox')}>
               <Text style={[
-                getStyle('metricValue') || {},
+                validateStyle(getStyle('metricValue'), 'metricValue'),
                 { 
                   color: (summary && typeof summary.monthlyCashFlow === 'number' && summary.monthlyCashFlow >= 0) ? '#27ae60' : '#e74c3c' 
                 }
               ]}>
                 ${(summary && typeof summary.monthlyCashFlow === 'number' ? summary.monthlyCashFlow : 0).toLocaleString()}
               </Text>
-              <Text style={getStyle('metricLabel') || {}}>Monthly Cash Flow</Text>
+              <Text style={validateStyle(getStyle('metricLabel'), 'metricLabel')}>Monthly Cash Flow</Text>
             </View>
-            <View style={getStyle('metricBox') || {}}>
-              <Text style={[getStyle('metricValue') || {}, { color: '#3498db' }]}>
+            <View style={validateStyle(getStyle('metricBox'), 'metricBox')}>
+              <Text style={[validateStyle(getStyle('metricValue'), 'metricValue'), { color: '#3498db' }]}>
                 ${(summary && typeof summary.taxSavings === 'number' ? summary.taxSavings : 0).toLocaleString()}
               </Text>
-              <Text style={getStyle('metricLabel') || {}}>Tax Savings Potential</Text>
+              <Text style={validateStyle(getStyle('metricLabel'), 'metricLabel')}>Tax Savings Potential</Text>
             </View>
           </View>
         </View>
