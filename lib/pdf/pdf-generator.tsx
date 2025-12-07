@@ -211,37 +211,87 @@ interface PDFReportProps {
 }
 
 export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clientData }) => {
+  console.log('[PDFReport] Component rendering with props:', {
+    hasSummary: !!summary,
+    summaryType: typeof summary,
+    summaryKeys: summary ? Object.keys(summary) : [],
+    chartImagesType: typeof chartImages,
+    chartImagesIsArray: Array.isArray(chartImages),
+    chartImagesLength: Array.isArray(chartImages) ? chartImages.length : 0,
+    clientDataType: typeof clientData
+  });
+
   // Validate props
   if (!summary || typeof summary !== 'object') {
+    console.error('[PDFReport] Invalid summary prop:', summary);
     throw new Error('Summary prop is required and must be an object');
   }
 
   if (!Array.isArray(chartImages)) {
-    console.warn('chartImages is not an array, using empty array');
+    console.warn('[PDFReport] chartImages is not an array, using empty array. Received:', typeof chartImages, chartImages);
     chartImages = [];
   }
 
   // Validate and clean chartImages array
   const validChartImages = chartImages.filter((chart, index) => {
     if (!chart || typeof chart !== 'object') {
-      console.warn(`Invalid chart at index ${index}:`, chart);
+      console.warn(`[PDFReport] Invalid chart at index ${index}:`, chart);
       return false;
     }
     if (!chart.type || typeof chart.type !== 'string') {
-      console.warn(`Chart at index ${index} missing or invalid type:`, chart);
+      console.warn(`[PDFReport] Chart at index ${index} missing or invalid type:`, chart);
       return false;
     }
     if (!chart.dataUrl || typeof chart.dataUrl !== 'string' || !chart.dataUrl.startsWith('data:')) {
-      console.warn(`Chart at index ${index} has invalid dataUrl:`, chart);
+      console.warn(`[PDFReport] Chart at index ${index} has invalid dataUrl:`, {
+        hasDataUrl: !!chart.dataUrl,
+        dataUrlType: typeof chart.dataUrl,
+        dataUrlStart: chart.dataUrl?.substring(0, 20)
+      });
       return false;
     }
     return true;
   });
 
+  console.log('[PDFReport] Validated chart images:', validChartImages.length, 'out of', chartImages.length);
+
   // Ensure clientData is always a valid object
   const safeClientData = clientData && typeof clientData === 'object' ? clientData : {};
+  
+  // Validate summary has all required properties with defaults
+  const validatedSummary = {
+    clientName: summary.clientName || 'Client',
+    totalAssets: typeof summary.totalAssets === 'number' ? summary.totalAssets : 0,
+    totalLiabilities: typeof summary.totalLiabilities === 'number' ? summary.totalLiabilities : 0,
+    netWorth: typeof summary.netWorth === 'number' ? summary.netWorth : 0,
+    monthlyIncome: typeof summary.monthlyIncome === 'number' ? summary.monthlyIncome : 0,
+    monthlyExpenses: typeof summary.monthlyExpenses === 'number' ? summary.monthlyExpenses : 0,
+    monthlyCashFlow: typeof summary.monthlyCashFlow === 'number' ? summary.monthlyCashFlow : 0,
+    projectedRetirementLumpSum: typeof summary.projectedRetirementLumpSum === 'number' ? summary.projectedRetirementLumpSum : 0,
+    retirementDeficitSurplus: typeof summary.retirementDeficitSurplus === 'number' ? summary.retirementDeficitSurplus : 0,
+    isRetirementDeficit: typeof summary.isRetirementDeficit === 'boolean' ? summary.isRetirementDeficit : false,
+    yearsToRetirement: typeof summary.yearsToRetirement === 'number' ? summary.yearsToRetirement : 0,
+    currentTax: typeof summary.currentTax === 'number' ? summary.currentTax : 0,
+    optimizedTax: typeof summary.optimizedTax === 'number' ? summary.optimizedTax : 0,
+    taxSavings: typeof summary.taxSavings === 'number' ? summary.taxSavings : 0,
+    investmentProperties: typeof summary.investmentProperties === 'number' ? summary.investmentProperties : 0,
+    totalPropertyValue: typeof summary.totalPropertyValue === 'number' ? summary.totalPropertyValue : 0,
+    totalPropertyDebt: typeof summary.totalPropertyDebt === 'number' ? summary.totalPropertyDebt : 0,
+    propertyEquity: typeof summary.propertyEquity === 'number' ? summary.propertyEquity : 0,
+    recommendations: Array.isArray(summary.recommendations) ? summary.recommendations.map(r => String(r || '')) : []
+  };
+  
+  console.log('[PDFReport] Validated summary:', {
+    clientName: validatedSummary.clientName,
+    netWorth: validatedSummary.netWorth,
+    recommendationsCount: validatedSummary.recommendations.length
+  });
 
   const reportDate = format(new Date(), 'MMMM dd, yyyy');
+  
+  // Use validated summary throughout the component
+  // (The original summary parameter is now replaced with validatedSummary)
+  const summary = validatedSummary;
   
   const getChartImage = (type: ChartImage['type']): string | null => {
     try {

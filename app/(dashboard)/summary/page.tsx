@@ -522,17 +522,90 @@ export default function SummaryPage() {
         };
       });
 
-      // Log what we're passing to PDFReport
-      console.log('Creating PDF document with:', {
-        summaryKeys: Object.keys(sanitizedSummary),
-        chartImagesCount: sanitizedChartImages.length,
-        chartImageTypes: sanitizedChartImages.map(c => c.type),
-        clientDataKeys: Object.keys(safeClientData)
+      // === PDF Generation Debug ===
+      console.log('=== PDF Generation Debug ===');
+      console.log('Summary Data Keys:', Object.keys(sanitizedSummary || {}));
+      console.log('Summary Data Sample:', {
+        clientName: sanitizedSummary?.clientName,
+        netWorth: sanitizedSummary?.netWorth,
+        monthlyIncome: sanitizedSummary?.monthlyIncome,
+        recommendationsCount: sanitizedSummary?.recommendations?.length
       });
+      console.log('Chart Images:', sanitizedChartImages.map((img, i) => ({
+        index: i,
+        type: img?.type,
+        hasDataUrl: !!img?.dataUrl,
+        dataUrlLength: img?.dataUrl?.length || 0,
+        dataUrlStart: img?.dataUrl?.substring(0, 30) || 'none',
+        keys: Object.keys(img || {})
+      })));
+      console.log('Client Data Keys:', Object.keys(safeClientData || {}));
+      
+      // Validate PDF data before generation
+      function validatePdfData(data: any) {
+        const issues: string[] = [];
+        
+        if (!data || typeof data !== 'object') {
+          issues.push('Data is not an object');
+        }
+        
+        if (!data.summary || typeof data.summary !== 'object') {
+          issues.push('Summary is missing or invalid');
+        }
+        
+        if (!Array.isArray(data.chartImages)) {
+          issues.push('ChartImages is not an array');
+        }
+        
+        // Validate summary properties
+        if (data.summary) {
+          const requiredSummaryProps = ['clientName', 'netWorth', 'monthlyIncome', 'monthlyExpenses', 'recommendations'];
+          requiredSummaryProps.forEach(prop => {
+            if (!(prop in data.summary)) {
+              issues.push(`Summary missing property: ${prop}`);
+            }
+          });
+        }
+        
+        // Validate chart images
+        if (Array.isArray(data.chartImages)) {
+          data.chartImages.forEach((img: any, index: number) => {
+            if (!img || typeof img !== 'object') {
+              issues.push(`Chart image at index ${index} is not an object`);
+            } else {
+              if (!img.type || typeof img.type !== 'string') {
+                issues.push(`Chart image at index ${index} missing or invalid type`);
+              }
+              if (!img.dataUrl || typeof img.dataUrl !== 'string') {
+                issues.push(`Chart image at index ${index} missing or invalid dataUrl`);
+              }
+            }
+          });
+        }
+        
+        if (issues.length > 0) {
+          throw new Error(`PDF validation failed: ${issues.join(', ')}`);
+        }
+        
+        return true;
+      }
+      
+      // Validate before creating document
+      try {
+        validatePdfData({
+          summary: sanitizedSummary,
+          chartImages: sanitizedChartImages
+        });
+        console.log('✓ PDF data validation passed');
+      } catch (validationError) {
+        console.error('✗ PDF data validation failed:', validationError);
+        throw validationError;
+      }
 
       // Create PDF document with error handling
       let pdfDoc;
       try {
+        console.log('Creating PDF document JSX...');
         pdfDoc = (
           <PDFReport 
             summary={sanitizedSummary} 
@@ -540,8 +613,17 @@ export default function SummaryPage() {
             clientData={safeClientData}
           />
         );
+        console.log('✓ PDF document JSX created successfully');
       } catch (docError) {
-        console.error('Error creating PDF document JSX:', docError);
+        console.error('✗ Error creating PDF document JSX:', docError);
+        console.error('Error details:', {
+          message: docError instanceof Error ? docError.message : 'Unknown error',
+          stack: docError instanceof Error ? docError.stack : undefined,
+          summaryDataType: typeof sanitizedSummary,
+          summaryDataKeys: sanitizedSummary ? Object.keys(sanitizedSummary) : 'null',
+          chartImagesLength: sanitizedChartImages?.length,
+          chartImagesValid: sanitizedChartImages?.every(img => img && typeof img === 'object')
+        });
         throw new Error(`Failed to create PDF document: ${docError instanceof Error ? docError.message : 'Unknown error'}`);
       }
 
@@ -549,11 +631,46 @@ export default function SummaryPage() {
       let pdfBlob;
       try {
         console.log('Generating PDF blob...');
+        console.log('PDF document type:', typeof pdfDoc);
+        console.log('PDF document keys:', pdfDoc ? Object.keys(pdfDoc as any) : 'null');
+        
+        // Try to serialize the document structure for debugging
+        try {
+          const docString = JSON.stringify(pdfDoc, (key, value) => {
+            if (key === 'props' && value && typeof value === 'object') {
+              return Object.keys(value);
+            }
+            if (typeof value === 'function') {
+              return '[Function]';
+            }
+            if (typeof value === 'object' && value !== null) {
+              if (value.constructor && value.constructor.name !== 'Object') {
+                return `[${value.constructor.name}]`;
+              }
+            }
+            return value;
+          }, 2);
+          console.log('PDF document structure (serialized):', docString.substring(0, 1000));
+        } catch (serializeError) {
+          console.warn('Could not serialize PDF document:', serializeError);
+        }
+        
         pdfBlob = await pdf(pdfDoc).toBlob();
-        console.log('PDF blob generated successfully, size:', pdfBlob.size);
+        console.log('✓ PDF blob generated successfully, size:', pdfBlob.size);
       } catch (blobError) {
-        console.error('Error generating PDF blob:', blobError);
-        console.error('PDF document structure:', pdfDoc);
+        console.error('✗ Error generating PDF blob:', blobError);
+        console.error('Error details:', {
+          message: blobError instanceof Error ? blobError.message : 'Unknown error',
+          stack: blobError instanceof Error ? blobError.stack : undefined,
+          name: blobError instanceof Error ? blobError.name : undefined,
+          summaryDataType: typeof sanitizedSummary,
+          summaryDataKeys: sanitizedSummary ? Object.keys(sanitizedSummary) : 'null',
+          chartImagesLength: sanitizedChartImages?.length,
+          chartImagesValid: sanitizedChartImages?.every(img => img && typeof img === 'object'),
+          pdfDocType: typeof pdfDoc,
+          pdfDocIsNull: pdfDoc === null,
+          pdfDocIsUndefined: pdfDoc === undefined
+        });
         throw new Error(`Failed to generate PDF blob: ${blobError instanceof Error ? blobError.message : 'Unknown error'}`);
       }
       
