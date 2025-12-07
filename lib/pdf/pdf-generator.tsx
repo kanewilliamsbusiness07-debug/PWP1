@@ -211,10 +211,24 @@ interface PDFReportProps {
 }
 
 export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clientData }) => {
+  // Validate props
+  if (!summary || typeof summary !== 'object') {
+    throw new Error('Summary prop is required and must be an object');
+  }
+
+  if (!Array.isArray(chartImages)) {
+    console.warn('chartImages is not an array, using empty array');
+    chartImages = [];
+  }
+
   const reportDate = format(new Date(), 'MMMM dd, yyyy');
   
   const getChartImage = (type: ChartImage['type']) => {
-    return chartImages.find(chart => chart.type === type)?.dataUrl || '';
+    if (!chartImages || !Array.isArray(chartImages)) {
+      return '';
+    }
+    const chart = chartImages.find(chart => chart && chart.type === type);
+    return chart?.dataUrl || '';
   };
 
   return (
@@ -240,21 +254,21 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
           <View style={styles.summaryBox}>
             <View style={styles.metricBox}>
               <Text style={[styles.metricValue, { color: '#27ae60' }]}>
-                ${summary.netWorth.toLocaleString()}
+                ${(summary.netWorth || 0).toLocaleString()}
               </Text>
               <Text style={styles.metricLabel}>Net Worth</Text>
             </View>
             <View style={styles.metricBox}>
               <Text style={[styles.metricValue, { 
-                color: summary.monthlyCashFlow >= 0 ? '#27ae60' : '#e74c3c' 
+                color: (summary.monthlyCashFlow || 0) >= 0 ? '#27ae60' : '#e74c3c' 
               }]}>
-                ${summary.monthlyCashFlow.toLocaleString()}
+                ${(summary.monthlyCashFlow || 0).toLocaleString()}
               </Text>
               <Text style={styles.metricLabel}>Monthly Cash Flow</Text>
             </View>
             <View style={styles.metricBox}>
               <Text style={[styles.metricValue, { color: '#3498db' }]}>
-                ${summary.taxSavings.toLocaleString()}
+                ${(summary.taxSavings || 0).toLocaleString()}
               </Text>
               <Text style={styles.metricLabel}>Tax Savings Potential</Text>
             </View>
@@ -271,8 +285,8 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             <View style={styles.explanation}>
               <Text style={styles.explanationTitle}>Understanding Your Income</Text>
               <Text style={styles.explanationText}>
-                Your total annual income is ${(summary.monthlyIncome * 12).toLocaleString()}, 
-                which breaks down to ${summary.monthlyIncome.toLocaleString()} per month. 
+                Your total annual income is ${((summary.monthlyIncome || 0) * 12).toLocaleString()}, 
+                which breaks down to ${(summary.monthlyIncome || 0).toLocaleString()} per month. 
                 {'\n\n'}
                 • Primary income source: Employment income
                 {'\n'}
@@ -294,8 +308,8 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             <View style={styles.explanation}>
               <Text style={styles.explanationTitle}>Understanding Your Expenses</Text>
               <Text style={styles.explanationText}>
-                Your monthly expenses total ${summary.monthlyExpenses.toLocaleString()}, 
-                representing {summary.monthlyIncome > 0 ? ((summary.monthlyExpenses / summary.monthlyIncome) * 100).toFixed(1) : 0}% 
+                Your monthly expenses total ${(summary.monthlyExpenses || 0).toLocaleString()}, 
+                representing {(summary.monthlyIncome || 0) > 0 ? (((summary.monthlyExpenses || 0) / (summary.monthlyIncome || 1)) * 100).toFixed(1) : 0}% 
                 of your monthly income.
                 {'\n\n'}
                 • Work-related expenses: Tax-deductible expenses that reduce your taxable income
@@ -318,13 +332,13 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             <View style={styles.explanation}>
               <Text style={styles.explanationTitle}>Understanding Your Financial Position</Text>
               <Text style={styles.explanationText}>
-                Your total assets of ${summary.totalAssets.toLocaleString()} are offset by 
-                liabilities of ${summary.totalLiabilities.toLocaleString()}, resulting in a net worth 
-                of ${summary.netWorth.toLocaleString()}.
+                Your total assets of ${(summary.totalAssets || 0).toLocaleString()} are offset by 
+                liabilities of ${(summary.totalLiabilities || 0).toLocaleString()}, resulting in a net worth 
+                of ${(summary.netWorth || 0).toLocaleString()}.
                 {'\n\n'}
                 • Asset allocation: Diversification across property, superannuation, and investments
                 {'\n'}
-                • Debt-to-asset ratio: {summary.totalAssets > 0 ? ((summary.totalLiabilities / summary.totalAssets) * 100).toFixed(1) : 0}% 
+                • Debt-to-asset ratio: {(summary.totalAssets || 0) > 0 ? (((summary.totalLiabilities || 0) / (summary.totalAssets || 1)) * 100).toFixed(1) : 0}% 
                 (lower is generally better)
                 {'\n'}
                 • Recommendation: Focus on building assets while strategically managing debt
@@ -340,17 +354,20 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             <View style={styles.chartContainer}>
               <Image src={getChartImage('cashflow')} style={styles.chart} />
             </View>
-            <View style={[summary.monthlyCashFlow >= 0 ? styles.highlightBox : styles.warningBox]}>
+            <View style={[(summary.monthlyCashFlow || 0) >= 0 ? styles.highlightBox : styles.warningBox]}>
               <Text style={styles.explanationTitle}>
-                {summary.monthlyCashFlow >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
+                {(summary.monthlyCashFlow || 0) >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
               </Text>
               <Text style={styles.explanationText}>
-                {summary.monthlyCashFlow >= 0 
-                  ? `You have a positive monthly cash flow of ${summary.monthlyCashFlow.toLocaleString()}, 
-                     representing a savings rate of ${summary.monthlyIncome > 0 ? ((summary.monthlyCashFlow / summary.monthlyIncome) * 100).toFixed(1) : 0}%. 
-                     This surplus can be used for investments, debt reduction, or building emergency funds.`
-                  : `Your monthly expenses exceed income by ${Math.abs(summary.monthlyCashFlow).toLocaleString()}. 
-                     Consider reviewing expenses, increasing income, or adjusting your financial strategy.`}
+                {(() => {
+                  const cashFlow = summary.monthlyCashFlow || 0;
+                  const monthlyIncome = summary.monthlyIncome || 0;
+                  const savingsRate = monthlyIncome > 0 ? ((cashFlow / monthlyIncome) * 100).toFixed(1) : '0';
+                  
+                  return cashFlow >= 0 
+                    ? `You have a positive monthly cash flow of ${cashFlow.toLocaleString()}, representing a savings rate of ${savingsRate}%. This surplus can be used for investments, debt reduction, or building emergency funds.`
+                    : `Your monthly expenses exceed income by ${Math.abs(cashFlow).toLocaleString()}. Consider reviewing expenses, increasing income, or adjusting your financial strategy.`;
+                })()}
               </Text>
             </View>
           </View>
@@ -363,17 +380,17 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             <View style={styles.chartContainer}>
               <Image src={getChartImage('retirement')} style={styles.chart} />
             </View>
-            <View style={[summary.isRetirementDeficit ? styles.warningBox : styles.highlightBox]}>
+            <View style={[(summary.isRetirementDeficit || false) ? styles.warningBox : styles.highlightBox]}>
               <Text style={styles.explanationTitle}>
-                {summary.isRetirementDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
+                {(summary.isRetirementDeficit || false) ? 'Retirement Planning Alert' : 'Retirement On Track'}
               </Text>
               <Text style={styles.explanationText}>
-                {summary.isRetirementDeficit
+                {(summary.isRetirementDeficit || false)
                   ? `Based on current projections, you may face a retirement shortfall. 
-                     With ${summary.yearsToRetirement} years until retirement, consider increasing 
+                     With ${summary.yearsToRetirement || 0} years until retirement, consider increasing 
                      superannuation contributions or adjusting your retirement timeline.`
                   : `Your retirement planning is on track. Your projected retirement lump sum of 
-                     ${summary.projectedRetirementLumpSum.toLocaleString()} provides a solid foundation 
+                     ${(summary.projectedRetirementLumpSum || 0).toLocaleString()} provides a solid foundation 
                      for your retirement years.`}
               </Text>
             </View>
@@ -383,7 +400,7 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
         {/* Recommendations */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recommendations & Action Items</Text>
-          {summary.recommendations.map((rec, index) => (
+          {(Array.isArray(summary.recommendations) ? summary.recommendations : []).map((rec, index) => (
             <View key={index} style={styles.recommendationBox}>
               <Text style={styles.explanationText}>
                 {index + 1}. {rec}
