@@ -278,22 +278,37 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
     throw new Error('Styles object is invalid');
   }
 
-  // Ensure page style exists
-  const pageStyle = styles.page && typeof styles.page === 'object' ? styles.page : {
+  // Ensure page style exists and is a valid object
+  const pageStyle = (styles.page && typeof styles.page === 'object' && !Array.isArray(styles.page)) ? styles.page : {
     padding: 40,
     fontFamily: 'Helvetica',
     fontSize: 11,
     lineHeight: 1.6,
     backgroundColor: '#ffffff',
   };
+  
+  // Ensure all style properties are valid objects (not arrays, not null, not undefined)
+  const safeGetStyle = (styleKey: keyof typeof styles): any => {
+    try {
+      const style = styles[styleKey];
+      if (style && typeof style === 'object' && !Array.isArray(style) && style !== null) {
+        // Deep clone to avoid mutation issues
+        return JSON.parse(JSON.stringify(style));
+      }
+      return {};
+    } catch (error) {
+      console.error(`Error getting style ${String(styleKey)}:`, error);
+      return {};
+    }
+  };
 
   // Validate all style objects before using them
-  const headerStyle = styles.header && typeof styles.header === 'object' ? styles.header : {};
-  const headerRowStyle = styles.headerRow && typeof styles.headerRow === 'object' ? styles.headerRow : {};
-  const headerTextStyle = styles.headerText && typeof styles.headerText === 'object' ? styles.headerText : {};
-  const companyNameStyle = styles.companyName && typeof styles.companyName === 'object' ? styles.companyName : {};
-  const clientInfoStyle = styles.clientInfo && typeof styles.clientInfo === 'object' ? styles.clientInfo : {};
-  const reportTitleStyle = styles.reportTitle && typeof styles.reportTitle === 'object' ? styles.reportTitle : {};
+  const headerStyle = safeGetStyle('header');
+  const headerRowStyle = safeGetStyle('headerRow');
+  const headerTextStyle = safeGetStyle('headerText');
+  const companyNameStyle = safeGetStyle('companyName');
+  const clientInfoStyle = safeGetStyle('clientInfo');
+  const reportTitleStyle = safeGetStyle('reportTitle');
 
   return (
     <Document>
@@ -304,8 +319,8 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             <View style={headerTextStyle}>
               <Text style={companyNameStyle}>Perpetual Wealth Partners</Text>
               <Text style={clientInfoStyle}>
-                Report Date: {reportDate}{'\n'}
-                Prepared for: {summary.clientName || 'Client'}
+                Report Date: {reportDate || 'N/A'}{'\n'}
+                Prepared for: {(summary && summary.clientName) ? String(summary.clientName) : 'Client'}
               </Text>
             </View>
           </View>
@@ -318,7 +333,7 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
           <View style={getStyle('summaryBox')}>
             <View style={getStyle('metricBox')}>
               <Text style={[getStyle('metricValue'), { color: '#27ae60' }]}>
-                ${(summary.netWorth || 0).toLocaleString()}
+                ${(summary && typeof summary.netWorth === 'number' ? summary.netWorth : 0).toLocaleString()}
               </Text>
               <Text style={getStyle('metricLabel')}>Net Worth</Text>
             </View>
@@ -326,16 +341,16 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
               <Text style={[
                 getStyle('metricValue'),
                 { 
-                  color: (summary.monthlyCashFlow || 0) >= 0 ? '#27ae60' : '#e74c3c' 
+                  color: (summary && typeof summary.monthlyCashFlow === 'number' && summary.monthlyCashFlow >= 0) ? '#27ae60' : '#e74c3c' 
                 }
               ]}>
-                ${(summary.monthlyCashFlow || 0).toLocaleString()}
+                ${(summary && typeof summary.monthlyCashFlow === 'number' ? summary.monthlyCashFlow : 0).toLocaleString()}
               </Text>
               <Text style={getStyle('metricLabel')}>Monthly Cash Flow</Text>
             </View>
             <View style={getStyle('metricBox')}>
               <Text style={[getStyle('metricValue'), { color: '#3498db' }]}>
-                ${(summary.taxSavings || 0).toLocaleString()}
+                ${(summary && typeof summary.taxSavings === 'number' ? summary.taxSavings : 0).toLocaleString()}
               </Text>
               <Text style={getStyle('metricLabel')}>Tax Savings Potential</Text>
             </View>

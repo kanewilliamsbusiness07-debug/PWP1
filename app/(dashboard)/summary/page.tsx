@@ -483,11 +483,42 @@ export default function SummaryPage() {
       // Ensure clientData is a plain object (not undefined or null)
       const safeClientData = activeClient && typeof activeClient === 'object' ? activeClient : {};
 
+      // Ensure all summary values are valid (no undefined, null, or non-serializable values)
+      const sanitizedSummary = {
+        clientName: String(validatedSummary.clientName || 'Client'),
+        totalAssets: Number(validatedSummary.totalAssets || 0),
+        totalLiabilities: Number(validatedSummary.totalLiabilities || 0),
+        netWorth: Number(validatedSummary.netWorth || 0),
+        monthlyIncome: Number(validatedSummary.monthlyIncome || 0),
+        monthlyExpenses: Number(validatedSummary.monthlyExpenses || 0),
+        monthlyCashFlow: Number(validatedSummary.monthlyCashFlow || 0),
+        projectedRetirementLumpSum: Number(validatedSummary.projectedRetirementLumpSum || 0),
+        retirementDeficitSurplus: Number(validatedSummary.retirementDeficitSurplus || 0),
+        isRetirementDeficit: Boolean(validatedSummary.isRetirementDeficit || false),
+        yearsToRetirement: Number(validatedSummary.yearsToRetirement || 0),
+        currentTax: Number(validatedSummary.currentTax || 0),
+        optimizedTax: Number(validatedSummary.optimizedTax || 0),
+        taxSavings: Number(validatedSummary.taxSavings || 0),
+        investmentProperties: Number(validatedSummary.investmentProperties || 0),
+        totalPropertyValue: Number(validatedSummary.totalPropertyValue || 0),
+        totalPropertyDebt: Number(validatedSummary.totalPropertyDebt || 0),
+        propertyEquity: Number(validatedSummary.propertyEquity || 0),
+        recommendations: Array.isArray(validatedSummary.recommendations) 
+          ? validatedSummary.recommendations.map(r => String(r || '')).filter(r => r.length > 0)
+          : [],
+      };
+
+      // Ensure chart images are properly formatted
+      const sanitizedChartImages = validatedChartImages.map(chart => ({
+        type: String(chart.type),
+        dataUrl: String(chart.dataUrl),
+      }));
+
       // Log what we're passing to PDFReport
       console.log('Creating PDF document with:', {
-        summaryKeys: Object.keys(validatedSummary),
-        chartImagesCount: validatedChartImages.length,
-        chartImageTypes: validatedChartImages.map(c => c.type),
+        summaryKeys: Object.keys(sanitizedSummary),
+        chartImagesCount: sanitizedChartImages.length,
+        chartImageTypes: sanitizedChartImages.map(c => c.type),
         clientDataKeys: Object.keys(safeClientData)
       });
 
@@ -496,8 +527,8 @@ export default function SummaryPage() {
       try {
         pdfDoc = (
           <PDFReport 
-            summary={validatedSummary} 
-            chartImages={validatedChartImages}
+            summary={sanitizedSummary} 
+            chartImages={sanitizedChartImages}
             clientData={safeClientData}
           />
         );
