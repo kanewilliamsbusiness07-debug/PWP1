@@ -424,7 +424,7 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
               <View style={styles.chartContainer}>
                 <Image src={retirementChartSrc} style={styles.chart} />
               </View>
-              <View style={isDeficit ? styles.warningBox : styles.highlightBox]}>
+              <View style={isDeficit ? styles.warningBox : styles.highlightBox}>
                 <Text style={styles.explanationTitle}>
                   {isDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
                 </Text>
