@@ -460,21 +460,21 @@ export default function SummaryPage() {
       };
 
       // Validate chartImages array and ensure all have valid dataUrls
-      const validatedChartImages = (Array.isArray(chartImages) ? chartImages : []).map((chart, index) => {
+      type ChartImageType = { dataUrl: string; type: 'income' | 'expenses' | 'assets' | 'liabilities' | 'cashflow' | 'retirement' };
+      const validatedChartImages: ChartImageType[] = (Array.isArray(chartImages) ? chartImages : []).filter((chart): chart is ChartImageType => {
         if (!chart || typeof chart !== 'object') {
-          console.warn(`Invalid chart at index ${index}:`, chart);
-          return null;
+          return false;
         }
         if (!chart.type || typeof chart.type !== 'string') {
-          console.warn(`Chart at index ${index} missing type:`, chart);
-          return null;
+          return false;
         }
         if (!chart.dataUrl || typeof chart.dataUrl !== 'string' || !chart.dataUrl.startsWith('data:')) {
-          console.warn(`Chart at index ${index} has invalid dataUrl:`, chart.dataUrl?.substring(0, 50));
-          return null;
+          return false;
         }
-        return chart;
-      }).filter((chart): chart is { dataUrl: string; type: 'income' | 'expenses' | 'assets' | 'liabilities' | 'cashflow' | 'retirement' } => chart !== null);
+        // Type guard: ensure the type is one of the valid chart types
+        const validTypes = ['income', 'expenses', 'assets', 'liabilities', 'cashflow', 'retirement'] as const;
+        return validTypes.includes(chart.type as typeof validTypes[number]);
+      });
       
       console.log('Validated chart images:', validatedChartImages.length, 'out of', chartImages.length);
 
