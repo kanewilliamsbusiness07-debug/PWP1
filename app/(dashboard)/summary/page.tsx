@@ -508,11 +508,21 @@ export default function SummaryPage() {
           : [],
       };
 
-      // Ensure chart images are properly formatted
-      const sanitizedChartImages = validatedChartImages.map(chart => ({
-        type: String(chart.type),
-        dataUrl: String(chart.dataUrl),
-      }));
+      // Ensure chart images are properly formatted with correct types
+      const validChartTypes = ['income', 'expenses', 'assets', 'liabilities', 'cashflow', 'retirement'] as const;
+      type ValidChartType = typeof validChartTypes[number];
+      
+      const sanitizedChartImages: Array<{ type: ValidChartType; dataUrl: string }> = validatedChartImages.map(chart => {
+        const chartTypeStr = String(chart.type);
+        // Ensure the type is valid
+        if (!validChartTypes.includes(chartTypeStr as ValidChartType)) {
+          throw new Error(`Invalid chart type: ${chartTypeStr}`);
+        }
+        return {
+          type: chartTypeStr as ValidChartType,
+          dataUrl: String(chart.dataUrl),
+        };
+      });
 
       // Log what we're passing to PDFReport
       console.log('Creating PDF document with:', {
