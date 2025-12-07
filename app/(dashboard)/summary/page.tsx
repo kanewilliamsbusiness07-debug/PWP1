@@ -416,7 +416,20 @@ export default function SummaryPage() {
       console.log('Charts generated, creating PDF document...');
       console.log('Summary data:', summaryData);
       console.log('Chart images count:', chartImages.length);
-      console.log('Chart images:', chartImages.map(c => ({ type: c.type, hasDataUrl: !!c.dataUrl, dataUrlLength: c.dataUrl?.length || 0 })));
+      console.log('Chart images:', chartImages.map(c => ({ type: c.type, hasDataUrl: !!c.dataUrl, dataUrlLength: c.dataUrl?.length || 0, dataUrlStart: c.dataUrl?.substring(0, 20) || 'none' })));
+      
+      // Validate each chart image
+      chartImages.forEach((chart, index) => {
+        if (!chart || typeof chart !== 'object') {
+          console.error(`Chart image ${index} is invalid:`, chart);
+        }
+        if (!chart.type) {
+          console.error(`Chart image ${index} missing type:`, chart);
+        }
+        if (!chart.dataUrl || typeof chart.dataUrl !== 'string') {
+          console.error(`Chart image ${index} has invalid dataUrl:`, chart);
+        }
+      });
 
       // Validate summaryData
       if (!summaryData || typeof summaryData !== 'object') {
@@ -446,23 +459,62 @@ export default function SummaryPage() {
         recommendations: Array.isArray(summaryData.recommendations) ? summaryData.recommendations : [],
       };
 
-      // Validate chartImages array
-      const validatedChartImages = Array.isArray(chartImages) ? chartImages : [];
+      // Validate chartImages array and ensure all have valid dataUrls
+      const validatedChartImages = (Array.isArray(chartImages) ? chartImages : []).map((chart, index) => {
+        if (!chart || typeof chart !== 'object') {
+          console.warn(`Invalid chart at index ${index}:`, chart);
+          return null;
+        }
+        if (!chart.type || typeof chart.type !== 'string') {
+          console.warn(`Chart at index ${index} missing type:`, chart);
+          return null;
+        }
+        if (!chart.dataUrl || typeof chart.dataUrl !== 'string' || !chart.dataUrl.startsWith('data:')) {
+          console.warn(`Chart at index ${index} has invalid dataUrl:`, chart.dataUrl?.substring(0, 50));
+          return null;
+        }
+        return chart;
+      }).filter((chart): chart is { dataUrl: string; type: 'income' | 'expenses' | 'assets' | 'liabilities' | 'cashflow' | 'retirement' } => chart !== null);
+      
+      console.log('Validated chart images:', validatedChartImages.length, 'out of', chartImages.length);
 
       // Ensure clientData is a plain object (not undefined or null)
       const safeClientData = activeClient && typeof activeClient === 'object' ? activeClient : {};
 
-      // Create PDF document
-      const pdfDoc = (
-        <PDFReport 
-          summary={validatedSummary} 
-          chartImages={validatedChartImages}
-          clientData={safeClientData}
-        />
-      );
+      // Log what we're passing to PDFReport
+      console.log('Creating PDF document with:', {
+        summaryKeys: Object.keys(validatedSummary),
+        chartImagesCount: validatedChartImages.length,
+        chartImageTypes: validatedChartImages.map(c => c.type),
+        clientDataKeys: Object.keys(safeClientData)
+      });
 
-      // Generate PDF blob
-      const pdfBlob = await pdf(pdfDoc).toBlob();
+      // Create PDF document with error handling
+      let pdfDoc;
+      try {
+        pdfDoc = (
+          <PDFReport 
+            summary={validatedSummary} 
+            chartImages={validatedChartImages}
+            clientData={safeClientData}
+          />
+        );
+      } catch (docError) {
+        console.error('Error creating PDF document JSX:', docError);
+        throw new Error(`Failed to create PDF document: ${docError instanceof Error ? docError.message : 'Unknown error'}`);
+      }
+
+      // Generate PDF blob with error handling
+      let pdfBlob;
+      try {
+        console.log('Generating PDF blob...');
+        pdfBlob = await pdf(pdfDoc).toBlob();
+        console.log('PDF blob generated successfully, size:', pdfBlob.size);
+      } catch (blobError) {
+        console.error('Error generating PDF blob:', blobError);
+        console.error('PDF document structure:', pdfDoc);
+        throw new Error(`Failed to generate PDF blob: ${blobError instanceof Error ? blobError.message : 'Unknown error'}`);
+      }
       
       // Generate filename
       const fileName = `Financial_Report_${summaryData.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
