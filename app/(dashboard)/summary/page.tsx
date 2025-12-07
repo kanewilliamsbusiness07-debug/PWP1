@@ -509,9 +509,7 @@ export default function SummaryPage() {
       };
 
       // Ensure chart images are properly formatted with correct types
-      const validChartTypes = ['income', 'expenses', 'assets', 'liabilities', 'cashflow', 'retirement'] as const;
-      type ValidChartType = typeof validChartTypes[number];
-      
+      // Reuse validChartTypes and ValidChartType from above
       const sanitizedChartImages: Array<{ type: ValidChartType; dataUrl: string }> = validatedChartImages.map(chart => {
         const chartTypeStr = String(chart.type);
         // Ensure the type is valid
