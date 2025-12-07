@@ -154,6 +154,9 @@ const styles = StyleSheet.create({
     bottom: 30,
     left: 40,
     right: 40,
+    paddingTop: 10,
+  },
+  footerText: {
     textAlign: 'center',
     fontSize: 9,
     color: '#999',
@@ -471,7 +474,7 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             </View>
             <View style={validateStyle(getStyle('metricBox'), 'metricBox')}>
               <Text style={[
-                validateStyle(getStyle('metricValue'), 'metricValue'),
+                validateStyle(getStyle('metricValue'), 'metricValue') || {},
                 { 
                   color: validatedSummary.monthlyCashFlow >= 0 ? '#27ae60' : '#e74c3c' 
                 }
@@ -481,7 +484,10 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
               <Text style={validateStyle(getStyle('metricLabel'), 'metricLabel')}>Monthly Cash Flow</Text>
             </View>
             <View style={validateStyle(getStyle('metricBox'), 'metricBox')}>
-              <Text style={[validateStyle(getStyle('metricValue'), 'metricValue'), { color: '#3498db' }]}>
+              <Text style={[
+                validateStyle(getStyle('metricValue'), 'metricValue') || {},
+                { color: '#3498db' }
+              ]}>
                 ${validatedSummary.taxSavings.toLocaleString()}
               </Text>
               <Text style={validateStyle(getStyle('metricLabel'), 'metricLabel')}>Tax Savings Potential</Text>
@@ -499,12 +505,18 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             const explanationTitleStyle = getStyle('explanationTitle');
             const explanationTextStyle = getStyle('explanationText');
             
+            const validatedSectionStyle = validateStyle(sectionStyle, 'section');
+            const validatedSectionTitleStyle = validateStyle(sectionTitleStyle, 'sectionTitle');
+            const validatedExplanationStyle = validateStyle(explanationStyle, 'explanation');
+            const validatedExplanationTitleStyle = validateStyle(explanationTitleStyle, 'explanationTitle');
+            const validatedExplanationTextStyle = validateStyle(explanationTextStyle, 'explanationText');
+            
             return (
-              <View style={sectionStyle}>
-                <Text style={sectionTitleStyle}>Income Analysis</Text>
-                <View style={explanationStyle}>
-                  <Text style={explanationTitleStyle}>Understanding Your Income</Text>
-                  <Text style={explanationTextStyle}>
+              <View style={validatedSectionStyle}>
+                <Text style={validatedSectionTitleStyle}>Income Analysis</Text>
+                <View style={validatedExplanationStyle}>
+                  <Text style={validatedExplanationTitleStyle}>Understanding Your Income</Text>
+                  <Text style={validatedExplanationTextStyle}>
                     Your total annual income is ${(validatedSummary.monthlyIncome * 12).toLocaleString()}, 
                     which breaks down to ${validatedSummary.monthlyIncome.toLocaleString()} per month. 
                     {'\n\n'}
@@ -532,12 +544,18 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             const explanationTitleStyle = getStyle('explanationTitle');
             const explanationTextStyle = getStyle('explanationText');
             
+            const validatedSectionStyle = validateStyle(sectionStyle, 'section');
+            const validatedSectionTitleStyle = validateStyle(sectionTitleStyle, 'sectionTitle');
+            const validatedExplanationStyle = validateStyle(explanationStyle, 'explanation');
+            const validatedExplanationTitleStyle = validateStyle(explanationTitleStyle, 'explanationTitle');
+            const validatedExplanationTextStyle = validateStyle(explanationTextStyle, 'explanationText');
+            
             return (
-              <View style={sectionStyle}>
-                <Text style={sectionTitleStyle}>Expense Breakdown</Text>
-                <View style={explanationStyle}>
-                  <Text style={explanationTitleStyle}>Understanding Your Expenses</Text>
-                  <Text style={explanationTextStyle}>
+              <View style={validatedSectionStyle}>
+                <Text style={validatedSectionTitleStyle}>Expense Breakdown</Text>
+                <View style={validatedExplanationStyle}>
+                  <Text style={validatedExplanationTitleStyle}>Understanding Your Expenses</Text>
+                  <Text style={validatedExplanationTextStyle}>
                     Your monthly expenses total ${validatedSummary.monthlyExpenses.toLocaleString()}, 
                     representing {validatedSummary.monthlyIncome > 0 ? ((validatedSummary.monthlyExpenses / validatedSummary.monthlyIncome) * 100).toFixed(1) : 0}% 
                     of your monthly income.
@@ -569,13 +587,21 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             const explanationTitleStyle = getStyle('explanationTitle');
             const explanationTextStyle = getStyle('explanationText');
             
+            const validatedSectionStyle = validateStyle(sectionStyle, 'section');
+            const validatedSectionTitleStyle = validateStyle(sectionTitleStyle, 'sectionTitle');
+            const validatedExplanationStyle = validateStyle(explanationStyle, 'explanation');
+            const validatedExplanationTitleStyle = validateStyle(explanationTitleStyle, 'explanationTitle');
+            const validatedExplanationTextStyle = validateStyle(explanationTextStyle, 'explanationText');
+            const validatedChartStyle = validateStyle(chartStyle, 'chart');
+            const validatedChartContainerStyle = validateStyle(chartContainerStyle, 'chartContainer');
+            
             if (!assetChartSrc || typeof assetChartSrc !== 'string' || assetChartSrc.length === 0) {
               return (
-                <View style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>Assets & Liabilities Overview</Text>
-                  <View style={explanationStyle}>
-                    <Text style={explanationTitleStyle}>Understanding Your Financial Position</Text>
-                    <Text style={explanationTextStyle}>
+                <View style={validatedSectionStyle}>
+                  <Text style={validatedSectionTitleStyle}>Assets & Liabilities Overview</Text>
+                  <View style={validatedExplanationStyle}>
+                    <Text style={validatedExplanationTitleStyle}>Understanding Your Financial Position</Text>
+                    <Text style={validatedExplanationTextStyle}>
                       Your total assets of ${validatedSummary.totalAssets.toLocaleString()} are offset by 
                       liabilities of ${validatedSummary.totalLiabilities.toLocaleString()}, resulting in a net worth 
                       of ${validatedSummary.netWorth.toLocaleString()}.
@@ -593,14 +619,14 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             }
             
             return (
-              <View style={sectionStyle}>
-                <Text style={sectionTitleStyle}>Assets & Liabilities Overview</Text>
-                <View style={chartContainerStyle}>
-                  <Image src={assetChartSrc} style={chartStyle} />
+              <View style={validatedSectionStyle}>
+                <Text style={validatedSectionTitleStyle}>Assets & Liabilities Overview</Text>
+                <View style={validatedChartContainerStyle}>
+                  <Image src={assetChartSrc} style={validatedChartStyle} />
                 </View>
-                <View style={explanationStyle}>
-                  <Text style={explanationTitleStyle}>Understanding Your Financial Position</Text>
-                  <Text style={explanationTextStyle}>
+                <View style={validatedExplanationStyle}>
+                  <Text style={validatedExplanationTitleStyle}>Understanding Your Financial Position</Text>
+                  <Text style={validatedExplanationTextStyle}>
                   Your total assets of ${(summary.totalAssets || 0).toLocaleString()} are offset by 
                   liabilities of ${(summary.totalLiabilities || 0).toLocaleString()}, resulting in a net worth 
                   of ${(summary.netWorth || 0).toLocaleString()}.
@@ -639,14 +665,20 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
             const explanationTextStyle = getStyle('explanationText');
             const boxStyle = cashFlow >= 0 ? highlightBoxStyle : warningBoxStyle;
             
+            const validatedSectionStyle = validateStyle(sectionStyle, 'section');
+            const validatedSectionTitleStyle = validateStyle(sectionTitleStyle, 'sectionTitle');
+            const validatedBoxStyle = validateStyle(boxStyle, 'box');
+            const validatedExplanationTitleStyle = validateStyle(explanationTitleStyle, 'explanationTitle');
+            const validatedExplanationTextStyle = validateStyle(explanationTextStyle, 'explanationText');
+            
             return (
-              <View style={sectionStyle}>
-                <Text style={sectionTitleStyle}>Cash Flow Analysis</Text>
-                <View style={boxStyle}>
-                  <Text style={explanationTitleStyle}>
+              <View style={validatedSectionStyle}>
+                <Text style={validatedSectionTitleStyle}>Cash Flow Analysis</Text>
+                <View style={validatedBoxStyle}>
+                  <Text style={validatedExplanationTitleStyle}>
                     {cashFlow >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
                   </Text>
-                  <Text style={explanationTextStyle}>
+                  <Text style={validatedExplanationTextStyle}>
                     {cashFlowText}
                   </Text>
                 </View>
@@ -694,13 +726,13 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
         })()}
 
         {/* Recommendations */}
-        <View style={getStyle('section')}>
-          <Text style={getStyle('sectionTitle')}>Recommendations & Action Items</Text>
+        <View style={validateStyle(getStyle('section'), 'section')}>
+          <Text style={validateStyle(getStyle('sectionTitle'), 'sectionTitle')}>Recommendations & Action Items</Text>
           {validatedSummary.recommendations.map((rec, index) => {
             if (!rec || typeof rec !== 'string') return null;
             return (
-              <View key={index} style={getStyle('recommendationBox')}>
-                <Text style={getStyle('explanationText')}>
+              <View key={index} style={validateStyle(getStyle('recommendationBox'), 'recommendationBox')}>
+                <Text style={validateStyle(getStyle('explanationText'), 'explanationText')}>
                   {index + 1}. {String(rec)}
                 </Text>
               </View>
@@ -709,13 +741,11 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
         </View>
 
         {/* Footer */}
-        <Text 
-          style={getStyle('footer')} 
-          render={({ pageNumber, totalPages }) => 
-            `Page ${pageNumber} of ${totalPages} | Generated on ${reportDate} | Perpetual Wealth Partners`
-          } 
-          fixed 
-        />
+        <View style={validateStyle(getStyle('footer'), 'footer')}>
+          <Text style={validateStyle(getStyle('footerText'), 'footerText')}>
+            Generated on {reportDate} | Perpetual Wealth Partners
+          </Text>
+        </View>
       </Page>
     </Document>
   );
