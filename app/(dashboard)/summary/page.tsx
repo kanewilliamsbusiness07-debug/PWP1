@@ -480,7 +480,25 @@ export default function SummaryPage() {
       
       console.log('Validated chart images:', validatedChartImages.length, 'out of', chartImages.length);
 
-      // Ensure clientData is a plain object (not undefined or null)
+      // Remove circular references from data
+      const removeCircularReferences = (obj: any): any => {
+        const seen = new WeakSet();
+        
+        return JSON.parse(JSON.stringify(obj, (key, value) => {
+          if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) {
+              return '[Circular]';
+            }
+            seen.add(value);
+          }
+          // Remove undefined values
+          if (value === undefined) {
+            return null;
+          }
+          return value;
+        }));
+      };
+
       // Deep clean to remove any undefined values that could cause issues
       const cleanClientData = (obj: any): any => {
         if (obj === null || obj === undefined) {
@@ -505,46 +523,108 @@ export default function SummaryPage() {
         return cleaned;
       };
       
-      const safeClientData = activeClient && typeof activeClient === 'object' ? cleanClientData(activeClient) : {};
-
-      // Ensure all summary values are valid (no undefined, null, or non-serializable values)
-      const sanitizedSummary = {
-        clientName: String(validatedSummary.clientName || 'Client'),
-        totalAssets: Number(validatedSummary.totalAssets || 0),
-        totalLiabilities: Number(validatedSummary.totalLiabilities || 0),
-        netWorth: Number(validatedSummary.netWorth || 0),
-        monthlyIncome: Number(validatedSummary.monthlyIncome || 0),
-        monthlyExpenses: Number(validatedSummary.monthlyExpenses || 0),
-        monthlyCashFlow: Number(validatedSummary.monthlyCashFlow || 0),
-        projectedRetirementLumpSum: Number(validatedSummary.projectedRetirementLumpSum || 0),
-        retirementDeficitSurplus: Number(validatedSummary.retirementDeficitSurplus || 0),
-        isRetirementDeficit: Boolean(validatedSummary.isRetirementDeficit || false),
-        yearsToRetirement: Number(validatedSummary.yearsToRetirement || 0),
-        currentTax: Number(validatedSummary.currentTax || 0),
-        optimizedTax: Number(validatedSummary.optimizedTax || 0),
-        taxSavings: Number(validatedSummary.taxSavings || 0),
-        investmentProperties: Number(validatedSummary.investmentProperties || 0),
-        totalPropertyValue: Number(validatedSummary.totalPropertyValue || 0),
-        totalPropertyDebt: Number(validatedSummary.totalPropertyDebt || 0),
-        propertyEquity: Number(validatedSummary.propertyEquity || 0),
-        recommendations: Array.isArray(validatedSummary.recommendations) 
-          ? validatedSummary.recommendations.map(r => String(r || '')).filter(r => r.length > 0)
-          : [],
-      };
-
-      // Ensure chart images are properly formatted with correct types
-      // Reuse validChartTypes and ValidChartType from above
-      const sanitizedChartImages: Array<{ type: ValidChartType; dataUrl: string }> = validatedChartImages.map(chart => {
-        const chartTypeStr = String(chart.type);
-        // Ensure the type is valid
-        if (!validChartTypes.includes(chartTypeStr as ValidChartType)) {
-          throw new Error(`Invalid chart type: ${chartTypeStr}`);
+      // CRITICAL: Deep clone and sanitize all data using JSON.parse/stringify
+      // This ensures no circular references, functions, or non-serializable data
+      let safeClientData: any = {};
+      try {
+        const cleanedClient = activeClient && typeof activeClient === 'object' ? cleanClientData(activeClient) : {};
+        safeClientData = JSON.parse(JSON.stringify(cleanedClient, (key, value) => {
+          // Remove undefined values
+          if (value === undefined) {
+            return null;
+          }
+          // Remove functions
+          if (typeof value === 'function') {
+            return null;
+          }
+          return value;
+        }));
+        // Convert null back to empty object for top level
+        if (safeClientData === null) {
+          safeClientData = {};
         }
-        return {
-          type: chartTypeStr as ValidChartType,
-          dataUrl: String(chart.dataUrl),
+      } catch (error) {
+        console.warn('Error cleaning client data, using empty object:', error);
+        safeClientData = {};
+      }
+
+      // CRITICAL: Deep clone and sanitize summary data using JSON.parse/stringify
+      // This ensures no circular references, functions, or non-serializable data
+      let sanitizedSummary: any;
+      try {
+        const summaryToClone = {
+          clientName: String(validatedSummary.clientName || 'Client'),
+          totalAssets: Number(validatedSummary.totalAssets || 0),
+          totalLiabilities: Number(validatedSummary.totalLiabilities || 0),
+          netWorth: Number(validatedSummary.netWorth || 0),
+          monthlyIncome: Number(validatedSummary.monthlyIncome || 0),
+          monthlyExpenses: Number(validatedSummary.monthlyExpenses || 0),
+          monthlyCashFlow: Number(validatedSummary.monthlyCashFlow || 0),
+          projectedRetirementLumpSum: Number(validatedSummary.projectedRetirementLumpSum || 0),
+          retirementDeficitSurplus: Number(validatedSummary.retirementDeficitSurplus || 0),
+          isRetirementDeficit: Boolean(validatedSummary.isRetirementDeficit || false),
+          yearsToRetirement: Number(validatedSummary.yearsToRetirement || 0),
+          currentTax: Number(validatedSummary.currentTax || 0),
+          optimizedTax: Number(validatedSummary.optimizedTax || 0),
+          taxSavings: Number(validatedSummary.taxSavings || 0),
+          investmentProperties: Number(validatedSummary.investmentProperties || 0),
+          totalPropertyValue: Number(validatedSummary.totalPropertyValue || 0),
+          totalPropertyDebt: Number(validatedSummary.totalPropertyDebt || 0),
+          propertyEquity: Number(validatedSummary.propertyEquity || 0),
+          recommendations: Array.isArray(validatedSummary.recommendations) 
+            ? validatedSummary.recommendations.map(r => String(r || '')).filter(r => r.length > 0)
+            : [],
         };
-      });
+        sanitizedSummary = JSON.parse(JSON.stringify(summaryToClone, (key, value) => {
+          // Remove undefined values
+          if (value === undefined) {
+            return null;
+          }
+          // Remove functions
+          if (typeof value === 'function') {
+            return null;
+          }
+          return value;
+        }));
+      } catch (error) {
+        console.error('Error sanitizing summary data:', error);
+        throw new Error('Failed to sanitize summary data for PDF generation');
+      }
+
+      // CRITICAL: Deep clone and sanitize chart images using JSON.parse/stringify
+      // This ensures no circular references, functions, or non-serializable data
+      let sanitizedChartImages: Array<{ type: ValidChartType; dataUrl: string }>;
+      try {
+        const chartsToClone = validatedChartImages.map(chart => {
+          const chartTypeStr = String(chart.type);
+          // Ensure the type is valid
+          if (!validChartTypes.includes(chartTypeStr as ValidChartType)) {
+            throw new Error(`Invalid chart type: ${chartTypeStr}`);
+          }
+          return {
+            type: chartTypeStr as ValidChartType,
+            dataUrl: String(chart.dataUrl),
+          };
+        });
+        sanitizedChartImages = JSON.parse(JSON.stringify(chartsToClone, (key, value) => {
+          // Remove undefined values
+          if (value === undefined) {
+            return null;
+          }
+          // Remove functions
+          if (typeof value === 'function') {
+            return null;
+          }
+          // Ensure dataUrl is a valid string
+          if (key === 'dataUrl' && (typeof value !== 'string' || !value.startsWith('data:image/'))) {
+            return null;
+          }
+          return value;
+        })).filter((chart: any) => chart && chart.type && chart.dataUrl);
+      } catch (error) {
+        console.error('Error sanitizing chart images:', error);
+        sanitizedChartImages = [];
+      }
 
       // === PDF Generation Debug ===
       console.log('=== PDF Generation Debug ===');
@@ -646,7 +726,8 @@ export default function SummaryPage() {
           firstImage: sanitizedChartImages?.[0] ? {
             type: sanitizedChartImages[0].type,
             hasDataUrl: !!sanitizedChartImages[0].dataUrl,
-            dataUrlType: typeof sanitizedChartImages[0].dataUrl
+            dataUrlType: typeof sanitizedChartImages[0].dataUrl,
+            dataUrlStart: sanitizedChartImages[0].dataUrl?.substring(0, 30)
           } : null
         });
         console.log('Safe Client Data:', {
@@ -655,6 +736,18 @@ export default function SummaryPage() {
           keys: Object.keys(safeClientData || {}),
           keysCount: Object.keys(safeClientData || {}).length
         });
+        
+        // Final validation before creating PDF document
+        if (!sanitizedSummary || typeof sanitizedSummary !== 'object') {
+          throw new Error('Sanitized summary is invalid');
+        }
+        if (!Array.isArray(sanitizedChartImages)) {
+          throw new Error('Sanitized chart images is not an array');
+        }
+        if (!safeClientData || typeof safeClientData !== 'object') {
+          console.warn('Client data is invalid, using empty object');
+          safeClientData = {};
+        }
         
         pdfDoc = (
           <PDFReport 
