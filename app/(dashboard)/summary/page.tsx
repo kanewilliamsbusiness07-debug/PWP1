@@ -12,7 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FileText, Download, Mail, Printer, Share2, TrendingUp, TrendingDown, DollarSign, Calculator, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
-import { PDFReport } from '@/lib/pdf/pdf-generator';
+import FinancialPDFDocument from '@/components/financial-pdf-document';
 import {
   generateIncomeChart,
   generateExpenseChart,
@@ -255,10 +255,43 @@ export default function SummaryPage() {
 
   const summary = calculateSummary();
 
+  // Helper function to validate chart images
+  const validateChartImage = (dataUrl: string | undefined): string | undefined => {
+    if (!dataUrl) return undefined;
+    
+    // Must be a string
+    if (typeof dataUrl !== 'string') {
+      console.warn('Chart image is not a string');
+      return undefined;
+    }
+    
+    // Must start with data:image
+    if (!dataUrl.startsWith('data:image/')) {
+      console.warn('Chart image does not start with data:image/');
+      return undefined;
+    }
+    
+    // Must have reasonable length
+    if (dataUrl.length < 100) {
+      console.warn('Chart image too short (possibly empty)');
+      return undefined;
+    }
+    
+    // Must not have suspicious characters
+    if (dataUrl.includes('undefined') || dataUrl.includes('null')) {
+      console.warn('Chart image contains undefined/null');
+      return undefined;
+    }
+    
+    return dataUrl;
+  };
+
   const generatePDF = async (attachToEmail = false): Promise<string | null> => {
     setIsGeneratingPDF(true);
     
     try {
+      console.log('🚀 Starting PDF generation...');
+      
       // Verify @react-pdf/renderer is available
       if (typeof pdf === 'undefined') {
         throw new Error('PDF generation library (@react-pdf/renderer) is not installed. Please install it with: npm install @react-pdf/renderer');
@@ -367,6 +400,45 @@ export default function SummaryPage() {
       const yearsToRetirement = Math.max(0, retirementAge - currentAge);
       const projectedSuper = superFundValue * Math.pow(1.07, yearsToRetirement);
 
+      // Step 1: Generate chart images
+      console.log('📊 Generating charts for PDF...');
+      
+      const annualIncome = financialStore.grossIncome || financialStore.employmentIncome || activeClient?.annualIncome || activeClient?.grossSalary || 0;
+      const rentalIncome = financialStore.rentalIncome || activeClient?.rentalIncome || 0;
+      const investmentIncome = financialStore.investmentIncome || activeClient?.dividends || 0;
+      const otherIncome = financialStore.otherIncome || activeClient?.otherIncome || 0;
+
+      const workExpenses = financialStore.workRelatedExpenses || activeClient?.workRelatedExpenses || 0;
+      const investmentExpenses = financialStore.investmentExpenses || activeClient?.investmentExpenses || 0;
+      const rentalExpenses = financialStore.rentalExpenses || activeClient?.rentalExpenses || 0;
+      const vehicleExpenses = activeClient?.vehicleExpenses || 0;
+      const homeOfficeExpenses = activeClient?.homeOfficeExpenses || 0;
+
+      const homeValue = activeClient?.homeValue || 0;
+      const investment1Value = activeClient?.investment1Value || 0;
+      const investment2Value = activeClient?.investment2Value || 0;
+      const investment3Value = activeClient?.investment3Value || 0;
+      const investment4Value = activeClient?.investment4Value || 0;
+      const vehicleValue = activeClient?.vehicleValue || 0;
+      const savingsValue = activeClient?.savingsValue || activeClient?.currentSavings || financialStore.cashSavings || 0;
+      const homeContentsValue = activeClient?.homeContentsValue || 0;
+      const superFundValue = activeClient?.superFundValue || activeClient?.currentSuper || financialStore.superBalance || 0;
+      const sharesValue = activeClient?.sharesTotalValue || activeClient?.currentShares || financialStore.investments || 0;
+
+      const homeBalance = activeClient?.homeBalance || 0;
+      const investment1Balance = activeClient?.investment1Balance || 0;
+      const investment2Balance = activeClient?.investment2Balance || 0;
+      const investment3Balance = activeClient?.investment3Balance || 0;
+      const investment4Balance = activeClient?.investment4Balance || 0;
+      const creditCardBalance = activeClient?.creditCardBalance || 0;
+      const personalLoanBalance = activeClient?.personalLoanBalance || 0;
+      const hecsBalance = activeClient?.hecsBalance || activeClient?.helpDebt || 0;
+
+      const currentAge = activeClient?.currentAge || 35;
+      const retirementAge = activeClient?.retirementAge || 65;
+      const yearsToRetirement = Math.max(0, retirementAge - currentAge);
+      const projectedSuper = superFundValue * Math.pow(1.07, yearsToRetirement);
+
       // Generate all chart images
       const [incomeChart, expenseChart, assetChart, cashFlowChart, retirementChart] = await Promise.all([
         generateIncomeChart({
@@ -404,418 +476,43 @@ export default function SummaryPage() {
         generateRetirementChart(currentAge, retirementAge, superFundValue, projectedSuper),
       ]);
 
-      // Prepare chart images array
-      const chartImages = [
-        { dataUrl: incomeChart, type: 'income' as const },
-        { dataUrl: expenseChart, type: 'expenses' as const },
-        { dataUrl: assetChart, type: 'assets' as const },
-        { dataUrl: cashFlowChart, type: 'cashflow' as const },
-        { dataUrl: retirementChart, type: 'retirement' as const },
-      ].filter(chart => chart.dataUrl); // Filter out empty charts
-
-      console.log('Charts generated, creating PDF document...');
-      console.log('Summary data:', summaryData);
-      console.log('Chart images count:', chartImages.length);
-      console.log('Chart images:', chartImages.map(c => ({ type: c.type, hasDataUrl: !!c.dataUrl, dataUrlLength: c.dataUrl?.length || 0, dataUrlStart: c.dataUrl?.substring(0, 20) || 'none' })));
-      
-      // Validate each chart image
-      chartImages.forEach((chart, index) => {
-        if (!chart || typeof chart !== 'object') {
-          console.error(`Chart image ${index} is invalid:`, chart);
-        }
-        if (!chart.type) {
-          console.error(`Chart image ${index} missing type:`, chart);
-        }
-        if (!chart.dataUrl || typeof chart.dataUrl !== 'string') {
-          console.error(`Chart image ${index} has invalid dataUrl:`, chart);
-        }
+      console.log('✓ Charts generated:', {
+        income: !!incomeChart,
+        expense: !!expenseChart,
+        asset: !!assetChart,
+        cashFlow: !!cashFlowChart,
+        retirement: !!retirementChart,
       });
 
-      // Validate summaryData
-      if (!summaryData || typeof summaryData !== 'object') {
-        throw new Error('Summary data is invalid or undefined');
-      }
-
-      // Ensure all required summary properties exist
-      const validatedSummary = {
-        clientName: summaryData.clientName || 'Client',
-        totalAssets: summaryData.totalAssets || 0,
-        totalLiabilities: summaryData.totalLiabilities || 0,
-        netWorth: summaryData.netWorth || 0,
-        monthlyIncome: summaryData.monthlyIncome || 0,
-        monthlyExpenses: summaryData.monthlyExpenses || 0,
-        monthlyCashFlow: summaryData.monthlyCashFlow || 0,
-        projectedRetirementLumpSum: summaryData.projectedRetirementLumpSum || 0,
-        retirementDeficitSurplus: summaryData.retirementDeficitSurplus || 0,
-        isRetirementDeficit: summaryData.isRetirementDeficit || false,
-        yearsToRetirement: summaryData.yearsToRetirement || 0,
-        currentTax: summaryData.currentTax || 0,
-        optimizedTax: summaryData.optimizedTax || 0,
-        taxSavings: summaryData.taxSavings || 0,
-        investmentProperties: summaryData.investmentProperties || 0,
-        totalPropertyValue: summaryData.totalPropertyValue || 0,
-        totalPropertyDebt: summaryData.totalPropertyDebt || 0,
-        propertyEquity: summaryData.propertyEquity || 0,
-        recommendations: Array.isArray(summaryData.recommendations) ? summaryData.recommendations : [],
+      // Step 2: Extract ONLY the data we need and validate
+      const pdfData = {
+        clientName: `${activeClient?.firstName || 'Unknown'} ${activeClient?.lastName || 'Client'}`.trim() || 'Client',
+        netWorth: Number(summaryData?.netWorth || 0),
+        totalAssets: Number(summaryData?.totalAssets || 0),
+        totalLiabilities: Number(summaryData?.totalLiabilities || 0),
+        monthlyIncome: Number(summaryData?.monthlyIncome || 0),
+        monthlyExpenses: Number(summaryData?.monthlyExpenses || 0),
+        chartNetWorth: validateChartImage(assetChart),
+        chartCashFlow: validateChartImage(cashFlowChart),
+        chartAssets: validateChartImage(assetChart),
       };
 
-      // Validate chartImages array and ensure all have valid dataUrls
-      const validChartTypes = ['income', 'expenses', 'assets', 'liabilities', 'cashflow', 'retirement'] as const;
-      type ValidChartType = typeof validChartTypes[number];
-      
-      const validatedChartImages = (Array.isArray(chartImages) ? chartImages : []).filter((chart) => {
-        if (!chart || typeof chart !== 'object') {
-          return false;
-        }
-        if (!('type' in chart) || typeof chart.type !== 'string') {
-          return false;
-        }
-        if (!('dataUrl' in chart) || typeof chart.dataUrl !== 'string' || !chart.dataUrl.startsWith('data:')) {
-          return false;
-        }
-        // Type guard: ensure the type is one of the valid chart types
-        const chartType = chart.type as string;
-        return validChartTypes.some(validType => validType === chartType);
-      }) as Array<{ dataUrl: string; type: ValidChartType }>;
-      
-      console.log('Validated chart images:', validatedChartImages.length, 'out of', chartImages.length);
-
-      // Remove circular references from data
-      const removeCircularReferences = (obj: any): any => {
-        const seen = new WeakSet();
-        
-        return JSON.parse(JSON.stringify(obj, (key, value) => {
-          if (typeof value === 'object' && value !== null) {
-            if (seen.has(value)) {
-              return '[Circular]';
-            }
-            seen.add(value);
-          }
-          // Remove undefined values
-          if (value === undefined) {
-            return null;
-          }
-          return value;
-        }));
-      };
-
-      // Deep clean to remove any undefined values that could cause issues
-      const cleanClientData = (obj: any): any => {
-        if (obj === null || obj === undefined) {
-          return {};
-        }
-        if (typeof obj !== 'object' || Array.isArray(obj)) {
-          return obj;
-        }
-        const cleaned: any = {};
-        for (const key in obj) {
-          if (obj.hasOwnProperty(key)) {
-            const value = obj[key];
-            if (value !== undefined) {
-              if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                cleaned[key] = cleanClientData(value);
-              } else {
-                cleaned[key] = value;
-              }
-            }
-          }
-        }
-        return cleaned;
-      };
-      
-      // CRITICAL: Deep clone and sanitize all data using JSON.parse/stringify
-      // This ensures no circular references, functions, or non-serializable data
-      let safeClientData: any = {};
-      try {
-        const cleanedClient = activeClient && typeof activeClient === 'object' ? cleanClientData(activeClient) : {};
-        safeClientData = JSON.parse(JSON.stringify(cleanedClient, (key, value) => {
-          // Remove undefined values
-          if (value === undefined) {
-            return null;
-          }
-          // Remove functions
-          if (typeof value === 'function') {
-            return null;
-          }
-          return value;
-        }));
-        // Convert null back to empty object for top level
-        if (safeClientData === null) {
-          safeClientData = {};
-        }
-      } catch (error) {
-        console.warn('Error cleaning client data, using empty object:', error);
-        safeClientData = {};
-      }
-
-      // CRITICAL: Deep clone and sanitize summary data using JSON.parse/stringify
-      // This ensures no circular references, functions, or non-serializable data
-      let sanitizedSummary: any;
-      try {
-        const summaryToClone = {
-          clientName: String(validatedSummary.clientName || 'Client'),
-          totalAssets: Number(validatedSummary.totalAssets || 0),
-          totalLiabilities: Number(validatedSummary.totalLiabilities || 0),
-          netWorth: Number(validatedSummary.netWorth || 0),
-          monthlyIncome: Number(validatedSummary.monthlyIncome || 0),
-          monthlyExpenses: Number(validatedSummary.monthlyExpenses || 0),
-          monthlyCashFlow: Number(validatedSummary.monthlyCashFlow || 0),
-          projectedRetirementLumpSum: Number(validatedSummary.projectedRetirementLumpSum || 0),
-          retirementDeficitSurplus: Number(validatedSummary.retirementDeficitSurplus || 0),
-          isRetirementDeficit: Boolean(validatedSummary.isRetirementDeficit || false),
-          yearsToRetirement: Number(validatedSummary.yearsToRetirement || 0),
-          currentTax: Number(validatedSummary.currentTax || 0),
-          optimizedTax: Number(validatedSummary.optimizedTax || 0),
-          taxSavings: Number(validatedSummary.taxSavings || 0),
-          investmentProperties: Number(validatedSummary.investmentProperties || 0),
-          totalPropertyValue: Number(validatedSummary.totalPropertyValue || 0),
-          totalPropertyDebt: Number(validatedSummary.totalPropertyDebt || 0),
-          propertyEquity: Number(validatedSummary.propertyEquity || 0),
-          recommendations: Array.isArray(validatedSummary.recommendations) 
-            ? validatedSummary.recommendations.map(r => String(r || '')).filter(r => r.length > 0)
-            : [],
-        };
-        sanitizedSummary = JSON.parse(JSON.stringify(summaryToClone, (key, value) => {
-          // Remove undefined values
-          if (value === undefined) {
-            return null;
-          }
-          // Remove functions
-          if (typeof value === 'function') {
-            return null;
-          }
-          return value;
-        }));
-      } catch (error) {
-        console.error('Error sanitizing summary data:', error);
-        throw new Error('Failed to sanitize summary data for PDF generation');
-      }
-
-      // CRITICAL: Deep clone and sanitize chart images using JSON.parse/stringify
-      // This ensures no circular references, functions, or non-serializable data
-      let sanitizedChartImages: Array<{ type: ValidChartType; dataUrl: string }>;
-      try {
-        const chartsToClone = validatedChartImages.map(chart => {
-          const chartTypeStr = String(chart.type);
-          // Ensure the type is valid
-          if (!validChartTypes.includes(chartTypeStr as ValidChartType)) {
-            throw new Error(`Invalid chart type: ${chartTypeStr}`);
-          }
-          return {
-            type: chartTypeStr as ValidChartType,
-            dataUrl: String(chart.dataUrl),
-          };
-        });
-        sanitizedChartImages = JSON.parse(JSON.stringify(chartsToClone, (key, value) => {
-          // Remove undefined values
-          if (value === undefined) {
-            return null;
-          }
-          // Remove functions
-          if (typeof value === 'function') {
-            return null;
-          }
-          // Ensure dataUrl is a valid string
-          if (key === 'dataUrl' && (typeof value !== 'string' || !value.startsWith('data:image/'))) {
-            return null;
-          }
-          return value;
-        })).filter((chart: any) => chart && chart.type && chart.dataUrl);
-      } catch (error) {
-        console.error('Error sanitizing chart images:', error);
-        sanitizedChartImages = [];
-      }
-
-      // === PDF Generation Debug ===
-      console.log('=== PDF Generation Debug ===');
-      console.log('Summary Data Keys:', Object.keys(sanitizedSummary || {}));
-      console.log('Summary Data Sample:', {
-        clientName: sanitizedSummary?.clientName,
-        netWorth: sanitizedSummary?.netWorth,
-        monthlyIncome: sanitizedSummary?.monthlyIncome,
-        recommendationsCount: sanitizedSummary?.recommendations?.length
+      console.log('📋 PDF data prepared:', {
+        clientName: pdfData.clientName,
+        netWorth: pdfData.netWorth,
+        hasCharts: !!(pdfData.chartNetWorth || pdfData.chartCashFlow || pdfData.chartAssets),
       });
-      console.log('Chart Images:', sanitizedChartImages.map((img, i) => ({
-        index: i,
-        type: img?.type,
-        hasDataUrl: !!img?.dataUrl,
-        dataUrlLength: img?.dataUrl?.length || 0,
-        dataUrlStart: img?.dataUrl?.substring(0, 30) || 'none',
-        keys: Object.keys(img || {})
-      })));
-      console.log('Client Data Keys:', Object.keys(safeClientData || {}));
-      
-      // Validate PDF data before generation
-      const validatePdfData = (data: any): boolean => {
-        const issues: string[] = [];
-        
-        if (!data || typeof data !== 'object') {
-          issues.push('Data is not an object');
-        }
-        
-        if (!data.summary || typeof data.summary !== 'object') {
-          issues.push('Summary is missing or invalid');
-        }
-        
-        if (!Array.isArray(data.chartImages)) {
-          issues.push('ChartImages is not an array');
-        }
-        
-        // Validate summary properties
-        if (data.summary) {
-          const requiredSummaryProps = ['clientName', 'netWorth', 'monthlyIncome', 'monthlyExpenses', 'recommendations'];
-          requiredSummaryProps.forEach(prop => {
-            if (!(prop in data.summary)) {
-              issues.push(`Summary missing property: ${prop}`);
-            }
-          });
-        }
-        
-        // Validate chart images
-        if (Array.isArray(data.chartImages)) {
-          data.chartImages.forEach((img: any, index: number) => {
-            if (!img || typeof img !== 'object') {
-              issues.push(`Chart image at index ${index} is not an object`);
-            } else {
-              if (!img.type || typeof img.type !== 'string') {
-                issues.push(`Chart image at index ${index} missing or invalid type`);
-              }
-              if (!img.dataUrl || typeof img.dataUrl !== 'string') {
-                issues.push(`Chart image at index ${index} missing or invalid dataUrl`);
-              }
-            }
-          });
-        }
-        
-        if (issues.length > 0) {
-          throw new Error(`PDF validation failed: ${issues.join(', ')}`);
-        }
-        
-        return true;
-      };
-      
-      // Validate before creating document
-      try {
-        validatePdfData({
-          summary: sanitizedSummary,
-          chartImages: sanitizedChartImages
-        });
-        console.log('✓ PDF data validation passed');
-      } catch (validationError) {
-        console.error('✗ PDF data validation failed:', validationError);
-        throw validationError;
-      }
 
-      // Create PDF document with error handling
-      let pdfDoc;
-      try {
-        console.log('Creating PDF document JSX...');
-        console.log('Sanitized Summary:', {
-          type: typeof sanitizedSummary,
-          keys: Object.keys(sanitizedSummary || {}),
-          sample: {
-            clientName: sanitizedSummary?.clientName,
-            netWorth: sanitizedSummary?.netWorth,
-            recommendationsLength: sanitizedSummary?.recommendations?.length
-          }
-        });
-        console.log('Sanitized Chart Images:', {
-          type: typeof sanitizedChartImages,
-          isArray: Array.isArray(sanitizedChartImages),
-          length: sanitizedChartImages?.length,
-          firstImage: sanitizedChartImages?.[0] ? {
-            type: sanitizedChartImages[0].type,
-            hasDataUrl: !!sanitizedChartImages[0].dataUrl,
-            dataUrlType: typeof sanitizedChartImages[0].dataUrl,
-            dataUrlStart: sanitizedChartImages[0].dataUrl?.substring(0, 30)
-          } : null
-        });
-        console.log('Safe Client Data:', {
-          type: typeof safeClientData,
-          isObject: typeof safeClientData === 'object',
-          keys: Object.keys(safeClientData || {}),
-          keysCount: Object.keys(safeClientData || {}).length
-        });
-        
-        // Final validation before creating PDF document
-        if (!sanitizedSummary || typeof sanitizedSummary !== 'object') {
-          throw new Error('Sanitized summary is invalid');
-        }
-        if (!Array.isArray(sanitizedChartImages)) {
-          throw new Error('Sanitized chart images is not an array');
-        }
-        if (!safeClientData || typeof safeClientData !== 'object') {
-          console.warn('Client data is invalid, using empty object');
-          safeClientData = {};
-        }
-        
-        pdfDoc = (
-          <PDFReport 
-            summary={sanitizedSummary} 
-            chartImages={sanitizedChartImages}
-            clientData={safeClientData}
-          />
-        );
-        console.log('✓ PDF document JSX created successfully');
-      } catch (docError) {
-        console.error('✗ Error creating PDF document JSX:', docError);
-        console.error('Error details:', {
-          message: docError instanceof Error ? docError.message : 'Unknown error',
-          stack: docError instanceof Error ? docError.stack : undefined,
-          summaryDataType: typeof sanitizedSummary,
-          summaryDataKeys: sanitizedSummary ? Object.keys(sanitizedSummary) : 'null',
-          chartImagesLength: sanitizedChartImages?.length,
-          chartImagesValid: sanitizedChartImages?.every(img => img && typeof img === 'object')
-        });
-        throw new Error(`Failed to create PDF document: ${docError instanceof Error ? docError.message : 'Unknown error'}`);
-      }
+      // Step 3: Create PDF document
+      console.log('📄 Creating PDF document...');
+      const documentElement = (
+        <FinancialPDFDocument {...pdfData} />
+      );
 
-      // Generate PDF blob with error handling
-      let pdfBlob;
-      try {
-        console.log('Generating PDF blob...');
-        console.log('PDF document type:', typeof pdfDoc);
-        console.log('PDF document keys:', pdfDoc ? Object.keys(pdfDoc as any) : 'null');
-        
-        // Try to serialize the document structure for debugging
-        try {
-          const docString = JSON.stringify(pdfDoc, (key, value) => {
-            if (key === 'props' && value && typeof value === 'object') {
-              return Object.keys(value);
-            }
-            if (typeof value === 'function') {
-              return '[Function]';
-            }
-            if (typeof value === 'object' && value !== null) {
-              if (value.constructor && value.constructor.name !== 'Object') {
-                return `[${value.constructor.name}]`;
-              }
-            }
-            return value;
-          }, 2);
-          console.log('PDF document structure (serialized):', docString.substring(0, 1000));
-        } catch (serializeError) {
-          console.warn('Could not serialize PDF document:', serializeError);
-        }
-        
-        pdfBlob = await pdf(pdfDoc).toBlob();
-        console.log('✓ PDF blob generated successfully, size:', pdfBlob.size);
-      } catch (blobError) {
-        console.error('✗ Error generating PDF blob:', blobError);
-        console.error('Error details:', {
-          message: blobError instanceof Error ? blobError.message : 'Unknown error',
-          stack: blobError instanceof Error ? blobError.stack : undefined,
-          name: blobError instanceof Error ? blobError.name : undefined,
-          summaryDataType: typeof sanitizedSummary,
-          summaryDataKeys: sanitizedSummary ? Object.keys(sanitizedSummary) : 'null',
-          chartImagesLength: sanitizedChartImages?.length,
-          chartImagesValid: sanitizedChartImages?.every(img => img && typeof img === 'object'),
-          pdfDocType: typeof pdfDoc,
-          pdfDocIsNull: pdfDoc === null,
-          pdfDocIsUndefined: pdfDoc === undefined
-        });
-        throw new Error(`Failed to generate PDF blob: ${blobError instanceof Error ? blobError.message : 'Unknown error'}`);
-      }
+      // Step 4: Generate blob
+      console.log('🔄 Generating PDF blob...');
+      const pdfBlob = await pdf(documentElement).toBlob();
+      console.log('✓ PDF blob created:', pdfBlob.size, 'bytes');
       
       // Generate filename
       const fileName = `Financial_Report_${summaryData.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
