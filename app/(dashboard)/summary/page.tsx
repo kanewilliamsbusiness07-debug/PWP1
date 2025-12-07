@@ -460,21 +460,23 @@ export default function SummaryPage() {
       };
 
       // Validate chartImages array and ensure all have valid dataUrls
-      type ChartImageType = { dataUrl: string; type: 'income' | 'expenses' | 'assets' | 'liabilities' | 'cashflow' | 'retirement' };
-      const validatedChartImages: ChartImageType[] = (Array.isArray(chartImages) ? chartImages : []).filter((chart): chart is ChartImageType => {
+      const validChartTypes = ['income', 'expenses', 'assets', 'liabilities', 'cashflow', 'retirement'] as const;
+      type ValidChartType = typeof validChartTypes[number];
+      
+      const validatedChartImages = (Array.isArray(chartImages) ? chartImages : []).filter((chart) => {
         if (!chart || typeof chart !== 'object') {
           return false;
         }
-        if (!chart.type || typeof chart.type !== 'string') {
+        if (!('type' in chart) || typeof chart.type !== 'string') {
           return false;
         }
-        if (!chart.dataUrl || typeof chart.dataUrl !== 'string' || !chart.dataUrl.startsWith('data:')) {
+        if (!('dataUrl' in chart) || typeof chart.dataUrl !== 'string' || !chart.dataUrl.startsWith('data:')) {
           return false;
         }
         // Type guard: ensure the type is one of the valid chart types
-        const validTypes = ['income', 'expenses', 'assets', 'liabilities', 'cashflow', 'retirement'] as const;
-        return validTypes.includes(chart.type as typeof validTypes[number]);
-      });
+        const chartType = chart.type as string;
+        return validChartTypes.some(validType => validType === chartType);
+      }) as Array<{ dataUrl: string; type: ValidChartType }>;
       
       console.log('Validated chart images:', validatedChartImages.length, 'out of', chartImages.length);
 
