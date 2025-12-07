@@ -62,7 +62,9 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
     marginBottom: 12,
     paddingBottom: 8,
-    borderBottom: '2 solid #3498db',
+    borderBottomWidth: 2,
+    borderBottomStyle: 'solid',
+    borderBottomColor: '#3498db',
   },
   summaryBox: {
     flexDirection: 'row',
@@ -103,7 +105,9 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 5,
     marginTop: 10,
-    borderLeft: '4 solid #3498db',
+    borderLeftWidth: 4,
+    borderLeftStyle: 'solid',
+    borderLeftColor: '#3498db',
   },
   explanationTitle: {
     fontSize: 12,
@@ -128,7 +132,9 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: 'row',
-    borderBottom: '1 solid #e0e0e0',
+    borderBottomWidth: 1,
+    borderBottomStyle: 'solid',
+    borderBottomColor: '#e0e0e0',
     paddingVertical: 8,
   },
   tableHeader: {
@@ -151,7 +157,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 9,
     color: '#999',
-    borderTop: '1 solid #e0e0e0',
+    borderTopWidth: 1,
+    borderTopStyle: 'solid',
+    borderTopColor: '#e0e0e0',
     paddingTop: 10,
   },
   highlightBox: {
@@ -159,21 +167,27 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 5,
     marginVertical: 10,
-    borderLeft: '4 solid #4caf50',
+    borderLeftWidth: 4,
+    borderLeftStyle: 'solid',
+    borderLeftColor: '#4caf50',
   },
   warningBox: {
     backgroundColor: '#fff3e0',
     padding: 12,
     borderRadius: 5,
     marginVertical: 10,
-    borderLeft: '4 solid #ff9800',
+    borderLeftWidth: 4,
+    borderLeftStyle: 'solid',
+    borderLeftColor: '#ff9800',
   },
   recommendationBox: {
     backgroundColor: '#e3f2fd',
     padding: 12,
     borderRadius: 5,
     marginVertical: 10,
-    borderLeft: '4 solid #2196f3',
+    borderLeftWidth: 4,
+    borderLeftStyle: 'solid',
+    borderLeftColor: '#2196f3',
   },
 });
 
@@ -255,8 +269,31 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
 
   console.log('[PDFReport] Validated chart images:', validChartImages.length, 'out of', chartImages.length);
 
-  // Ensure clientData is always a valid object
-  const safeClientData = clientData && typeof clientData === 'object' ? clientData : {};
+  // Ensure clientData is always a valid object with no undefined values
+  const cleanClientData = (obj: any): any => {
+    if (obj === null || obj === undefined) {
+      return {};
+    }
+    if (typeof obj !== 'object' || Array.isArray(obj)) {
+      return obj;
+    }
+    const cleaned: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        const value = obj[key];
+        if (value !== undefined) {
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            cleaned[key] = cleanClientData(value);
+          } else {
+            cleaned[key] = value;
+          }
+        }
+      }
+    }
+    return cleaned;
+  };
+  
+  const safeClientData = clientData && typeof clientData === 'object' ? cleanClientData(clientData) : {};
   
   // Validate summary has all required properties with defaults
   const validatedSummary = {
