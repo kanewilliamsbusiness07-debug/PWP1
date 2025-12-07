@@ -416,6 +416,7 @@ export default function SummaryPage() {
       console.log('Charts generated, creating PDF document...');
       console.log('Summary data:', summaryData);
       console.log('Chart images count:', chartImages.length);
+      console.log('Chart images:', chartImages.map(c => ({ type: c.type, hasDataUrl: !!c.dataUrl, dataUrlLength: c.dataUrl?.length || 0 })));
 
       // Validate summaryData
       if (!summaryData || typeof summaryData !== 'object') {
@@ -448,12 +449,15 @@ export default function SummaryPage() {
       // Validate chartImages array
       const validatedChartImages = Array.isArray(chartImages) ? chartImages : [];
 
+      // Ensure clientData is a plain object (not undefined or null)
+      const safeClientData = activeClient && typeof activeClient === 'object' ? activeClient : {};
+
       // Create PDF document
       const pdfDoc = (
         <PDFReport 
           summary={validatedSummary} 
           chartImages={validatedChartImages}
-          clientData={activeClient || {}}
+          clientData={safeClientData}
         />
       );
 
