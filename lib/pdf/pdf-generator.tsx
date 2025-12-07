@@ -221,19 +221,40 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
     chartImages = [];
   }
 
+  // Ensure clientData is always a valid object
+  const safeClientData = clientData && typeof clientData === 'object' ? clientData : {};
+
   const reportDate = format(new Date(), 'MMMM dd, yyyy');
   
-  const getChartImage = (type: ChartImage['type']) => {
-    if (!chartImages || !Array.isArray(chartImages)) {
-      return '';
+  const getChartImage = (type: ChartImage['type']): string | null => {
+    try {
+      if (!chartImages || !Array.isArray(chartImages)) {
+        return null;
+      }
+      const chart = chartImages.find(chart => {
+        return chart && 
+               typeof chart === 'object' && 
+               chart.type === type && 
+               chart.dataUrl && 
+               typeof chart.dataUrl === 'string' && 
+               chart.dataUrl.length > 0 &&
+               chart.dataUrl.startsWith('data:');
+      });
+      return chart?.dataUrl || null;
+    } catch (error) {
+      console.error('Error getting chart image:', error);
+      return null;
     }
-    const chart = chartImages.find(chart => chart && chart.type === type);
-    return chart?.dataUrl || '';
   };
+
+  // Validate styles object
+  if (!styles || typeof styles !== 'object') {
+    throw new Error('Styles object is invalid');
+  }
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page || {}}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
@@ -276,11 +297,13 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
         </View>
 
         {/* Financial Overview Chart */}
-        {getChartImage('income') ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Income Analysis</Text>
-            <View style={styles.chartContainer}>
-              <Image src={getChartImage('income')} style={styles.chart} />
+        {(() => {
+          const incomeChartSrc = getChartImage('income');
+          return incomeChartSrc ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Income Analysis</Text>
+              <View style={styles.chartContainer}>
+                <Image src={incomeChartSrc} style={styles.chart} />
             </View>
             <View style={styles.explanation}>
               <Text style={styles.explanationTitle}>Understanding Your Income</Text>
@@ -296,14 +319,17 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
               </Text>
             </View>
           </View>
-        ) : null}
+          ) : null;
+        })()}
 
         {/* Expenses Breakdown */}
-        {getChartImage('expenses') ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Expense Breakdown</Text>
-            <View style={styles.chartContainer}>
-              <Image src={getChartImage('expenses')} style={styles.chart} />
+        {(() => {
+          const expenseChartSrc = getChartImage('expenses');
+          return expenseChartSrc ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Expense Breakdown</Text>
+              <View style={styles.chartContainer}>
+                <Image src={expenseChartSrc} style={styles.chart} />
             </View>
             <View style={styles.explanation}>
               <Text style={styles.explanationTitle}>Understanding Your Expenses</Text>
@@ -320,14 +346,15 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
               </Text>
             </View>
           </View>
-        ) : null}
+          ) : null;
+        })()}
 
         {/* Assets vs Liabilities */}
         {getChartImage('assets') ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Assets & Liabilities Overview</Text>
             <View style={styles.chartContainer}>
-              <Image src={getChartImage('assets')} style={styles.chart} />
+              <Image src={getChartImage('assets')!} style={styles.chart} />
             </View>
             <View style={styles.explanation}>
               <Text style={styles.explanationTitle}>Understanding Your Financial Position</Text>
@@ -345,14 +372,17 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
               </Text>
             </View>
           </View>
-        ) : null}
+          ) : null;
+        })()}
 
         {/* Cash Flow Analysis */}
-        {getChartImage('cashflow') ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Cash Flow Analysis</Text>
-            <View style={styles.chartContainer}>
-              <Image src={getChartImage('cashflow')} style={styles.chart} />
+        {(() => {
+          const cashFlowChartSrc = getChartImage('cashflow');
+          return cashFlowChartSrc ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Cash Flow Analysis</Text>
+              <View style={styles.chartContainer}>
+                <Image src={cashFlowChartSrc} style={styles.chart} />
             </View>
             <View style={[(summary.monthlyCashFlow || 0) >= 0 ? styles.highlightBox : styles.warningBox]}>
               <Text style={styles.explanationTitle}>
@@ -371,31 +401,35 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
               </Text>
             </View>
           </View>
-        ) : null}
+          ) : null;
+        })()}
 
         {/* Retirement Projection */}
-        {getChartImage('retirement') ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Retirement Planning</Text>
-            <View style={styles.chartContainer}>
-              <Image src={getChartImage('retirement')} style={styles.chart} />
+        {(() => {
+          const retirementChartSrc = getChartImage('retirement');
+          return retirementChartSrc ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Retirement Planning</Text>
+              <View style={styles.chartContainer}>
+                <Image src={retirementChartSrc} style={styles.chart} />
+              </View>
+              <View style={[(summary.isRetirementDeficit || false) ? styles.warningBox : styles.highlightBox]}>
+                <Text style={styles.explanationTitle}>
+                  {(summary.isRetirementDeficit || false) ? 'Retirement Planning Alert' : 'Retirement On Track'}
+                </Text>
+                <Text style={styles.explanationText}>
+                  {(summary.isRetirementDeficit || false)
+                    ? `Based on current projections, you may face a retirement shortfall. 
+                       With ${summary.yearsToRetirement || 0} years until retirement, consider increasing 
+                       superannuation contributions or adjusting your retirement timeline.`
+                    : `Your retirement planning is on track. Your projected retirement lump sum of 
+                       ${(summary.projectedRetirementLumpSum || 0).toLocaleString()} provides a solid foundation 
+                       for your retirement years.`}
+                </Text>
+              </View>
             </View>
-            <View style={[(summary.isRetirementDeficit || false) ? styles.warningBox : styles.highlightBox]}>
-              <Text style={styles.explanationTitle}>
-                {(summary.isRetirementDeficit || false) ? 'Retirement Planning Alert' : 'Retirement On Track'}
-              </Text>
-              <Text style={styles.explanationText}>
-                {(summary.isRetirementDeficit || false)
-                  ? `Based on current projections, you may face a retirement shortfall. 
-                     With ${summary.yearsToRetirement || 0} years until retirement, consider increasing 
-                     superannuation contributions or adjusting your retirement timeline.`
-                  : `Your retirement planning is on track. Your projected retirement lump sum of 
-                     ${(summary.projectedRetirementLumpSum || 0).toLocaleString()} provides a solid foundation 
-                     for your retirement years.`}
-              </Text>
-            </View>
-          </View>
-        ) : null}
+          ) : null;
+        })()}
 
         {/* Recommendations */}
         <View style={styles.section}>
