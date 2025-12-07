@@ -542,7 +542,7 @@ export default function SummaryPage() {
       console.log('Client Data Keys:', Object.keys(safeClientData || {}));
       
       // Validate PDF data before generation
-      function validatePdfData(data: any) {
+      const validatePdfData = (data: any): boolean => {
         const issues: string[] = [];
         
         if (!data || typeof data !== 'object') {
@@ -588,7 +588,7 @@ export default function SummaryPage() {
         }
         
         return true;
-      }
+      };
       
       // Validate before creating document
       try {
