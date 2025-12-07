@@ -357,57 +357,24 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
           </View>
         </View>
 
-        {/* Financial Overview Chart */}
+        {/* Financial Overview Chart - Temporarily disabled to debug */}
         {(() => {
           try {
-            const incomeChartSrc = getChartImage('income');
-            const chartStyle = getStyle('chart');
+            // Temporarily show only text without charts to debug the issue
             const sectionStyle = getStyle('section');
             const sectionTitleStyle = getStyle('sectionTitle');
-            const chartContainerStyle = getStyle('chartContainer');
             const explanationStyle = getStyle('explanation');
             const explanationTitleStyle = getStyle('explanationTitle');
             const explanationTextStyle = getStyle('explanationText');
             
-            if (!incomeChartSrc || typeof incomeChartSrc !== 'string' || incomeChartSrc.length === 0 || !incomeChartSrc.startsWith('data:image/')) {
-              // Still show the section even without chart
-              return (
-                <View style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>Income Analysis</Text>
-                  <View style={explanationStyle}>
-                    <Text style={explanationTitleStyle}>Understanding Your Income</Text>
-                    <Text style={explanationTextStyle}>
-                      Your total annual income is ${((summary.monthlyIncome || 0) * 12).toLocaleString()}, 
-                      which breaks down to ${(summary.monthlyIncome || 0).toLocaleString()} per month. 
-                      {'\n\n'}
-                      • Primary income source: Employment income
-                      {'\n'}
-                      • Additional income streams: Rental and investment income provide diversification
-                      {'\n'}
-                      • Recommendation: Consider increasing passive income sources to build financial resilience
-                    </Text>
-                  </View>
-                </View>
-              );
-            }
-            
-            // Ensure we have a valid data URL before rendering Image
-            const validImageSrc = incomeChartSrc.startsWith('data:image/') ? incomeChartSrc : null;
-            if (!validImageSrc) {
-              return null;
-            }
-            
             return (
               <View style={sectionStyle}>
                 <Text style={sectionTitleStyle}>Income Analysis</Text>
-                <View style={chartContainerStyle}>
-                  {validImageSrc ? <Image src={validImageSrc} style={chartStyle} /> : null}
-                </View>
                 <View style={explanationStyle}>
                   <Text style={explanationTitleStyle}>Understanding Your Income</Text>
                   <Text style={explanationTextStyle}>
-                    Your total annual income is ${((summary.monthlyIncome || 0) * 12).toLocaleString()}, 
-                    which breaks down to ${(summary.monthlyIncome || 0).toLocaleString()} per month. 
+                    Your total annual income is ${((summary && typeof summary.monthlyIncome === 'number' ? summary.monthlyIncome : 0) * 12).toLocaleString()}, 
+                    which breaks down to ${(summary && typeof summary.monthlyIncome === 'number' ? summary.monthlyIncome : 0).toLocaleString()} per month. 
                     {'\n\n'}
                     • Primary income source: Employment income
                     {'\n'}
@@ -424,56 +391,23 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
           }
         })()}
 
-        {/* Expenses Breakdown */}
+        {/* Expenses Breakdown - Temporarily disabled charts to debug */}
         {(() => {
           try {
-            const expenseChartSrc = getChartImage('expenses');
-            const sectionStyle = styles.section && typeof styles.section === 'object' ? styles.section : {};
-            const sectionTitleStyle = styles.sectionTitle && typeof styles.sectionTitle === 'object' ? styles.sectionTitle : {};
-            const chartContainerStyle = styles.chartContainer && typeof styles.chartContainer === 'object' ? styles.chartContainer : {};
-            const chartStyle = styles.chart && typeof styles.chart === 'object' ? styles.chart : {};
-            const explanationStyle = styles.explanation && typeof styles.explanation === 'object' ? styles.explanation : {};
-            const explanationTitleStyle = styles.explanationTitle && typeof styles.explanationTitle === 'object' ? styles.explanationTitle : {};
-            const explanationTextStyle = styles.explanationText && typeof styles.explanationText === 'object' ? styles.explanationText : {};
-            
-            if (!expenseChartSrc || typeof expenseChartSrc !== 'string' || expenseChartSrc.length === 0 || !expenseChartSrc.startsWith('data:image/')) {
-              return (
-                <View style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>Expense Breakdown</Text>
-                  <View style={explanationStyle}>
-                    <Text style={explanationTitleStyle}>Understanding Your Expenses</Text>
-                    <Text style={explanationTextStyle}>
-                      Your monthly expenses total ${(summary.monthlyExpenses || 0).toLocaleString()}, 
-                      representing {(summary.monthlyIncome || 0) > 0 ? (((summary.monthlyExpenses || 0) / (summary.monthlyIncome || 1)) * 100).toFixed(1) : 0}% 
-                      of your monthly income.
-                      {'\n\n'}
-                      • Work-related expenses: Tax-deductible expenses that reduce your taxable income
-                      {'\n'}
-                      • Investment expenses: Costs associated with managing your investment portfolio
-                      {'\n'}
-                      • Recommendation: Review expense categories regularly to identify optimization opportunities
-                    </Text>
-                  </View>
-                </View>
-              );
-            }
-            
-            const validExpenseImageSrc = expenseChartSrc.startsWith('data:image/') ? expenseChartSrc : null;
-            if (!validExpenseImageSrc) {
-              return null;
-            }
+            const sectionStyle = getStyle('section');
+            const sectionTitleStyle = getStyle('sectionTitle');
+            const explanationStyle = getStyle('explanation');
+            const explanationTitleStyle = getStyle('explanationTitle');
+            const explanationTextStyle = getStyle('explanationText');
             
             return (
               <View style={sectionStyle}>
                 <Text style={sectionTitleStyle}>Expense Breakdown</Text>
-                <View style={chartContainerStyle}>
-                  <Image src={validExpenseImageSrc} style={chartStyle} />
-                </View>
                 <View style={explanationStyle}>
                   <Text style={explanationTitleStyle}>Understanding Your Expenses</Text>
                   <Text style={explanationTextStyle}>
-                    Your monthly expenses total ${(summary.monthlyExpenses || 0).toLocaleString()}, 
-                    representing {(summary.monthlyIncome || 0) > 0 ? (((summary.monthlyExpenses || 0) / (summary.monthlyIncome || 1)) * 100).toFixed(1) : 0}% 
+                    Your monthly expenses total ${(summary && typeof summary.monthlyExpenses === 'number' ? summary.monthlyExpenses : 0).toLocaleString()}, 
+                    representing {(summary && typeof summary.monthlyIncome === 'number' && summary.monthlyIncome > 0) ? (((summary.monthlyExpenses || 0) / (summary.monthlyIncome || 1)) * 100).toFixed(1) : 0}% 
                     of your monthly income.
                     {'\n\n'}
                     • Work-related expenses: Tax-deductible expenses that reduce your taxable income
@@ -555,54 +489,27 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
           }
         })()}
 
-        {/* Cash Flow Analysis */}
+        {/* Cash Flow Analysis - Temporarily disabled charts to debug */}
         {(() => {
           try {
-            const cashFlowChartSrc = getChartImage('cashflow');
-            const cashFlow = summary.monthlyCashFlow || 0;
-            const monthlyIncome = summary.monthlyIncome || 0;
+            const cashFlow = summary && typeof summary.monthlyCashFlow === 'number' ? summary.monthlyCashFlow : 0;
+            const monthlyIncome = summary && typeof summary.monthlyIncome === 'number' ? summary.monthlyIncome : 0;
             const savingsRate = monthlyIncome > 0 ? ((cashFlow / monthlyIncome) * 100).toFixed(1) : '0';
             const cashFlowText = cashFlow >= 0 
               ? `You have a positive monthly cash flow of ${cashFlow.toLocaleString()}, representing a savings rate of ${savingsRate}%. This surplus can be used for investments, debt reduction, or building emergency funds.`
               : `Your monthly expenses exceed income by ${Math.abs(cashFlow).toLocaleString()}. Consider reviewing expenses, increasing income, or adjusting your financial strategy.`;
             
-            const chartStyle = getStyle('chart');
             const sectionStyle = getStyle('section');
             const sectionTitleStyle = getStyle('sectionTitle');
-            const chartContainerStyle = getStyle('chartContainer');
             const highlightBoxStyle = getStyle('highlightBox');
             const warningBoxStyle = getStyle('warningBox');
             const explanationTitleStyle = getStyle('explanationTitle');
             const explanationTextStyle = getStyle('explanationText');
             const boxStyle = cashFlow >= 0 ? highlightBoxStyle : warningBoxStyle;
             
-            if (!cashFlowChartSrc || typeof cashFlowChartSrc !== 'string' || cashFlowChartSrc.length === 0 || !cashFlowChartSrc.startsWith('data:image/')) {
-              return (
-                <View style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>Cash Flow Analysis</Text>
-                  <View style={boxStyle}>
-                    <Text style={explanationTitleStyle}>
-                      {cashFlow >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
-                    </Text>
-                    <Text style={explanationTextStyle}>
-                      {cashFlowText}
-                    </Text>
-                  </View>
-                </View>
-              );
-            }
-            
-            const validCashFlowImageSrc = cashFlowChartSrc.startsWith('data:image/') ? cashFlowChartSrc : null;
-            if (!validCashFlowImageSrc) {
-              return null;
-            }
-            
             return (
               <View style={sectionStyle}>
                 <Text style={sectionTitleStyle}>Cash Flow Analysis</Text>
-                <View style={chartContainerStyle}>
-                  <Image src={validCashFlowImageSrc} style={chartStyle} />
-                </View>
                 <View style={boxStyle}>
                   <Text style={explanationTitleStyle}>
                     {cashFlow >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
@@ -619,52 +526,25 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
           }
         })()}
 
-        {/* Retirement Projection */}
+        {/* Retirement Projection - Temporarily disabled charts to debug */}
         {(() => {
           try {
-            const retirementChartSrc = getChartImage('retirement');
-            const isDeficit = summary.isRetirementDeficit || false;
+            const isDeficit = summary && typeof summary.isRetirementDeficit === 'boolean' ? summary.isRetirementDeficit : false;
             const retirementText = isDeficit
-              ? `Based on current projections, you may face a retirement shortfall. With ${summary.yearsToRetirement || 0} years until retirement, consider increasing superannuation contributions or adjusting your retirement timeline.`
-              : `Your retirement planning is on track. Your projected retirement lump sum of ${(summary.projectedRetirementLumpSum || 0).toLocaleString()} provides a solid foundation for your retirement years.`;
+              ? `Based on current projections, you may face a retirement shortfall. With ${summary && typeof summary.yearsToRetirement === 'number' ? summary.yearsToRetirement : 0} years until retirement, consider increasing superannuation contributions or adjusting your retirement timeline.`
+              : `Your retirement planning is on track. Your projected retirement lump sum of ${(summary && typeof summary.projectedRetirementLumpSum === 'number' ? summary.projectedRetirementLumpSum : 0).toLocaleString()} provides a solid foundation for your retirement years.`;
             
-            const chartStyle = getStyle('chart');
             const sectionStyle = getStyle('section');
             const sectionTitleStyle = getStyle('sectionTitle');
-            const chartContainerStyle = getStyle('chartContainer');
             const highlightBoxStyle = getStyle('highlightBox');
             const warningBoxStyle = getStyle('warningBox');
             const explanationTitleStyle = getStyle('explanationTitle');
             const explanationTextStyle = getStyle('explanationText');
             const boxStyle = isDeficit ? warningBoxStyle : highlightBoxStyle;
             
-            if (!retirementChartSrc || typeof retirementChartSrc !== 'string' || retirementChartSrc.length === 0 || !retirementChartSrc.startsWith('data:image/')) {
-              return (
-                <View style={sectionStyle}>
-                  <Text style={sectionTitleStyle}>Retirement Planning</Text>
-                  <View style={boxStyle}>
-                    <Text style={explanationTitleStyle}>
-                      {isDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
-                    </Text>
-                    <Text style={explanationTextStyle}>
-                      {retirementText}
-                    </Text>
-                  </View>
-                </View>
-              );
-            }
-            
-            const validRetirementImageSrc = retirementChartSrc.startsWith('data:image/') ? retirementChartSrc : null;
-            if (!validRetirementImageSrc) {
-              return null;
-            }
-            
             return (
               <View style={sectionStyle}>
                 <Text style={sectionTitleStyle}>Retirement Planning</Text>
-                <View style={chartContainerStyle}>
-                  <Image src={validRetirementImageSrc} style={chartStyle} />
-                </View>
                 <View style={boxStyle}>
                   <Text style={explanationTitleStyle}>
                     {isDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
