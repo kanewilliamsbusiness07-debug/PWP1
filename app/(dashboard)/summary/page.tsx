@@ -402,42 +402,6 @@ export default function SummaryPage() {
 
       // Step 1: Generate chart images
       console.log('📊 Generating charts for PDF...');
-      
-      const annualIncome = financialStore.grossIncome || financialStore.employmentIncome || activeClient?.annualIncome || activeClient?.grossSalary || 0;
-      const rentalIncome = financialStore.rentalIncome || activeClient?.rentalIncome || 0;
-      const investmentIncome = financialStore.investmentIncome || activeClient?.dividends || 0;
-      const otherIncome = financialStore.otherIncome || activeClient?.otherIncome || 0;
-
-      const workExpenses = financialStore.workRelatedExpenses || activeClient?.workRelatedExpenses || 0;
-      const investmentExpenses = financialStore.investmentExpenses || activeClient?.investmentExpenses || 0;
-      const rentalExpenses = financialStore.rentalExpenses || activeClient?.rentalExpenses || 0;
-      const vehicleExpenses = activeClient?.vehicleExpenses || 0;
-      const homeOfficeExpenses = activeClient?.homeOfficeExpenses || 0;
-
-      const homeValue = activeClient?.homeValue || 0;
-      const investment1Value = activeClient?.investment1Value || 0;
-      const investment2Value = activeClient?.investment2Value || 0;
-      const investment3Value = activeClient?.investment3Value || 0;
-      const investment4Value = activeClient?.investment4Value || 0;
-      const vehicleValue = activeClient?.vehicleValue || 0;
-      const savingsValue = activeClient?.savingsValue || activeClient?.currentSavings || financialStore.cashSavings || 0;
-      const homeContentsValue = activeClient?.homeContentsValue || 0;
-      const superFundValue = activeClient?.superFundValue || activeClient?.currentSuper || financialStore.superBalance || 0;
-      const sharesValue = activeClient?.sharesTotalValue || activeClient?.currentShares || financialStore.investments || 0;
-
-      const homeBalance = activeClient?.homeBalance || 0;
-      const investment1Balance = activeClient?.investment1Balance || 0;
-      const investment2Balance = activeClient?.investment2Balance || 0;
-      const investment3Balance = activeClient?.investment3Balance || 0;
-      const investment4Balance = activeClient?.investment4Balance || 0;
-      const creditCardBalance = activeClient?.creditCardBalance || 0;
-      const personalLoanBalance = activeClient?.personalLoanBalance || 0;
-      const hecsBalance = activeClient?.hecsBalance || activeClient?.helpDebt || 0;
-
-      const currentAge = activeClient?.currentAge || 35;
-      const retirementAge = activeClient?.retirementAge || 65;
-      const yearsToRetirement = Math.max(0, retirementAge - currentAge);
-      const projectedSuper = superFundValue * Math.pow(1.07, yearsToRetirement);
 
       // Generate all chart images
       const [incomeChart, expenseChart, assetChart, cashFlowChart, retirementChart] = await Promise.all([
