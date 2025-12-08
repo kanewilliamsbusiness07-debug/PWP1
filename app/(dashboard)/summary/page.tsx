@@ -791,77 +791,193 @@ export default function SummaryPage() {
         throw new Error('PDFReport component is not available');
       }
       
-      // CRITICAL: Ensure all props are plain objects (not class instances, not null prototype)
-      // Create fresh plain objects to avoid any prototype chain issues
+      // CRITICAL: Ensure all props are plain objects with ALL nested properties defined
+      // The library accesses nested properties and needs them to exist
       const cleanSummary = JSON.parse(JSON.stringify(pdfReportProps.summary));
       const cleanChartImages = JSON.parse(JSON.stringify(pdfReportProps.chartImages));
       const cleanClientData = JSON.parse(JSON.stringify(pdfReportProps.clientData));
       
+      // CRITICAL: Create a function that ensures ALL nested properties are defined
+      // This prevents the library from encountering undefined when accessing nested properties
+      const ensureAllPropertiesDefined = (obj: any, defaults: any): any => {
+        if (obj === null || obj === undefined) {
+          return defaults;
+        }
+        if (Array.isArray(obj)) {
+          return Array.isArray(defaults) ? obj.map((item, index) => 
+            ensureAllPropertiesDefined(item, defaults[index] ?? (typeof defaults[0] === 'object' ? {} : ''))
+          ) : obj;
+        }
+        if (typeof obj === 'object' && typeof defaults === 'object') {
+          const result: any = {};
+          // Copy all properties from defaults first
+          for (const key in defaults) {
+            if (Object.prototype.hasOwnProperty.call(defaults, key)) {
+              result[key] = ensureAllPropertiesDefined(obj[key], defaults[key]);
+            }
+          }
+          // Then copy any additional properties from obj
+          for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key) && !(key in result)) {
+              result[key] = ensureAllPropertiesDefined(obj[key], typeof obj[key] === 'object' && !Array.isArray(obj[key]) ? {} : (Array.isArray(obj[key]) ? [] : ''));
+            }
+          }
+          return result;
+        }
+        return obj !== undefined && obj !== null ? obj : defaults;
+      };
+      
+      // Define default structure for summary
+      const summaryDefaults = {
+        clientName: '',
+        totalAssets: 0,
+        totalLiabilities: 0,
+        netWorth: 0,
+        monthlyIncome: 0,
+        monthlyExpenses: 0,
+        monthlyCashFlow: 0,
+        projectedRetirementLumpSum: 0,
+        retirementDeficitSurplus: 0,
+        isRetirementDeficit: false,
+        yearsToRetirement: 0,
+        currentTax: 0,
+        optimizedTax: 0,
+        taxSavings: 0,
+        investmentProperties: 0,
+        totalPropertyValue: 0,
+        totalPropertyDebt: 0,
+        propertyEquity: 0,
+        recommendations: [],
+      };
+      
+      // Ensure ALL nested properties exist in summary - this is critical
+      // The library may access any property, so they must all be defined
+      const finalSummary = ensureAllPropertiesDefined(cleanSummary, summaryDefaults);
+      
+      // Ensure ALL chart images have required properties
+      const finalChartImages = (Array.isArray(cleanChartImages) ? cleanChartImages : []).map((chart: any) => ({
+        type: chart?.type || '',
+        dataUrl: chart?.dataUrl || '',
+      }));
+      
+      // Ensure ALL client data properties exist
+      const finalClientData = {
+        firstName: cleanClientData?.firstName || '',
+        lastName: cleanClientData?.lastName || '',
+        email: cleanClientData?.email || '',
+        phone: cleanClientData?.phone || '',
+      };
+      
       // Generate blob with error handling
       let pdfBlob: Blob;
       try {
-        // CRITICAL FIX: Create a wrapper component that ensures all props are properly defined
-        // This prevents the library from encountering undefined when accessing properties via hasOwnProperty
-        const PDFWrapper = () => {
-          // Ensure all props are defined with defaults before passing to PDFReport
-          // This prevents undefined values that cause hasOwnProperty errors
-          const safeSummary = cleanSummary || {};
-          const safeChartImages = Array.isArray(cleanChartImages) ? cleanChartImages : [];
-          const safeClientData = cleanClientData || {};
+        // CRITICAL: Before creating the element, ensure all props are properly structured
+        // The library may access React element internals, so we need to ensure everything exists
+        // Recursively ensure ALL nested objects are properly initialized with Object prototype
+        const recursivelyEnsureObjects = (obj: any, depth: number = 0): any => {
+          if (depth > 15) return obj; // Prevent infinite recursion
           
-          return (
-            <PDFReport
-              summary={safeSummary}
-              chartImages={safeChartImages}
-              clientData={safeClientData}
-            />
-          );
+          if (obj === undefined || obj === null) {
+            return obj === undefined ? null : obj;
+          }
+          
+          if (Array.isArray(obj)) {
+            return obj.map(item => recursivelyEnsureObjects(item, depth + 1));
+          }
+          
+          if (typeof obj === 'object') {
+            // Ensure object has Object prototype (not null prototype)
+            const proto = Object.getPrototypeOf(obj);
+            if (proto === null) {
+              // Recreate with Object prototype
+              const newObj: any = {};
+              for (const key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                  const value = obj[key];
+                  if (value !== undefined) {
+                    newObj[key] = recursivelyEnsureObjects(value, depth + 1);
+                  }
+                }
+              }
+              return newObj;
+            } else {
+              // Object has proper prototype, but ensure nested objects do too
+              const newObj: any = {};
+              for (const key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                  const value = obj[key];
+                  if (value !== undefined) {
+                    newObj[key] = recursivelyEnsureObjects(value, depth + 1);
+                  }
+                }
+              }
+              return newObj;
+            }
+          }
+          
+          return obj;
         };
+        
+        // Recursively clean all props to ensure proper object prototypes
+        const cleanedProps = {
+          summary: recursivelyEnsureObjects(finalSummary),
+          chartImages: recursivelyEnsureObjects(finalChartImages),
+          clientData: recursivelyEnsureObjects(finalClientData),
+        };
+        
+        // CRITICAL FIX: The library may be accessing React element internals that don't exist
+        // Create the element using JSX which ensures all React internals are properly set
+        // JSX creates elements with _owner, _store, etc. that the library may need
+        const finalPdfDocument = (
+          <PDFReport
+            summary={cleanedProps.summary}
+            chartImages={cleanedProps.chartImages}
+            clientData={cleanedProps.clientData}
+          />
+        );
 
-        // Use JSX to create the wrapper element
-        // The wrapper ensures all props are defined before the library processes them
-        const pdfDocument = <PDFWrapper />;
-
-        // Validate the element was created correctly
-        if (!pdfDocument) {
-          throw new Error('PDF document element is null or undefined');
+        // Validate the final element
+        if (!finalPdfDocument) {
+          throw new Error('Final PDF document element is null or undefined');
         }
-        if (typeof pdfDocument !== 'object') {
-          throw new Error(`PDF document element is not an object: ${typeof pdfDocument}`);
+        if (typeof finalPdfDocument !== 'object') {
+          throw new Error(`Final PDF document element is not an object: ${typeof finalPdfDocument}`);
         }
-
-        // Ensure the element has the required React structure
-        if (!pdfDocument.type) {
-          throw new Error('PDF document element is missing type property');
+        if (!finalPdfDocument.type) {
+          throw new Error('Final PDF document element is missing type property');
         }
-        if (!pdfDocument.props) {
-          throw new Error('PDF document element is missing props property');
+        if (!finalPdfDocument.props) {
+          throw new Error('Final PDF document element is missing props property');
         }
 
-        // Ensure props object exists and has proper prototype (not null prototype)
-        // This is critical - the library uses hasOwnProperty which requires Object prototype
-        if (pdfDocument.props && typeof pdfDocument.props === 'object') {
-          const propsProto = Object.getPrototypeOf(pdfDocument.props);
+        // CRITICAL: Ensure the props object has Object prototype
+        // The library uses hasOwnProperty which requires Object prototype
+        if (finalPdfDocument.props && typeof finalPdfDocument.props === 'object') {
+          const propsProto = Object.getPrototypeOf(finalPdfDocument.props);
           if (propsProto === null) {
-            // Recreate props with proper Object prototype
-            pdfDocument.props = Object.assign({}, pdfDocument.props);
+            // Recreate props with Object prototype
+            finalPdfDocument.props = Object.assign({}, finalPdfDocument.props);
           }
         }
 
         // Log the document structure for debugging
-        console.log('📄 PDF Document element type:', typeof pdfDocument);
+        console.log('📄 PDF Document element type:', typeof finalPdfDocument);
         console.log('📄 PDF Document structure:', {
-          type: pdfDocument?.type?.name || pdfDocument?.type || 'unknown',
-          props: pdfDocument?.props ? Object.keys(pdfDocument.props) : 'no props',
-          hasType: !!pdfDocument?.type,
-          hasProps: !!pdfDocument?.props,
-          propsPrototype: pdfDocument?.props ? (Object.getPrototypeOf(pdfDocument.props) === null ? 'null' : 'Object') : 'no props',
+          type: finalPdfDocument?.type?.name || finalPdfDocument?.type || 'unknown',
+          props: finalPdfDocument?.props ? Object.keys(finalPdfDocument.props) : 'no props',
+          hasType: !!finalPdfDocument?.type,
+          hasProps: !!finalPdfDocument?.props,
+          propsPrototype: finalPdfDocument?.props ? (Object.getPrototypeOf(finalPdfDocument.props) === null ? 'null' : 'Object') : 'no props',
         });
 
-        // Call pdf() with the wrapper component element
-        // The wrapper ensures all nested props are defined before the library accesses them
+        // CRITICAL FIX: The library may be accessing React element internals that are undefined
+        // Create a wrapper that ensures the component is properly invoked
+        // The issue is that pdf() may be trying to access properties on the component function itself
         console.log('🔄 Calling pdf() with component element...');
-        const pdfInstance = pdf(pdfDocument as any);
+        
+        // Try calling pdf() directly - if it fails with hasOwnProperty, the issue is in the library's processing
+        // The library should handle React components that return Document elements
+        const pdfInstance = pdf(finalPdfDocument as any);
         
         if (!pdfInstance) {
           throw new Error('PDF instance is null or undefined');
