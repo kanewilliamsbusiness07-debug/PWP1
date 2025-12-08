@@ -600,10 +600,14 @@ export default function SummaryPage() {
             .filter(item => item !== undefined); // Remove undefined items
         }
 
-        // Handle objects
+        // Handle objects - ensure they are plain objects with proper prototype
         if (typeof obj === 'object') {
+          // Create a plain object with Object prototype (not null prototype)
+          // This ensures hasOwnProperty works correctly
           const cleaned: any = {};
           for (const key in obj) {
+            // Use Object.prototype.hasOwnProperty to check if property exists
+            // This is safe even if obj doesn't have hasOwnProperty method
             if (Object.prototype.hasOwnProperty.call(obj, key)) {
               const value = obj[key];
               // Skip undefined values entirely
@@ -644,6 +648,54 @@ export default function SummaryPage() {
         pdfReportProps.clientData = {};
       }
 
+      // CRITICAL: Ensure all nested objects are properly initialized
+      // The library may iterate over properties and needs them to be defined
+      // Initialize any missing properties in summary with default values
+      const defaultSummary = {
+        clientName: '',
+        totalAssets: 0,
+        totalLiabilities: 0,
+        netWorth: 0,
+        monthlyIncome: 0,
+        monthlyExpenses: 0,
+        monthlyCashFlow: 0,
+        projectedRetirementLumpSum: 0,
+        retirementDeficitSurplus: 0,
+        isRetirementDeficit: false,
+        yearsToRetirement: 0,
+        currentTax: 0,
+        optimizedTax: 0,
+        taxSavings: 0,
+        investmentProperties: 0,
+        totalPropertyValue: 0,
+        totalPropertyDebt: 0,
+        propertyEquity: 0,
+        recommendations: [],
+      };
+      
+      // Merge with defaults to ensure all properties exist
+      pdfReportProps.summary = { ...defaultSummary, ...pdfReportProps.summary };
+      
+      // Ensure recommendations is an array
+      if (!Array.isArray(pdfReportProps.summary.recommendations)) {
+        pdfReportProps.summary.recommendations = [];
+      }
+      
+      // Ensure all chart images have required properties
+      pdfReportProps.chartImages = pdfReportProps.chartImages.map((chart: any) => ({
+        type: chart.type || '',
+        dataUrl: chart.dataUrl || '',
+      }));
+      
+      // Ensure clientData has all properties
+      const defaultClientData = {
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+      };
+      pdfReportProps.clientData = { ...defaultClientData, ...pdfReportProps.clientData };
+
       console.log('📋 PDF props cleaned and validated:', {
         hasSummary: !!pdfReportProps.summary,
         chartCount: pdfReportProps.chartImages?.length || 0,
@@ -652,7 +704,7 @@ export default function SummaryPage() {
 
       // Step 4: Final validation - ensure no undefined values or non-serializable values in props
       // This is critical for @react-pdf/renderer compatibility
-      const validateProps = (props: any, path: string = ''): void => {
+      const validateProps = (props: any, path: string = '', visited: WeakSet<any> = new WeakSet()): void => {
         if (props === undefined) {
           throw new Error(`Undefined value found in props at path: ${path}`);
         }
@@ -669,11 +721,17 @@ export default function SummaryPage() {
         }
         if (Array.isArray(props)) {
           props.forEach((item, index) => {
-            validateProps(item, `${path}[${index}]`);
+            validateProps(item, `${path}[${index}]`, visited);
           });
           return;
         }
         if (typeof props === 'object') {
+          // Check for circular references
+          if (visited.has(props)) {
+            throw new Error(`Circular reference found in props at path: ${path}`);
+          }
+          visited.add(props);
+          
           // Check for Date objects (should be converted to string)
           if (props instanceof Date) {
             throw new Error(`Date object found in props at path: ${path} (dates should be converted to strings)`);
@@ -682,12 +740,19 @@ export default function SummaryPage() {
           if (props instanceof RegExp || props instanceof Error) {
             throw new Error(`Non-serializable object found in props at path: ${path}`);
           }
+          
+          // Ensure the object has the Object prototype (not null prototype)
+          if (Object.getPrototypeOf(props) === null) {
+            throw new Error(`Object with null prototype found at path: ${path} (may cause hasOwnProperty issues)`);
+          }
+          
           for (const key in props) {
+            // Use Object.prototype.hasOwnProperty to safely check
             if (Object.prototype.hasOwnProperty.call(props, key)) {
               if (props[key] === undefined) {
                 throw new Error(`Undefined value found in props at path: ${path}.${key}`);
               }
-              validateProps(props[key], path ? `${path}.${key}` : key);
+              validateProps(props[key], path ? `${path}.${key}` : key, visited);
             }
           }
         }
@@ -701,8 +766,20 @@ export default function SummaryPage() {
         throw new Error(`PDF props validation failed: ${validationError.message}`);
       }
 
-      // Step 5: Create PDF document using React.createElement to ensure proper structure
-      // This is more reliable than JSX for @react-pdf/renderer
+      // Final safety check: Try to JSON serialize/deserialize to ensure all values are serializable
+      // This helps catch any edge cases that might cause issues with the PDF library
+      try {
+        const serialized = JSON.stringify(pdfReportProps);
+        const deserialized = JSON.parse(serialized);
+        // Use the deserialized version to ensure it's a clean, plain object
+        Object.assign(pdfReportProps, deserialized);
+      } catch (serializeError: any) {
+        console.warn('Props serialization check failed (non-fatal):', serializeError);
+        // Continue anyway - the validation should have caught any real issues
+      }
+
+      // Step 5: Create PDF document using JSX syntax
+      // JSX creates React elements with all necessary internals for @react-pdf/renderer
       console.log('🔄 Creating PDF document element...');
       
       // Ensure pdf function is available and callable
@@ -718,13 +795,15 @@ export default function SummaryPage() {
       // Generate blob with error handling
       let pdfBlob: Blob;
       try {
-        // Use React.createElement to create the element with clean props
-        // This ensures the element structure is exactly what the library expects
-        const pdfDocument = React.createElement(PDFReport, {
-          summary: pdfReportProps.summary,
-          chartImages: pdfReportProps.chartImages,
-          clientData: pdfReportProps.clientData,
-        });
+        // Use JSX to create the element - this ensures all React internals are present
+        // The library needs proper React element structure with _owner, _store, etc.
+        const pdfDocument = (
+          <PDFReport
+            summary={pdfReportProps.summary}
+            chartImages={pdfReportProps.chartImages}
+            clientData={pdfReportProps.clientData}
+          />
+        );
 
         // Validate the element was created correctly
         if (!pdfDocument) {
@@ -732,6 +811,14 @@ export default function SummaryPage() {
         }
         if (typeof pdfDocument !== 'object') {
           throw new Error(`PDF document element is not an object: ${typeof pdfDocument}`);
+        }
+
+        // Ensure the element has the required React structure
+        if (!pdfDocument.type) {
+          throw new Error('PDF document element is missing type property');
+        }
+        if (!pdfDocument.props) {
+          throw new Error('PDF document element is missing props property');
         }
 
         // Log the document structure for debugging
