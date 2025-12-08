@@ -19,6 +19,10 @@ import {
   generateAssetLiabilityChart,
   generateCashFlowChart,
   generateRetirementChart,
+  generateDetailedCashFlowChart,
+  generateFinancialPositionChart,
+  generateDetailedRetirementChart,
+  generateTaxOptimizationChart,
 } from '@/lib/pdf/chart-generator';
 import { PDFReport } from '@/lib/pdf/pdf-generator';
 import { Button } from '@/components/ui/button';
@@ -465,8 +469,32 @@ export default function SummaryPage() {
       const safeRetirementAge = Number(retirementAge) || 65;
       const safeProjectedSuper = Number(projectedSuper) || 0;
 
+      // Calculate serviceability
+      const serviceabilityResult = calculatePropertyServiceability(
+        calculateInvestmentSurplus(summaryData.monthlyIncome, summaryData.monthlyExpenses)
+      );
+
+      // Calculate retirement projections
+      const totalCurrentAssets = safeHomeValue + safeInvestment1Value + safeInvestment2Value + 
+        safeInvestment3Value + safeInvestment4Value + safeSuperFundValue + safeSharesValue + 
+        safeSavingsValue + safeVehicleValue;
+      const projectedRetirementNetWorth = summaryData.netWorth * Math.pow(1.05, yearsToRetirement);
+      const projectedRetirementMonthlyCashFlow = summaryData.monthlyCashFlow * 0.8;
+      const projectedPropertyPortfolioValue = (safeHomeValue + safeInvestment1Value + 
+        safeInvestment2Value + safeInvestment3Value + safeInvestment4Value) * Math.pow(1.065, yearsToRetirement);
+
       // Generate all chart images
-      const [incomeChart, expenseChart, assetChart, cashFlowChart, retirementChart] = await Promise.all([
+      const [
+        incomeChart, 
+        expenseChart, 
+        assetChart, 
+        cashFlowChart, 
+        retirementChart,
+        detailedCashFlowChart,
+        financialPositionChart,
+        detailedRetirementChart,
+        taxOptimizationChart
+      ] = await Promise.all([
         generateIncomeChart({
           employment: safeAnnualIncome,
           rental: safeRentalIncome,
@@ -500,6 +528,52 @@ export default function SummaryPage() {
         ),
         generateCashFlowChart(summaryData.monthlyIncome, summaryData.monthlyExpenses),
         generateRetirementChart(safeCurrentAge, safeRetirementAge, safeSuperFundValue, safeProjectedSuper),
+        generateDetailedCashFlowChart({
+          employment: safeAnnualIncome,
+          rental: safeRentalIncome,
+          investment: safeInvestmentIncome,
+          other: safeOtherIncome,
+          workExpenses: safeWorkExpenses,
+          investmentExpenses: safeInvestmentExpenses,
+          rentalExpenses: safeRentalExpenses,
+          vehicleExpenses: safeVehicleExpenses,
+          homeOfficeExpenses: safeHomeOfficeExpenses,
+        }),
+        generateFinancialPositionChart(
+          {
+            home: safeHomeValue,
+            investments: safeInvestment1Value + safeInvestment2Value + safeInvestment3Value + safeInvestment4Value,
+            super: safeSuperFundValue,
+            shares: safeSharesValue,
+            savings: safeSavingsValue,
+            vehicle: safeVehicleValue,
+            other: safeHomeContentsValue,
+          },
+          {
+            homeLoan: safeHomeBalance,
+            investmentLoans: safeInvestment1Balance + safeInvestment2Balance + safeInvestment3Balance + safeInvestment4Balance,
+            creditCard: safeCreditCardBalance,
+            personalLoan: safePersonalLoanBalance,
+            hecs: safeHecsBalance,
+          }
+        ),
+        generateDetailedRetirementChart({
+          currentAge: safeCurrentAge,
+          retirementAge: safeRetirementAge,
+          currentSuper: safeSuperFundValue,
+          currentSavings: safeSavingsValue,
+          currentShares: safeSharesValue,
+          currentProperties: safeHomeValue + safeInvestment1Value + safeInvestment2Value + safeInvestment3Value + safeInvestment4Value - safeHomeBalance - safeInvestment1Balance - safeInvestment2Balance - safeInvestment3Balance - safeInvestment4Balance,
+          projectedLumpSum: safeProjectedSuper,
+          projectedMonthlyIncome: summaryData.monthlyIncome * 0.7,
+          monthlySurplus: summaryData.retirementDeficitSurplus,
+        }),
+        generateTaxOptimizationChart({
+          currentTax: summaryData.currentTax,
+          optimizedTax: summaryData.optimizedTax,
+          taxSavings: summaryData.taxSavings,
+          strategies: summaryData.recommendations || [],
+        }),
       ]);
 
       console.log('✓ Charts generated:', {
@@ -508,6 +582,10 @@ export default function SummaryPage() {
         asset: !!assetChart,
         cashFlow: !!cashFlowChart,
         retirement: !!retirementChart,
+        detailedCashFlow: !!detailedCashFlowChart,
+        financialPosition: !!financialPositionChart,
+        detailedRetirement: !!detailedRetirementChart,
+        taxOptimization: !!taxOptimizationChart,
       });
 
       // Step 2: Prepare data for PDFReport component
@@ -535,6 +613,18 @@ export default function SummaryPage() {
       if (retirementChart && typeof retirementChart === 'string' && retirementChart.startsWith('data:image/') && retirementChart.length > 100) {
         chartImages.push({ type: 'retirement', dataUrl: retirementChart });
       }
+      if (detailedCashFlowChart && typeof detailedCashFlowChart === 'string' && detailedCashFlowChart.startsWith('data:image/') && detailedCashFlowChart.length > 100) {
+        chartImages.push({ type: 'detailedCashFlow', dataUrl: detailedCashFlowChart });
+      }
+      if (financialPositionChart && typeof financialPositionChart === 'string' && financialPositionChart.startsWith('data:image/') && financialPositionChart.length > 100) {
+        chartImages.push({ type: 'financialPosition', dataUrl: financialPositionChart });
+      }
+      if (detailedRetirementChart && typeof detailedRetirementChart === 'string' && detailedRetirementChart.startsWith('data:image/') && detailedRetirementChart.length > 100) {
+        chartImages.push({ type: 'detailedRetirement', dataUrl: detailedRetirementChart });
+      }
+      if (taxOptimizationChart && typeof taxOptimizationChart === 'string' && taxOptimizationChart.startsWith('data:image/') && taxOptimizationChart.length > 100) {
+        chartImages.push({ type: 'taxOptimization', dataUrl: taxOptimizationChart });
+      }
 
       // Prepare summary data for PDFReport - ensure all values are numbers/strings/booleans, never undefined
       const pdfSummary = {
@@ -557,6 +647,20 @@ export default function SummaryPage() {
         totalPropertyDebt: ensureDefined(summaryData.totalPropertyDebt, 0),
         propertyEquity: ensureDefined(summaryData.propertyEquity, 0),
         recommendations: Array.isArray(summaryData.recommendations) ? summaryData.recommendations.filter((r: any) => r != null) : [],
+        projectedRetirementNetWorth: ensureDefined(projectedRetirementNetWorth, 0),
+        projectedRetirementMonthlyCashFlow: ensureDefined(projectedRetirementMonthlyCashFlow, 0),
+        projectedRetirementSurplus: ensureDefined(summaryData.retirementDeficitSurplus, 0),
+        projectedPropertyPortfolioValue: ensureDefined(projectedPropertyPortfolioValue, 0),
+        serviceability: {
+          maxPropertyValue: ensureDefined(serviceabilityResult.maxPropertyValue, 0),
+          maxMonthlyPayment: ensureDefined(serviceabilityResult.maxMonthlyPayment, 0),
+          surplusIncome: ensureDefined(serviceabilityResult.surplusIncome, 0),
+          loanToValueRatio: ensureDefined(serviceabilityResult.loanToValueRatio, 0.8),
+          monthlyRentalIncome: ensureDefined(serviceabilityResult.monthlyRentalIncome, 0),
+          totalMonthlyExpenses: ensureDefined(serviceabilityResult.totalMonthlyExpenses, 0),
+          isViable: ensureDefined(serviceabilityResult.isViable, false),
+          reason: serviceabilityResult.reason || '',
+        },
       };
 
       // Prepare client data - ensure all values are strings, never undefined
