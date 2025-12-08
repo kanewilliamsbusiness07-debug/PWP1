@@ -12,7 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FileText, Download, Mail, Printer, Share2, TrendingUp, TrendingDown, DollarSign, Calculator, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle } from 'lucide-react';
 import React from 'react';
-import { pdf, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
 import {
   generateIncomeChart,
   generateExpenseChart,
@@ -20,6 +20,7 @@ import {
   generateCashFlowChart,
   generateRetirementChart,
 } from '@/lib/pdf/chart-generator';
+import { PDFReport } from '@/lib/pdf/pdf-generator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -254,50 +255,6 @@ export default function SummaryPage() {
   };
 
   const summary = calculateSummary();
-
-  // CRITICAL: Define PDF styles OUTSIDE any function
-  const pdfStyles = StyleSheet.create({
-    page: {
-      padding: 30,
-      backgroundColor: '#ffffff',
-    },
-    header: {
-      marginBottom: 20,
-    },
-    title: {
-      fontSize: 24,
-      marginBottom: 10,
-      color: '#000000',
-    },
-    section: {
-      marginBottom: 15,
-    },
-    subtitle: {
-      fontSize: 16,
-      marginBottom: 8,
-      fontWeight: 'bold',
-      color: '#333333',
-    },
-    row: {
-      flexDirection: 'row',
-      marginBottom: 5,
-    },
-    label: {
-      width: '50%',
-      fontSize: 12,
-      color: '#666666',
-    },
-    value: {
-      width: '50%',
-      fontSize: 12,
-      color: '#000000',
-    },
-    chart: {
-      width: '100%',
-      height: 200,
-      marginTop: 10,
-    },
-  });
 
   // Helper function to validate chart images
   const validateChartImage = (dataUrl: string | undefined): string | undefined => {
@@ -553,184 +510,72 @@ export default function SummaryPage() {
         retirement: !!retirementChart,
       });
 
-      // Step 2: Extract ONLY the data we need and validate
-      const clientName = `${activeClient?.firstName || 'Unknown'} ${activeClient?.lastName || 'Client'}`.trim() || 'Client';
-      const netWorth = Number(summaryData?.netWorth || 0);
-      const totalAssets = Number(summaryData?.totalAssets || 0);
-      const totalLiabilities = Number(summaryData?.totalLiabilities || 0);
-      const monthlyIncome = Number(summaryData?.monthlyIncome || 0);
-      const monthlyExpenses = Number(summaryData?.monthlyExpenses || 0);
-      const chartNetWorth = validateChartImage(assetChart);
-      const chartCashFlow = validateChartImage(cashFlowChart);
-      const chartAssets = validateChartImage(assetChart);
+      // Step 2: Prepare data for PDFReport component
+      console.log('📄 Creating PDF document using PDFReport component...');
+      
+      // Prepare chart images array
+      const chartImages: Array<{ type: string; dataUrl: string }> = [];
+      if (incomeChart && typeof incomeChart === 'string' && incomeChart.startsWith('data:image/')) {
+        chartImages.push({ type: 'income', dataUrl: incomeChart });
+      }
+      if (expenseChart && typeof expenseChart === 'string' && expenseChart.startsWith('data:image/')) {
+        chartImages.push({ type: 'expenses', dataUrl: expenseChart });
+      }
+      if (assetChart && typeof assetChart === 'string' && assetChart.startsWith('data:image/')) {
+        chartImages.push({ type: 'assets', dataUrl: assetChart });
+      }
+      if (cashFlowChart && typeof cashFlowChart === 'string' && cashFlowChart.startsWith('data:image/')) {
+        chartImages.push({ type: 'cashflow', dataUrl: cashFlowChart });
+      }
+      if (retirementChart && typeof retirementChart === 'string' && retirementChart.startsWith('data:image/')) {
+        chartImages.push({ type: 'retirement', dataUrl: retirementChart });
+      }
+
+      // Prepare summary data for PDFReport
+      const pdfSummary = {
+        clientName: summaryData.clientName || `${activeClient?.firstName || ''} ${activeClient?.lastName || ''}`.trim() || 'Client',
+        totalAssets: summaryData.totalAssets || 0,
+        totalLiabilities: summaryData.totalLiabilities || 0,
+        netWorth: summaryData.netWorth || 0,
+        monthlyIncome: summaryData.monthlyIncome || 0,
+        monthlyExpenses: summaryData.monthlyExpenses || 0,
+        monthlyCashFlow: summaryData.monthlyCashFlow || 0,
+        projectedRetirementLumpSum: summaryData.projectedRetirementLumpSum || 0,
+        retirementDeficitSurplus: summaryData.retirementDeficitSurplus || 0,
+        isRetirementDeficit: summaryData.isRetirementDeficit || false,
+        yearsToRetirement: summaryData.yearsToRetirement || 0,
+        currentTax: summaryData.currentTax || 0,
+        optimizedTax: summaryData.optimizedTax || 0,
+        taxSavings: summaryData.taxSavings || 0,
+        investmentProperties: summaryData.investmentProperties || 0,
+        totalPropertyValue: summaryData.totalPropertyValue || 0,
+        totalPropertyDebt: summaryData.totalPropertyDebt || 0,
+        propertyEquity: summaryData.propertyEquity || 0,
+        recommendations: summaryData.recommendations || [],
+      };
+
+      // Prepare client data
+      const pdfClientData = {
+        firstName: activeClient?.firstName || '',
+        lastName: activeClient?.lastName || '',
+        email: activeClient?.email || '',
+        phone: activeClient?.phone || '',
+      };
 
       console.log('📋 PDF data prepared:', {
-        clientName,
-        netWorth,
-        hasCharts: !!(chartNetWorth || chartCashFlow || chartAssets),
+        clientName: pdfSummary.clientName,
+        netWorth: pdfSummary.netWorth,
+        chartCount: chartImages.length,
       });
 
-      // Step 3: Format currency helper
-      const formatCurrency = (amount: number) => {
-        return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      };
-
-      // Step 4: Create PDF using React.createElement (NO JSX!)
-      console.log('📄 Creating PDF document...');
-      
-      // Use pdfStyles directly - it's already defined with correct types from StyleSheet.create()
-      // No need for fallbacks since pdfStyles is defined at component level
-      const safeStyles = pdfStyles;
-      
-      // Build page children array, ensuring all props are properly defined
-      const pageChildren: any[] = [];
-      
-      // Header
-      pageChildren.push(
-        React.createElement(
-          View,
-          { key: 'header', style: safeStyles.header },
-          React.createElement(Text, { style: safeStyles.title }, 'Financial Summary Report'),
-          React.createElement(Text, { style: { fontSize: 12, marginBottom: 5 } }, `Client: ${clientName}`),
-          React.createElement(Text, { style: { fontSize: 12 } }, `Date: ${new Date().toLocaleDateString()}`)
-        )
-      );
-      
-      // Financial Overview
-      pageChildren.push(
-        React.createElement(
-          View,
-          { key: 'overview', style: safeStyles.section },
-          React.createElement(Text, { style: safeStyles.subtitle }, 'Financial Overview'),
-          React.createElement(
-            View,
-            { style: safeStyles.row },
-            React.createElement(Text, { style: safeStyles.label }, 'Total Assets:'),
-            React.createElement(Text, { style: safeStyles.value }, formatCurrency(totalAssets))
-          ),
-          React.createElement(
-            View,
-            { style: safeStyles.row },
-            React.createElement(Text, { style: safeStyles.label }, 'Total Liabilities:'),
-            React.createElement(Text, { style: safeStyles.value }, formatCurrency(totalLiabilities))
-          ),
-          React.createElement(
-            View,
-            { style: safeStyles.row },
-            React.createElement(Text, { style: safeStyles.label }, 'Net Worth:'),
-            React.createElement(Text, { style: safeStyles.value }, formatCurrency(netWorth))
-          )
-        )
-      );
-      
-      // Cash Flow
-      pageChildren.push(
-        React.createElement(
-          View,
-          { key: 'cashflow', style: safeStyles.section },
-          React.createElement(Text, { style: safeStyles.subtitle }, 'Cash Flow Analysis'),
-          React.createElement(
-            View,
-            { style: safeStyles.row },
-            React.createElement(Text, { style: safeStyles.label }, 'Monthly Income:'),
-            React.createElement(Text, { style: safeStyles.value }, formatCurrency(monthlyIncome))
-          ),
-          React.createElement(
-            View,
-            { style: safeStyles.row },
-            React.createElement(Text, { style: safeStyles.label }, 'Monthly Expenses:'),
-            React.createElement(Text, { style: safeStyles.value }, formatCurrency(monthlyExpenses))
-          ),
-          React.createElement(
-            View,
-            { style: safeStyles.row },
-            React.createElement(Text, { style: safeStyles.label }, 'Net Monthly:'),
-            React.createElement(Text, { style: safeStyles.value }, formatCurrency(monthlyIncome - monthlyExpenses))
-          )
-        )
-      );
-
-      // Add charts only if they exist and are valid strings
-      if (chartNetWorth && typeof chartNetWorth === 'string' && chartNetWorth.length > 0 && chartNetWorth.startsWith('data:image/')) {
-        pageChildren.push(
-          React.createElement(
-            View,
-            { key: 'chart-networth', style: safeStyles.section },
-            React.createElement(Text, { style: safeStyles.subtitle }, 'Net Worth Chart'),
-            React.createElement(Image, { src: chartNetWorth, style: safeStyles.chart })
-          )
-        );
-      }
-
-      if (chartCashFlow && typeof chartCashFlow === 'string' && chartCashFlow.length > 0 && chartCashFlow.startsWith('data:image/')) {
-        pageChildren.push(
-          React.createElement(
-            View,
-            { key: 'chart-cashflow', style: safeStyles.section },
-            React.createElement(Text, { style: safeStyles.subtitle }, 'Cash Flow Chart'),
-            React.createElement(Image, { src: chartCashFlow, style: safeStyles.chart })
-          )
-        );
-      }
-
-      if (chartAssets && typeof chartAssets === 'string' && chartAssets.length > 0 && chartAssets.startsWith('data:image/')) {
-        pageChildren.push(
-          React.createElement(
-            View,
-            { key: 'chart-assets', style: safeStyles.section },
-            React.createElement(Text, { style: safeStyles.subtitle }, 'Asset Allocation'),
-            React.createElement(Image, { src: chartAssets, style: safeStyles.chart })
-          )
-        );
-      }
-
-      // Validate all children are valid before creating Page
-      const finalChildren = pageChildren.filter((child, index) => {
-        if (child == null) {
-          console.warn(`Filtering out null/undefined child at index ${index}`);
-          return false;
-        }
-        if (typeof child !== 'object') {
-          console.warn(`Filtering out invalid child at index ${index}:`, typeof child);
-          return false;
-        }
-        // Ensure it's a valid React element (has type property)
-        if (!('type' in child) && !('$$typeof' in child)) {
-          console.warn(`Filtering out child at index ${index} - not a valid React element`);
-          return false;
-        }
-        return true;
-      });
-
-      if (finalChildren.length === 0) {
-        throw new Error('No valid content to generate PDF - all children were filtered out');
-      }
-
-      // Create Page with valid children
-      const pageProps: any = { 
-        size: 'A4', 
-        style: safeStyles.page 
-      };
-      
-      // Ensure pageProps is a plain object with no undefined values
-      Object.keys(pageProps).forEach(key => {
-        if (pageProps[key] === undefined) {
-          delete pageProps[key];
-        }
-      });
-
-      const page = React.createElement(
-        Page,
-        pageProps,
-        ...finalChildren
-      );
-
-      // Create Document - ensure no undefined props
-      const documentProps: any = {};
+      // Step 3: Create PDF document using PDFReport component
       const pdfDocument = React.createElement(
-        Document,
-        documentProps,
-        page
+        PDFReport,
+        {
+          summary: pdfSummary,
+          chartImages: chartImages,
+          clientData: pdfClientData,
+        }
       );
 
       // Step 5: Validate document before generating blob
