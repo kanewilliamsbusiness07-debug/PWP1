@@ -513,69 +513,120 @@ export default function SummaryPage() {
       // Step 2: Prepare data for PDFReport component
       console.log('📄 Creating PDF document using PDFReport component...');
       
-      // Prepare chart images array
+      // Helper to ensure value is defined (not undefined or null)
+      const ensureDefined = <T,>(value: T | undefined | null, defaultValue: T): T => {
+        return (value !== undefined && value !== null) ? value : defaultValue;
+      };
+
+      // Prepare chart images array - ensure all values are properly defined
       const chartImages: Array<{ type: string; dataUrl: string }> = [];
-      if (incomeChart && typeof incomeChart === 'string' && incomeChart.startsWith('data:image/')) {
+      if (incomeChart && typeof incomeChart === 'string' && incomeChart.startsWith('data:image/') && incomeChart.length > 100) {
         chartImages.push({ type: 'income', dataUrl: incomeChart });
       }
-      if (expenseChart && typeof expenseChart === 'string' && expenseChart.startsWith('data:image/')) {
+      if (expenseChart && typeof expenseChart === 'string' && expenseChart.startsWith('data:image/') && expenseChart.length > 100) {
         chartImages.push({ type: 'expenses', dataUrl: expenseChart });
       }
-      if (assetChart && typeof assetChart === 'string' && assetChart.startsWith('data:image/')) {
+      if (assetChart && typeof assetChart === 'string' && assetChart.startsWith('data:image/') && assetChart.length > 100) {
         chartImages.push({ type: 'assets', dataUrl: assetChart });
       }
-      if (cashFlowChart && typeof cashFlowChart === 'string' && cashFlowChart.startsWith('data:image/')) {
+      if (cashFlowChart && typeof cashFlowChart === 'string' && cashFlowChart.startsWith('data:image/') && cashFlowChart.length > 100) {
         chartImages.push({ type: 'cashflow', dataUrl: cashFlowChart });
       }
-      if (retirementChart && typeof retirementChart === 'string' && retirementChart.startsWith('data:image/')) {
+      if (retirementChart && typeof retirementChart === 'string' && retirementChart.startsWith('data:image/') && retirementChart.length > 100) {
         chartImages.push({ type: 'retirement', dataUrl: retirementChart });
       }
 
-      // Prepare summary data for PDFReport
+      // Prepare summary data for PDFReport - ensure all values are numbers/strings/booleans, never undefined
       const pdfSummary = {
-        clientName: summaryData.clientName || `${activeClient?.firstName || ''} ${activeClient?.lastName || ''}`.trim() || 'Client',
-        totalAssets: summaryData.totalAssets || 0,
-        totalLiabilities: summaryData.totalLiabilities || 0,
-        netWorth: summaryData.netWorth || 0,
-        monthlyIncome: summaryData.monthlyIncome || 0,
-        monthlyExpenses: summaryData.monthlyExpenses || 0,
-        monthlyCashFlow: summaryData.monthlyCashFlow || 0,
-        projectedRetirementLumpSum: summaryData.projectedRetirementLumpSum || 0,
-        retirementDeficitSurplus: summaryData.retirementDeficitSurplus || 0,
-        isRetirementDeficit: summaryData.isRetirementDeficit || false,
-        yearsToRetirement: summaryData.yearsToRetirement || 0,
-        currentTax: summaryData.currentTax || 0,
-        optimizedTax: summaryData.optimizedTax || 0,
-        taxSavings: summaryData.taxSavings || 0,
-        investmentProperties: summaryData.investmentProperties || 0,
-        totalPropertyValue: summaryData.totalPropertyValue || 0,
-        totalPropertyDebt: summaryData.totalPropertyDebt || 0,
-        propertyEquity: summaryData.propertyEquity || 0,
-        recommendations: summaryData.recommendations || [],
+        clientName: ensureDefined(summaryData.clientName, `${activeClient?.firstName || ''} ${activeClient?.lastName || ''}`.trim() || 'Client'),
+        totalAssets: ensureDefined(summaryData.totalAssets, 0),
+        totalLiabilities: ensureDefined(summaryData.totalLiabilities, 0),
+        netWorth: ensureDefined(summaryData.netWorth, 0),
+        monthlyIncome: ensureDefined(summaryData.monthlyIncome, 0),
+        monthlyExpenses: ensureDefined(summaryData.monthlyExpenses, 0),
+        monthlyCashFlow: ensureDefined(summaryData.monthlyCashFlow, 0),
+        projectedRetirementLumpSum: ensureDefined(summaryData.projectedRetirementLumpSum, 0),
+        retirementDeficitSurplus: ensureDefined(summaryData.retirementDeficitSurplus, 0),
+        isRetirementDeficit: ensureDefined(summaryData.isRetirementDeficit, false),
+        yearsToRetirement: ensureDefined(summaryData.yearsToRetirement, 0),
+        currentTax: ensureDefined(summaryData.currentTax, 0),
+        optimizedTax: ensureDefined(summaryData.optimizedTax, 0),
+        taxSavings: ensureDefined(summaryData.taxSavings, 0),
+        investmentProperties: ensureDefined(summaryData.investmentProperties, 0),
+        totalPropertyValue: ensureDefined(summaryData.totalPropertyValue, 0),
+        totalPropertyDebt: ensureDefined(summaryData.totalPropertyDebt, 0),
+        propertyEquity: ensureDefined(summaryData.propertyEquity, 0),
+        recommendations: Array.isArray(summaryData.recommendations) ? summaryData.recommendations.filter((r: any) => r != null) : [],
       };
 
-      // Prepare client data
+      // Prepare client data - ensure all values are strings, never undefined
       const pdfClientData = {
-        firstName: activeClient?.firstName || '',
-        lastName: activeClient?.lastName || '',
-        email: activeClient?.email || '',
-        phone: activeClient?.phone || '',
+        firstName: ensureDefined(activeClient?.firstName, ''),
+        lastName: ensureDefined(activeClient?.lastName, ''),
+        email: ensureDefined(activeClient?.email, ''),
+        phone: ensureDefined(activeClient?.phone, ''),
       };
 
       console.log('📋 PDF data prepared:', {
         clientName: pdfSummary.clientName,
         netWorth: pdfSummary.netWorth,
         chartCount: chartImages.length,
+        summaryKeys: Object.keys(pdfSummary),
+        clientDataKeys: Object.keys(pdfClientData),
       });
 
       // Step 3: Create PDF document using PDFReport component
+      // Deep clone and clean all props to ensure no undefined values exist at any level
+      const deepClean = (obj: any): any => {
+        if (obj === null || obj === undefined) {
+          return null;
+        }
+        if (Array.isArray(obj)) {
+          return obj.map(item => deepClean(item));
+        }
+        if (typeof obj === 'object') {
+          const cleaned: any = {};
+          for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+              const value = obj[key];
+              // Skip undefined values entirely
+              if (value !== undefined) {
+                cleaned[key] = deepClean(value);
+              }
+            }
+          }
+          return cleaned;
+        }
+        return obj;
+      };
+
+      // Create clean props object
+      const pdfReportProps = deepClean({
+        summary: pdfSummary,
+        chartImages: chartImages,
+        clientData: pdfClientData,
+      });
+
+      // Final validation - ensure required props exist
+      if (!pdfReportProps.summary || typeof pdfReportProps.summary !== 'object') {
+        throw new Error('PDF props validation failed: summary is missing or invalid');
+      }
+      if (!Array.isArray(pdfReportProps.chartImages)) {
+        pdfReportProps.chartImages = [];
+      }
+      if (!pdfReportProps.clientData || typeof pdfReportProps.clientData !== 'object') {
+        pdfReportProps.clientData = {};
+      }
+
+      console.log('📋 PDF props cleaned and validated:', {
+        hasSummary: !!pdfReportProps.summary,
+        chartCount: pdfReportProps.chartImages?.length || 0,
+        hasClientData: !!pdfReportProps.clientData,
+      });
+
       const pdfDocument = React.createElement(
         PDFReport,
-        {
-          summary: pdfSummary,
-          chartImages: chartImages,
-          clientData: pdfClientData,
-        }
+        pdfReportProps
       );
 
       // Step 5: Validate document before generating blob
@@ -599,16 +650,41 @@ export default function SummaryPage() {
       // The pdf() function accepts React elements, so we cast to satisfy TypeScript
       let pdfBlob: Blob;
       try {
+        // Log the document structure for debugging
+        console.log('📄 PDF Document element type:', typeof pdfDocument);
+        console.log('📄 PDF Document props:', pdfDocument?.props ? Object.keys(pdfDocument.props) : 'no props');
+        
+        // Ensure pdfDocument is a valid React element
+        if (!pdfDocument || typeof pdfDocument !== 'object') {
+          throw new Error('PDF document is not a valid React element');
+        }
+
+        // Call pdf() with the component element
+        // @react-pdf/renderer should handle React components that render to Document
         const pdfInstance = pdf(pdfDocument as any);
-        if (!pdfInstance || typeof pdfInstance.toBlob !== 'function') {
+        
+        if (!pdfInstance) {
+          throw new Error('PDF instance is null or undefined');
+        }
+        
+        if (typeof pdfInstance.toBlob !== 'function') {
           throw new Error('PDF instance does not have toBlob method');
         }
+        
+        console.log('🔄 Calling toBlob()...');
         pdfBlob = await pdfInstance.toBlob();
       } catch (pdfError: any) {
         console.error('Error in pdf() or toBlob():', pdfError);
+        console.error('Error stack:', pdfError?.stack);
+        console.error('Error details:', {
+          message: pdfError?.message,
+          name: pdfError?.name,
+          hasOwnProperty: pdfError?.message?.includes('hasOwnProperty'),
+        });
+        
         // Provide more context about what might be wrong
-        if (pdfError?.message?.includes('hasOwnProperty')) {
-          throw new Error('PDF generation failed: Invalid document structure. Please ensure all data is properly filled in.');
+        if (pdfError?.message?.includes('hasOwnProperty') || pdfError?.message?.includes('undefined')) {
+          throw new Error('PDF generation failed: Invalid document structure. The PDF library encountered undefined values. Please ensure all form fields are properly filled in and try again.');
         }
         throw pdfError;
       }
