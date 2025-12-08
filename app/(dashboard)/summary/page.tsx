@@ -624,9 +624,14 @@ export default function SummaryPage() {
         hasClientData: !!pdfReportProps.clientData,
       });
 
-      const pdfDocument = React.createElement(
-        PDFReport,
-        pdfReportProps
+      // Create PDF document using JSX syntax (which React.createElement supports)
+      // This ensures the component is properly structured for @react-pdf/renderer
+      const pdfDocument = (
+        <PDFReport
+          summary={pdfReportProps.summary}
+          chartImages={pdfReportProps.chartImages}
+          clientData={pdfReportProps.clientData}
+        />
       );
 
       // Step 5: Validate document before generating blob
@@ -646,21 +651,35 @@ export default function SummaryPage() {
       }
       
       // Generate blob with error handling
-      // Note: pdfDocument is a PDFReport component element, which renders to a Document
-      // The pdf() function accepts React elements, so we cast to satisfy TypeScript
+      // @react-pdf/renderer's pdf() function should handle React components
+      // that return Document elements, but we need to ensure the element is properly structured
       let pdfBlob: Blob;
       try {
         // Log the document structure for debugging
         console.log('📄 PDF Document element type:', typeof pdfDocument);
-        console.log('📄 PDF Document props:', pdfDocument?.props ? Object.keys(pdfDocument.props) : 'no props');
+        console.log('📄 PDF Document structure:', {
+          type: pdfDocument?.type?.name || pdfDocument?.type,
+          props: pdfDocument?.props ? Object.keys(pdfDocument.props) : 'no props',
+          hasType: !!pdfDocument?.type,
+          hasProps: !!pdfDocument?.props,
+        });
         
         // Ensure pdfDocument is a valid React element
         if (!pdfDocument || typeof pdfDocument !== 'object') {
           throw new Error('PDF document is not a valid React element');
         }
 
+        // Ensure the element has the required React structure
+        if (!pdfDocument.type) {
+          throw new Error('PDF document element is missing type property');
+        }
+        if (!pdfDocument.props) {
+          throw new Error('PDF document element is missing props property');
+        }
+
         // Call pdf() with the component element
-        // @react-pdf/renderer should handle React components that render to Document
+        // The library should render the component and extract the Document
+        console.log('🔄 Calling pdf() with component element...');
         const pdfInstance = pdf(pdfDocument as any);
         
         if (!pdfInstance) {
@@ -682,9 +701,13 @@ export default function SummaryPage() {
           hasOwnProperty: pdfError?.message?.includes('hasOwnProperty'),
         });
         
-        // Provide more context about what might be wrong
+        // The hasOwnProperty error typically means the library encountered undefined
+        // when trying to check object properties. This can happen if:
+        // 1. The component element structure is incorrect
+        // 2. Props contain undefined values that the library can't handle
+        // 3. The library is trying to access React internals that don't exist
         if (pdfError?.message?.includes('hasOwnProperty') || pdfError?.message?.includes('undefined')) {
-          throw new Error('PDF generation failed: Invalid document structure. The PDF library encountered undefined values. Please ensure all form fields are properly filled in and try again.');
+          throw new Error('PDF generation failed: The PDF library encountered an internal error. This may be due to invalid data structure. Please try again or contact support if the issue persists.');
         }
         throw pdfError;
       }
