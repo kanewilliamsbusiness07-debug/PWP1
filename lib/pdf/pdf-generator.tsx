@@ -59,9 +59,10 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 25,
     minHeight: 0, // Allow sections to break across pages
+    break: false, // Prevent breaking within section
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#2c3e50',
     marginBottom: 12,
@@ -99,12 +100,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
+    minHeight: 0,
   },
   chart: {
-    width: 480, // Fit within A4 page width (595 - 40*2 padding = 515, use 480 for safety)
-    height: 320, // Maintain 1.5:1 aspect ratio (600x400 original, scaled proportionally)
+    width: 515, // Fit within A4 page width (595 - 40*2 padding = 515)
+    height: 'auto', // Maintain aspect ratio
     marginBottom: 15,
-    alignSelf: 'center', // Center the image
+    alignSelf: 'center',
+    maxWidth: 515,
   },
   explanation: {
     backgroundColor: '#f8f9fa',
@@ -222,6 +225,22 @@ interface PDFSummary {
   totalPropertyDebt?: number;
   propertyEquity?: number;
   recommendations?: string[];
+  // Retirement projections
+  projectedRetirementNetWorth?: number;
+  projectedRetirementMonthlyCashFlow?: number;
+  projectedRetirementSurplus?: number;
+  projectedPropertyPortfolioValue?: number;
+  // Serviceability data
+  serviceability?: {
+    maxPropertyValue?: number;
+    maxMonthlyPayment?: number;
+    surplusIncome?: number;
+    loanToValueRatio?: number;
+    monthlyRentalIncome?: number;
+    totalMonthlyExpenses?: number;
+    isViable?: boolean;
+    reason?: string;
+  };
   [key: string]: any;
 }
 
@@ -343,13 +362,30 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
   const assetChart = getChartByType('assets');
   const cashFlowChart = getChartByType('cashflow');
   const retirementChart = getChartByType('retirement');
+  const detailedCashFlowChart = getChartByType('detailedCashFlow');
+  const financialPositionChart = getChartByType('financialPosition');
+  const detailedRetirementChart = getChartByType('detailedRetirement');
+  const taxOptimizationChart = getChartByType('taxOptimization');
+
+  // Calculate retirement projections
+  const projectedRetirementNetWorth = safeNumber(safeSummary.projectedRetirementNetWorth, netWorth * 1.5);
+  const projectedRetirementMonthlyCashFlow = safeNumber(safeSummary.projectedRetirementMonthlyCashFlow, monthlyCashFlow * 0.8);
+  const projectedRetirementSurplus = safeNumber(safeSummary.projectedRetirementSurplus, retirementDeficitSurplus);
+  const projectedPropertyPortfolioValue = safeNumber(safeSummary.projectedPropertyPortfolioValue, totalPropertyValue * 1.3);
+  
+  // Serviceability data
+  const serviceability = safeSummary.serviceability || {};
+  const maxPropertyValue = safeNumber(serviceability.maxPropertyValue, 0);
+  const surplusIncome = safeNumber(serviceability.surplusIncome, 0);
+  const monthlyRentalIncome = safeNumber(serviceability.monthlyRentalIncome, 0);
+  const isViable = safeBoolean(serviceability.isViable, false);
 
   const reportDate = format(new Date(), 'MMMM dd, yyyy');
   const clientFullName = `${safeString(safeClient.firstName)} ${safeString(safeClient.lastName)}`.trim() || clientName;
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page} wrap break>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
@@ -364,31 +400,68 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           <Text style={styles.reportTitle}>Financial Planning Report</Text>
         </View>
 
-        {/* Executive Summary */}
+        {/* Executive Summary with Comparisons */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Executive Summary</Text>
-          <View style={styles.summaryBox}>
-            <View style={styles.metricBox}>
-              <Text style={[styles.metricValue, { color: '#27ae60' }]}>
-                {formatCurrency(netWorth)}
-              </Text>
-              <Text style={styles.metricLabel}>Net Worth</Text>
+          
+          {/* Net Worth Comparison */}
+          <View style={{ marginBottom: 15 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, padding: 10, backgroundColor: '#f8f9fa' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Current Net Worth</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2c3e50' }}>
+                  {formatCurrency(netWorth)}
+                </Text>
+              </View>
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Projected at Retirement</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#27ae60' }}>
+                  {formatCurrency(projectedRetirementNetWorth)}
+                </Text>
+              </View>
             </View>
-            <View style={styles.metricBox}>
-              <Text style={[
-                styles.metricValue,
-                { color: monthlyCashFlow >= 0 ? '#27ae60' : '#e74c3c' }
-              ]}>
-                {formatCurrency(monthlyCashFlow)}
-              </Text>
-              <Text style={styles.metricLabel}>Monthly Cash Flow</Text>
+          </View>
+
+          {/* Monthly Cash Flow Comparison */}
+          <View style={{ marginBottom: 15 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, padding: 10, backgroundColor: '#f8f9fa' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Current Monthly Cash Flow</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: monthlyCashFlow >= 0 ? '#27ae60' : '#e74c3c' }}>
+                  {formatCurrency(monthlyCashFlow)}
+                </Text>
+              </View>
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Projected at Retirement</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: projectedRetirementMonthlyCashFlow >= 0 ? '#27ae60' : '#e74c3c' }}>
+                  {formatCurrency(projectedRetirementMonthlyCashFlow)}
+                </Text>
+              </View>
             </View>
-            <View style={styles.metricBox}>
-              <Text style={[styles.metricValue, { color: '#3498db' }]}>
-                {formatCurrency(taxSavings)}
-              </Text>
-              <Text style={styles.metricLabel}>Tax Savings Potential</Text>
-            </View>
+          </View>
+
+          {/* Retirement Surplus */}
+          <View style={{ marginBottom: 15, padding: 12, backgroundColor: projectedRetirementSurplus >= 0 ? '#e8f5e9' : '#ffebee', borderRadius: 5 }}>
+            <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Projected Retirement Surplus</Text>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: projectedRetirementSurplus >= 0 ? '#27ae60' : '#e74c3c' }}>
+              {formatCurrency(projectedRetirementSurplus)}
+            </Text>
+            <Text style={{ fontSize: 9, color: '#7f8c8d', marginTop: 4 }}>
+              {projectedRetirementSurplus >= 0 
+                ? 'You are on track for a comfortable retirement'
+                : 'Action required to meet retirement goals'}
+            </Text>
+          </View>
+
+          {/* Property Portfolio */}
+          <View style={{ marginBottom: 10, padding: 12, backgroundColor: '#e3f2fd', borderRadius: 5 }}>
+            <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Property Portfolio at Retirement</Text>
+            <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#2196f3' }}>
+              {formatCurrency(projectedPropertyPortfolioValue)}
+            </Text>
+            <Text style={{ fontSize: 9, color: '#7f8c8d', marginTop: 4 }}>
+              Current: {formatCurrency(totalPropertyValue)} | Equity: {formatCurrency(propertyEquity)}
+            </Text>
           </View>
         </View>
 
@@ -441,10 +514,18 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </View>
         </View>
 
-        {/* Assets & Liabilities Overview */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Assets & Liabilities Overview</Text>
-          {assetChart && (
+        {/* Detailed Financial Position */}
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Detailed Financial Position</Text>
+          {financialPositionChart ? (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={financialPositionChart} 
+                style={[styles.chart, { width: 520, height: 433 }]}
+                cache={false}
+              />
+            </View>
+          ) : assetChart ? (
             <View style={styles.chartContainer}>
               <Image 
                 src={assetChart} 
@@ -452,7 +533,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
                 cache={false}
               />
             </View>
-          )}
+          ) : null}
           <View style={styles.explanation}>
             <Text style={styles.explanationTitle}>Understanding Your Financial Position</Text>
             <Text style={styles.explanationText}>
@@ -462,15 +543,66 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
               • Asset allocation: Diversification across property, superannuation, and investments{'\n'}
               • Debt-to-asset ratio: {totalAssets > 0 ? ((totalLiabilities / totalAssets) * 100).toFixed(1) : 0}% 
               (lower is generally better){'\n'}
+              • Equity ratio: {totalAssets > 0 ? ((netWorth / totalAssets) * 100).toFixed(1) : 0}%{'\n'}
               • Recommendation: Focus on building assets while strategically managing debt
             </Text>
           </View>
         </View>
 
-        {/* Cash Flow Analysis */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cash Flow Analysis</Text>
-          {cashFlowChart && (
+        {/* Investment Property Potential */}
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Investment Property Potential</Text>
+          {isViable && maxPropertyValue > 0 ? (
+            <>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 15 }}>
+                <View style={styles.metricBox}>
+                  <Text style={[styles.metricValue, { fontSize: 18, color: '#2196f3' }]}>
+                    {formatCurrency(maxPropertyValue)}
+                  </Text>
+                  <Text style={styles.metricLabel}>Max Property Value</Text>
+                </View>
+                <View style={styles.metricBox}>
+                  <Text style={[styles.metricValue, { fontSize: 18, color: '#4caf50' }]}>
+                    {formatCurrency(surplusIncome)}
+                  </Text>
+                  <Text style={styles.metricLabel}>Monthly Surplus</Text>
+                </View>
+                <View style={styles.metricBox}>
+                  <Text style={[styles.metricValue, { fontSize: 18, color: '#ff9800' }]}>
+                    {formatCurrency(monthlyRentalIncome)}
+                  </Text>
+                  <Text style={styles.metricLabel}>Expected Rental Income</Text>
+                </View>
+              </View>
+              <View style={styles.highlightBox}>
+                <Text style={styles.explanationText}>
+                  Based on your surplus income above the 70% retention threshold, you have capacity to service an investment property. 
+                  The calculation assumes an {safeNumber(serviceability.loanToValueRatio, 0.8) * 100}% loan-to-value ratio and conservative rental yield assumptions.
+                </Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.warningBox}>
+              <Text style={styles.explanationTitle}>Limited Investment Potential</Text>
+              <Text style={styles.explanationText}>
+                {serviceability.reason || 'There is insufficient surplus income available for investment property serviceability after ensuring 70% of your current income in retirement.'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Detailed Cash Flow Analysis */}
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Detailed Cash Flow Breakdown</Text>
+          {detailedCashFlowChart ? (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={detailedCashFlowChart} 
+                style={[styles.chart, { width: 520, height: 390 }]}
+                cache={false}
+              />
+            </View>
+          ) : cashFlowChart ? (
             <View style={styles.chartContainer}>
               <Image 
                 src={cashFlowChart} 
@@ -478,7 +610,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
                 cache={false}
               />
             </View>
-          )}
+          ) : null}
           <View style={monthlyCashFlow >= 0 ? styles.highlightBox : styles.warningBox}>
             <Text style={styles.explanationTitle}>
               {monthlyCashFlow >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
@@ -492,10 +624,18 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </View>
         </View>
 
-        {/* Retirement Planning */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Retirement Planning</Text>
-          {retirementChart && (
+        {/* Detailed Retirement Projection */}
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Detailed Retirement Projection</Text>
+          {detailedRetirementChart ? (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={detailedRetirementChart} 
+                style={[styles.chart, { width: 520, height: 390 }]}
+                cache={false}
+              />
+            </View>
+          ) : retirementChart ? (
             <View style={styles.chartContainer}>
               <Image 
                 src={retirementChart} 
@@ -503,7 +643,27 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
                 cache={false}
               />
             </View>
-          )}
+          ) : null}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 15 }}>
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Years to Retirement</Text>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2196f3' }}>
+                {yearsToRetirement}
+              </Text>
+            </View>
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Projected Lump Sum</Text>
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#4caf50' }}>
+                {formatCurrency(projectedRetirementLumpSum)}
+              </Text>
+            </View>
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Monthly Surplus</Text>
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: projectedRetirementSurplus >= 0 ? '#4caf50' : '#e74c3c' }}>
+                {formatCurrency(projectedRetirementSurplus)}
+              </Text>
+            </View>
+          </View>
           <View style={isRetirementDeficit ? styles.warningBox : styles.highlightBox}>
             <Text style={styles.explanationTitle}>
               {isRetirementDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
@@ -512,6 +672,31 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
               {isRetirementDeficit
                 ? `Based on current projections, you may face a retirement shortfall. With ${yearsToRetirement} years until retirement, consider increasing superannuation contributions or adjusting your retirement timeline.`
                 : `Your retirement planning is on track. Your projected retirement lump sum of ${formatCurrency(projectedRetirementLumpSum)} provides a solid foundation for your retirement years.`
+              }
+            </Text>
+          </View>
+        </View>
+
+        {/* Tax Optimization */}
+        <View style={styles.section} wrap={false}>
+          <Text style={styles.sectionTitle}>Tax Optimization Analysis</Text>
+          {taxOptimizationChart ? (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={taxOptimizationChart} 
+                style={[styles.chart, { width: 520, height: 347 }]}
+                cache={false}
+              />
+            </View>
+          ) : null}
+          <View style={taxSavings > 0 ? styles.highlightBox : styles.recommendationBox}>
+            <Text style={styles.explanationTitle}>
+              {taxSavings > 0 ? 'Tax Optimization Opportunity' : 'Tax Assessment'}
+            </Text>
+            <Text style={styles.explanationText}>
+              {taxSavings > 0
+                ? `Current annual tax: ${formatCurrency(currentTax)} | Optimized annual tax: ${formatCurrency(optimizedTax)} | Potential annual savings: ${formatCurrency(taxSavings)}`
+                : `Your current annual tax is ${formatCurrency(currentTax)}. Consider exploring tax optimization strategies such as additional deductions, negative gearing opportunities, or superannuation contributions.`
               }
             </Text>
           </View>
