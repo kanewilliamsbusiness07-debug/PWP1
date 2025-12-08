@@ -745,8 +745,9 @@ export default function SummaryPage() {
 
         // Call pdf() with the component element
         // The library will render the component and extract the Document
+        // Type assertion needed because pdf() accepts components that return Document elements
         console.log('🔄 Calling pdf() with component element...');
-        const pdfInstance = pdf(pdfDocument);
+        const pdfInstance = pdf(pdfDocument as any);
         
         if (!pdfInstance) {
           throw new Error('PDF instance is null or undefined');
