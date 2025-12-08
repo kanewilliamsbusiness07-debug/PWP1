@@ -578,126 +578,223 @@ export default function SummaryPage() {
       // Step 4: Create PDF using React.createElement (NO JSX!)
       console.log('📄 Creating PDF document...');
       
-      // Build page children array, filtering out null/undefined
-      const pageChildren: any[] = [
-        // Header
+      // Ensure pdfStyles is defined and all properties exist
+      // Create plain objects to avoid prototype chain issues
+      const safeStyles = {
+        page: pdfStyles?.page ? { ...pdfStyles.page } : { padding: 30, backgroundColor: '#ffffff' },
+        header: pdfStyles?.header ? { ...pdfStyles.header } : { marginBottom: 20 },
+        title: pdfStyles?.title ? { ...pdfStyles.title } : { fontSize: 24, marginBottom: 10, color: '#000000' },
+        section: pdfStyles?.section ? { ...pdfStyles.section } : { marginBottom: 15 },
+        subtitle: pdfStyles?.subtitle ? { ...pdfStyles.subtitle } : { fontSize: 16, marginBottom: 8, fontWeight: 'bold', color: '#333333' },
+        row: pdfStyles?.row ? { ...pdfStyles.row } : { flexDirection: 'row', marginBottom: 5 },
+        label: pdfStyles?.label ? { ...pdfStyles.label } : { width: '50%', fontSize: 12, color: '#666666' },
+        value: pdfStyles?.value ? { ...pdfStyles.value } : { width: '50%', fontSize: 12, color: '#000000' },
+        chart: pdfStyles?.chart ? { ...pdfStyles.chart } : { width: '100%', height: 200, marginTop: 10 },
+      };
+      
+      // Remove any undefined values from style objects
+      Object.keys(safeStyles).forEach(key => {
+        const style = safeStyles[key as keyof typeof safeStyles];
+        if (style && typeof style === 'object') {
+          Object.keys(style).forEach(prop => {
+            if (style[prop as keyof typeof style] === undefined) {
+              delete style[prop as keyof typeof style];
+            }
+          });
+        }
+      });
+      
+      // Build page children array, ensuring all props are properly defined
+      const pageChildren: any[] = [];
+      
+      // Header
+      pageChildren.push(
         React.createElement(
           View,
-          { key: 'header', style: pdfStyles.header || {} },
-          React.createElement(Text, { style: pdfStyles.title || {} }, 'Financial Summary Report'),
+          { key: 'header', style: safeStyles.header },
+          React.createElement(Text, { style: safeStyles.title }, 'Financial Summary Report'),
           React.createElement(Text, { style: { fontSize: 12, marginBottom: 5 } }, `Client: ${clientName}`),
           React.createElement(Text, { style: { fontSize: 12 } }, `Date: ${new Date().toLocaleDateString()}`)
-        ),
-        
-        // Financial Overview
+        )
+      );
+      
+      // Financial Overview
+      pageChildren.push(
         React.createElement(
           View,
-          { key: 'overview', style: pdfStyles.section || {} },
-          React.createElement(Text, { style: pdfStyles.subtitle || {} }, 'Financial Overview'),
+          { key: 'overview', style: safeStyles.section },
+          React.createElement(Text, { style: safeStyles.subtitle }, 'Financial Overview'),
           React.createElement(
             View,
-            { style: pdfStyles.row || {} },
-            React.createElement(Text, { style: pdfStyles.label || {} }, 'Total Assets:'),
-            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(totalAssets))
+            { style: safeStyles.row },
+            React.createElement(Text, { style: safeStyles.label }, 'Total Assets:'),
+            React.createElement(Text, { style: safeStyles.value }, formatCurrency(totalAssets))
           ),
           React.createElement(
             View,
-            { style: pdfStyles.row || {} },
-            React.createElement(Text, { style: pdfStyles.label || {} }, 'Total Liabilities:'),
-            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(totalLiabilities))
+            { style: safeStyles.row },
+            React.createElement(Text, { style: safeStyles.label }, 'Total Liabilities:'),
+            React.createElement(Text, { style: safeStyles.value }, formatCurrency(totalLiabilities))
           ),
           React.createElement(
             View,
-            { style: pdfStyles.row || {} },
-            React.createElement(Text, { style: pdfStyles.label || {} }, 'Net Worth:'),
-            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(netWorth))
+            { style: safeStyles.row },
+            React.createElement(Text, { style: safeStyles.label }, 'Net Worth:'),
+            React.createElement(Text, { style: safeStyles.value }, formatCurrency(netWorth))
           )
-        ),
-        
-        // Cash Flow
+        )
+      );
+      
+      // Cash Flow
+      pageChildren.push(
         React.createElement(
           View,
-          { key: 'cashflow', style: pdfStyles.section || {} },
-          React.createElement(Text, { style: pdfStyles.subtitle || {} }, 'Cash Flow Analysis'),
+          { key: 'cashflow', style: safeStyles.section },
+          React.createElement(Text, { style: safeStyles.subtitle }, 'Cash Flow Analysis'),
           React.createElement(
             View,
-            { style: pdfStyles.row || {} },
-            React.createElement(Text, { style: pdfStyles.label || {} }, 'Monthly Income:'),
-            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(monthlyIncome))
+            { style: safeStyles.row },
+            React.createElement(Text, { style: safeStyles.label }, 'Monthly Income:'),
+            React.createElement(Text, { style: safeStyles.value }, formatCurrency(monthlyIncome))
           ),
           React.createElement(
             View,
-            { style: pdfStyles.row || {} },
-            React.createElement(Text, { style: pdfStyles.label || {} }, 'Monthly Expenses:'),
-            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(monthlyExpenses))
+            { style: safeStyles.row },
+            React.createElement(Text, { style: safeStyles.label }, 'Monthly Expenses:'),
+            React.createElement(Text, { style: safeStyles.value }, formatCurrency(monthlyExpenses))
           ),
           React.createElement(
             View,
-            { style: pdfStyles.row || {} },
-            React.createElement(Text, { style: pdfStyles.label || {} }, 'Net Monthly:'),
-            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(monthlyIncome - monthlyExpenses))
+            { style: safeStyles.row },
+            React.createElement(Text, { style: safeStyles.label }, 'Net Monthly:'),
+            React.createElement(Text, { style: safeStyles.value }, formatCurrency(monthlyIncome - monthlyExpenses))
           )
-        ),
-      ];
-
-      // Add charts only if they exist and are valid strings
-      if (chartNetWorth && typeof chartNetWorth === 'string' && chartNetWorth.length > 0) {
-        pageChildren.push(
-          React.createElement(
-            View,
-            { key: 'chart-networth', style: pdfStyles.section || {} },
-            React.createElement(Text, { style: pdfStyles.subtitle || {} }, 'Net Worth Chart'),
-            React.createElement(Image, { src: chartNetWorth, style: pdfStyles.chart || {} })
-          )
-        );
-      }
-
-      if (chartCashFlow && typeof chartCashFlow === 'string' && chartCashFlow.length > 0) {
-        pageChildren.push(
-          React.createElement(
-            View,
-            { key: 'chart-cashflow', style: pdfStyles.section || {} },
-            React.createElement(Text, { style: pdfStyles.subtitle || {} }, 'Cash Flow Chart'),
-            React.createElement(Image, { src: chartCashFlow, style: pdfStyles.chart || {} })
-          )
-        );
-      }
-
-      if (chartAssets && typeof chartAssets === 'string' && chartAssets.length > 0) {
-        pageChildren.push(
-          React.createElement(
-            View,
-            { key: 'chart-assets', style: pdfStyles.section || {} },
-            React.createElement(Text, { style: pdfStyles.subtitle || {} }, 'Asset Allocation'),
-            React.createElement(Image, { src: chartAssets, style: pdfStyles.chart || {} })
-          )
-        );
-      }
-
-      // Filter out any null/undefined children
-      const validPageChildren = pageChildren.filter(child => child != null);
-
-      // Create Page with valid children
-      const page = React.createElement(
-        Page,
-        { 
-          key: 'page-1',
-          size: 'A4', 
-          style: pdfStyles.page || {} 
-        },
-        ...validPageChildren
+        )
       );
 
-      // Create Document with proper props
+      // Add charts only if they exist and are valid strings
+      if (chartNetWorth && typeof chartNetWorth === 'string' && chartNetWorth.length > 0 && chartNetWorth.startsWith('data:image/')) {
+        pageChildren.push(
+          React.createElement(
+            View,
+            { key: 'chart-networth', style: safeStyles.section },
+            React.createElement(Text, { style: safeStyles.subtitle }, 'Net Worth Chart'),
+            React.createElement(Image, { src: chartNetWorth, style: safeStyles.chart })
+          )
+        );
+      }
+
+      if (chartCashFlow && typeof chartCashFlow === 'string' && chartCashFlow.length > 0 && chartCashFlow.startsWith('data:image/')) {
+        pageChildren.push(
+          React.createElement(
+            View,
+            { key: 'chart-cashflow', style: safeStyles.section },
+            React.createElement(Text, { style: safeStyles.subtitle }, 'Cash Flow Chart'),
+            React.createElement(Image, { src: chartCashFlow, style: safeStyles.chart })
+          )
+        );
+      }
+
+      if (chartAssets && typeof chartAssets === 'string' && chartAssets.length > 0 && chartAssets.startsWith('data:image/')) {
+        pageChildren.push(
+          React.createElement(
+            View,
+            { key: 'chart-assets', style: safeStyles.section },
+            React.createElement(Text, { style: safeStyles.subtitle }, 'Asset Allocation'),
+            React.createElement(Image, { src: chartAssets, style: safeStyles.chart })
+          )
+        );
+      }
+
+      // Validate all children are valid before creating Page
+      const finalChildren = pageChildren.filter((child, index) => {
+        if (child == null) {
+          console.warn(`Filtering out null/undefined child at index ${index}`);
+          return false;
+        }
+        if (typeof child !== 'object') {
+          console.warn(`Filtering out invalid child at index ${index}:`, typeof child);
+          return false;
+        }
+        // Ensure it's a valid React element (has type property)
+        if (!('type' in child) && !('$$typeof' in child)) {
+          console.warn(`Filtering out child at index ${index} - not a valid React element`);
+          return false;
+        }
+        return true;
+      });
+
+      if (finalChildren.length === 0) {
+        throw new Error('No valid content to generate PDF - all children were filtered out');
+      }
+
+      // Create Page with valid children
+      const pageProps: any = { 
+        size: 'A4', 
+        style: safeStyles.page 
+      };
+      
+      // Ensure pageProps is a plain object with no undefined values
+      Object.keys(pageProps).forEach(key => {
+        if (pageProps[key] === undefined) {
+          delete pageProps[key];
+        }
+      });
+
+      const page = React.createElement(
+        Page,
+        pageProps,
+        ...finalChildren
+      );
+
+      // Create Document - ensure no undefined props
+      const documentProps: any = {};
       const pdfDocument = React.createElement(
         Document,
-        {},
+        documentProps,
         page
       );
 
-      // Step 5: Generate blob
+      // Step 5: Validate document before generating blob
+      console.log('🔄 Validating PDF document...');
+      if (!pdfDocument) {
+        throw new Error('PDF document is null or undefined');
+      }
+      if (typeof pdfDocument !== 'object') {
+        throw new Error(`PDF document is not an object: ${typeof pdfDocument}`);
+      }
+      if (!page) {
+        throw new Error('PDF page is null or undefined');
+      }
+      
       console.log('🔄 Generating PDF blob...');
-      const pdfBlob = await pdf(pdfDocument).toBlob();
+      
+      // Ensure pdf function is available and callable
+      if (typeof pdf !== 'function') {
+        throw new Error('PDF generation function is not available');
+      }
+      
+      // Generate blob with error handling
+      let pdfBlob: Blob;
+      try {
+        const pdfInstance = pdf(pdfDocument);
+        if (!pdfInstance || typeof pdfInstance.toBlob !== 'function') {
+          throw new Error('PDF instance does not have toBlob method');
+        }
+        pdfBlob = await pdfInstance.toBlob();
+      } catch (pdfError: any) {
+        console.error('Error in pdf() or toBlob():', pdfError);
+        // Provide more context about what might be wrong
+        if (pdfError?.message?.includes('hasOwnProperty')) {
+          throw new Error('PDF generation failed: Invalid document structure. Please ensure all data is properly filled in.');
+        }
+        throw pdfError;
+      }
+      
+      if (!pdfBlob || !(pdfBlob instanceof Blob)) {
+        throw new Error('PDF blob generation returned invalid result');
+      }
+      
       console.log('✓ PDF blob created:', pdfBlob.size, 'bytes');
       
       // Generate filename
