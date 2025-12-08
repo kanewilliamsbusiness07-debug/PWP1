@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 const styles = StyleSheet.create({
   page: {
     padding: 40,
+    paddingBottom: 60, // Extra space for footer
     fontFamily: 'Helvetica',
     fontSize: 11,
     lineHeight: 1.6,
@@ -57,6 +58,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 25,
+    minHeight: 0, // Allow sections to break across pages
   },
   sectionTitle: {
     fontSize: 16,
@@ -95,12 +97,14 @@ const styles = StyleSheet.create({
   chartContainer: {
     marginVertical: 15,
     alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   chart: {
-    width: '100%',
-    maxWidth: 500,
-    height: 250,
+    width: 480, // Fit within A4 page width (595 - 40*2 padding = 515, use 480 for safety)
+    height: 320, // Maintain 1.5:1 aspect ratio (600x400 original, scaled proportionally)
     marginBottom: 15,
+    alignSelf: 'center', // Center the image
   },
   explanation: {
     backgroundColor: '#f8f9fa',
@@ -153,10 +157,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 20,
     left: 40,
     right: 40,
     paddingTop: 10,
+    height: 30,
   },
   footerText: {
     textAlign: 'center',
@@ -392,7 +397,11 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           <Text style={styles.sectionTitle}>Income Analysis</Text>
           {incomeChart && (
             <View style={styles.chartContainer}>
-              <Image src={incomeChart} style={styles.chart} />
+              <Image 
+                src={incomeChart} 
+                style={styles.chart}
+                cache={false}
+              />
             </View>
           )}
           <View style={styles.explanation}>
@@ -412,7 +421,11 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           <Text style={styles.sectionTitle}>Expense Breakdown</Text>
           {expenseChart && (
             <View style={styles.chartContainer}>
-              <Image src={expenseChart} style={styles.chart} />
+              <Image 
+                src={expenseChart} 
+                style={styles.chart}
+                cache={false}
+              />
             </View>
           )}
           <View style={styles.explanation}>
@@ -433,7 +446,11 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           <Text style={styles.sectionTitle}>Assets & Liabilities Overview</Text>
           {assetChart && (
             <View style={styles.chartContainer}>
-              <Image src={assetChart} style={styles.chart} />
+              <Image 
+                src={assetChart} 
+                style={styles.chart}
+                cache={false}
+              />
             </View>
           )}
           <View style={styles.explanation}>
@@ -455,7 +472,11 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           <Text style={styles.sectionTitle}>Cash Flow Analysis</Text>
           {cashFlowChart && (
             <View style={styles.chartContainer}>
-              <Image src={cashFlowChart} style={styles.chart} />
+              <Image 
+                src={cashFlowChart} 
+                style={styles.chart}
+                cache={false}
+              />
             </View>
           )}
           <View style={monthlyCashFlow >= 0 ? styles.highlightBox : styles.warningBox}>
@@ -476,7 +497,11 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           <Text style={styles.sectionTitle}>Retirement Planning</Text>
           {retirementChart && (
             <View style={styles.chartContainer}>
-              <Image src={retirementChart} style={styles.chart} />
+              <Image 
+                src={retirementChart} 
+                style={styles.chart}
+                cache={false}
+              />
             </View>
           )}
           <View style={isRetirementDeficit ? styles.warningBox : styles.highlightBox}>
