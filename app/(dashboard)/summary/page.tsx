@@ -926,14 +926,12 @@ export default function SummaryPage() {
         };
         
         // CRITICAL FIX: The library may be accessing React element internals that don't exist
-        // Create the element using JSX which ensures all React internals are properly set
-        // JSX creates elements with _owner, _store, etc. that the library may need
-        const finalPdfDocument = (
-          <PDFReport
-            summary={cleanedProps.summary}
-            chartImages={cleanedProps.chartImages}
-            clientData={cleanedProps.clientData}
-          />
+        // Try using React.createElement with explicit type and props
+        // This ensures the element is created with all necessary React internals
+        const finalPdfDocument = React.createElement(
+          PDFReport,
+          cleanedProps,
+          null
         );
 
         // Validate the final element
@@ -970,14 +968,47 @@ export default function SummaryPage() {
           propsPrototype: finalPdfDocument?.props ? (Object.getPrototypeOf(finalPdfDocument.props) === null ? 'null' : 'Object') : 'no props',
         });
 
-        // CRITICAL FIX: The library may be accessing React element internals that are undefined
-        // Create a wrapper that ensures the component is properly invoked
-        // The issue is that pdf() may be trying to access properties on the component function itself
+        // CRITICAL FIX: This is a known React 18 compatibility issue with @react-pdf/renderer
+        // The library tries to access hasOwnProperty on undefined objects during component processing
+        // WORKAROUND: Use a try-catch and if it fails, try with a completely fresh element structure
         console.log('🔄 Calling pdf() with component element...');
         
-        // Try calling pdf() directly - if it fails with hasOwnProperty, the issue is in the library's processing
-        // The library should handle React components that return Document elements
-        const pdfInstance = pdf(finalPdfDocument as any);
+        let pdfInstance;
+        try {
+          // First attempt: Use JSX to create element with all React internals
+          const pdfDocument = (
+            <PDFReport
+              summary={cleanedProps.summary}
+              chartImages={cleanedProps.chartImages}
+              clientData={cleanedProps.clientData}
+            />
+          );
+          pdfInstance = pdf(pdfDocument as any);
+        } catch (firstError: any) {
+          // If first attempt fails with hasOwnProperty error, try alternative approach
+          if (firstError?.message?.includes('hasOwnProperty') || firstError?.message?.includes('undefined')) {
+            console.warn('First attempt failed, trying alternative approach...');
+            
+            // Alternative: Create element using React.createElement with explicit structure
+            // Ensure all props are plain objects with no undefined values
+            const altProps = {
+              summary: JSON.parse(JSON.stringify(cleanedProps.summary)),
+              chartImages: JSON.parse(JSON.stringify(cleanedProps.chartImages)),
+              clientData: JSON.parse(JSON.stringify(cleanedProps.clientData)),
+            };
+            
+            // Create a wrapper function component to ensure proper React structure
+            const PDFWrapper = function() {
+              return React.createElement(PDFReport, altProps, null);
+            };
+            PDFWrapper.displayName = 'PDFWrapper';
+            
+            const altDocument = React.createElement(PDFWrapper, {}, null);
+            pdfInstance = pdf(altDocument as any);
+          } else {
+            throw firstError;
+          }
+        }
         
         if (!pdfInstance) {
           throw new Error('PDF instance is null or undefined');
