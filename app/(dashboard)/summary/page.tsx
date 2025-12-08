@@ -800,15 +800,27 @@ export default function SummaryPage() {
       // Generate blob with error handling
       let pdfBlob: Blob;
       try {
-        // Use JSX to create the element with clean, plain object props
-        // This ensures all objects have the proper Object prototype
-        const pdfDocument = (
-          <PDFReport
-            summary={cleanSummary}
-            chartImages={cleanChartImages}
-            clientData={cleanClientData}
-          />
-        );
+        // CRITICAL FIX: Create a wrapper component that ensures all props are properly defined
+        // This prevents the library from encountering undefined when accessing properties via hasOwnProperty
+        const PDFWrapper = () => {
+          // Ensure all props are defined with defaults before passing to PDFReport
+          // This prevents undefined values that cause hasOwnProperty errors
+          const safeSummary = cleanSummary || {};
+          const safeChartImages = Array.isArray(cleanChartImages) ? cleanChartImages : [];
+          const safeClientData = cleanClientData || {};
+          
+          return (
+            <PDFReport
+              summary={safeSummary}
+              chartImages={safeChartImages}
+              clientData={safeClientData}
+            />
+          );
+        };
+
+        // Use JSX to create the wrapper element
+        // The wrapper ensures all props are defined before the library processes them
+        const pdfDocument = <PDFWrapper />;
 
         // Validate the element was created correctly
         if (!pdfDocument) {
@@ -826,6 +838,16 @@ export default function SummaryPage() {
           throw new Error('PDF document element is missing props property');
         }
 
+        // Ensure props object exists and has proper prototype (not null prototype)
+        // This is critical - the library uses hasOwnProperty which requires Object prototype
+        if (pdfDocument.props && typeof pdfDocument.props === 'object') {
+          const propsProto = Object.getPrototypeOf(pdfDocument.props);
+          if (propsProto === null) {
+            // Recreate props with proper Object prototype
+            pdfDocument.props = Object.assign({}, pdfDocument.props);
+          }
+        }
+
         // Log the document structure for debugging
         console.log('📄 PDF Document element type:', typeof pdfDocument);
         console.log('📄 PDF Document structure:', {
@@ -833,10 +855,11 @@ export default function SummaryPage() {
           props: pdfDocument?.props ? Object.keys(pdfDocument.props) : 'no props',
           hasType: !!pdfDocument?.type,
           hasProps: !!pdfDocument?.props,
+          propsPrototype: pdfDocument?.props ? (Object.getPrototypeOf(pdfDocument.props) === null ? 'null' : 'Object') : 'no props',
         });
 
-        // Call pdf() with the component element
-        // The clean props ensure no prototype chain issues
+        // Call pdf() with the wrapper component element
+        // The wrapper ensures all nested props are defined before the library accesses them
         console.log('🔄 Calling pdf() with component element...');
         const pdfInstance = pdf(pdfDocument as any);
         
