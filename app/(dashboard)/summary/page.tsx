@@ -778,11 +778,10 @@ export default function SummaryPage() {
         // Continue anyway - the validation should have caught any real issues
       }
 
-      // Step 5: Create PDF document using JSX syntax
-      // JSX creates React elements with all necessary internals for @react-pdf/renderer
+      // Step 5: Create PDF document using JSX with ensured plain object props
       console.log('🔄 Creating PDF document element...');
       
-      // Ensure pdf function is available and callable
+      // Ensure pdf function is available
       if (typeof pdf !== 'function') {
         throw new Error('PDF generation function is not available');
       }
@@ -792,16 +791,22 @@ export default function SummaryPage() {
         throw new Error('PDFReport component is not available');
       }
       
+      // CRITICAL: Ensure all props are plain objects (not class instances, not null prototype)
+      // Create fresh plain objects to avoid any prototype chain issues
+      const cleanSummary = JSON.parse(JSON.stringify(pdfReportProps.summary));
+      const cleanChartImages = JSON.parse(JSON.stringify(pdfReportProps.chartImages));
+      const cleanClientData = JSON.parse(JSON.stringify(pdfReportProps.clientData));
+      
       // Generate blob with error handling
       let pdfBlob: Blob;
       try {
-        // Use JSX to create the element - this ensures all React internals are present
-        // The library needs proper React element structure with _owner, _store, etc.
+        // Use JSX to create the element with clean, plain object props
+        // This ensures all objects have the proper Object prototype
         const pdfDocument = (
           <PDFReport
-            summary={pdfReportProps.summary}
-            chartImages={pdfReportProps.chartImages}
-            clientData={pdfReportProps.clientData}
+            summary={cleanSummary}
+            chartImages={cleanChartImages}
+            clientData={cleanClientData}
           />
         );
 
@@ -831,8 +836,7 @@ export default function SummaryPage() {
         });
 
         // Call pdf() with the component element
-        // The library will render the component and extract the Document
-        // Type assertion needed because pdf() accepts components that return Document elements
+        // The clean props ensure no prototype chain issues
         console.log('🔄 Calling pdf() with component element...');
         const pdfInstance = pdf(pdfDocument as any);
         
