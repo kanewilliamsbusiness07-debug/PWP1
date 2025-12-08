@@ -595,9 +595,11 @@ export default function SummaryPage() {
       }
       
       // Generate blob with error handling
+      // Note: pdfDocument is a PDFReport component element, which renders to a Document
+      // The pdf() function accepts React elements, so we cast to satisfy TypeScript
       let pdfBlob: Blob;
       try {
-        const pdfInstance = pdf(pdfDocument);
+        const pdfInstance = pdf(pdfDocument as any);
         if (!pdfInstance || typeof pdfInstance.toBlob !== 'function') {
           throw new Error('PDF instance does not have toBlob method');
         }
