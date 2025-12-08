@@ -56,28 +56,35 @@ export async function generateIncomeChart(data: IncomeChartData): Promise<string
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 400;
+    // High resolution for PDF - 3x scale for crisp rendering
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 800 * scale;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
       return '';
     }
 
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 800;
+
   // Background
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, baseWidth, baseHeight);
 
   // Title
   ctx.fillStyle = '#2c3e50';
-  ctx.font = 'bold 20px Arial';
+  ctx.font = 'bold 24px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Annual Income Breakdown', canvas.width / 2, 30);
+  ctx.fillText('Annual Income Breakdown', baseWidth / 2, 40);
 
   // Pie chart
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2 + 20;
-  const radius = 120;
+  const centerX = baseWidth / 2;
+  const centerY = baseHeight / 2 + 30;
+  const radius = 180;
   let currentAngle = -Math.PI / 2;
 
   const colors = ['#3498db', '#2ecc71', '#f39c12', '#e74c3c'];
@@ -108,7 +115,7 @@ export async function generateIncomeChart(data: IncomeChartData): Promise<string
     const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
     
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px Arial';
+    ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(
       `${((item.value / total) * 100).toFixed(0)}%`,
@@ -120,23 +127,23 @@ export async function generateIncomeChart(data: IncomeChartData): Promise<string
   });
 
   // Legend
-  let legendY = centerY + radius + 40;
+  let legendY = centerY + radius + 60;
   items.forEach((item, index) => {
-    const x = 50 + (index % 2) * 250;
-    const y = legendY + Math.floor(index / 2) * 30;
+    const x = 80 + (index % 2) * 500;
+    const y = legendY + Math.floor(index / 2) * 45;
 
     // Color box
     ctx.fillStyle = item.color;
-    ctx.fillRect(x, y - 10, 15, 15);
+    ctx.fillRect(x, y - 12, 20, 20);
 
     // Label
     ctx.fillStyle = '#2c3e50';
-    ctx.font = '12px Arial';
+    ctx.font = '16px Arial';
     ctx.textAlign = 'left';
     ctx.fillText(
       `${item.label}: $${item.value.toLocaleString()}`,
-      x + 20,
-      y + 2
+      x + 30,
+      y + 5
     );
   });
 
@@ -161,20 +168,20 @@ export async function generateExpenseChart(data: ExpenseChartData): Promise<stri
     }
 
     const canvas = document.createElement('canvas');
-    // Higher resolution for better quality in PDF
-    canvas.width = 1200;
-    canvas.height = 800;
+    // High resolution for PDF - 3x scale for crisp rendering
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 800 * scale;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
       return '';
     }
 
-  // Scale context for higher resolution
-  const scale = 2;
-  ctx.scale(scale, scale);
-  const baseWidth = canvas.width / scale;
-  const baseHeight = canvas.height / scale;
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 800;
 
   // Background
   ctx.fillStyle = '#ffffff';
@@ -182,9 +189,9 @@ export async function generateExpenseChart(data: ExpenseChartData): Promise<stri
 
   // Title
   ctx.fillStyle = '#2c3e50';
-  ctx.font = 'bold 20px Arial';
+  ctx.font = 'bold 24px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Annual Expenses Breakdown', baseWidth / 2, 30);
+  ctx.fillText('Annual Expenses Breakdown', baseWidth / 2, 40);
 
   const items = [
     { label: 'Work Related', value: data.workRelated, color: '#3498db' },
@@ -194,12 +201,12 @@ export async function generateExpenseChart(data: ExpenseChartData): Promise<stri
     { label: 'Home Office', value: data.homeOffice, color: '#9b59b6' },
   ].filter(item => item.value > 0);
 
-  const maxValue = Math.max(...items.map(item => item.value));
-  const barWidth = 80;
-  const barSpacing = 20;
-  const chartHeight = 250;
-  const chartY = 80;
-  const chartX = 50;
+  const maxValue = Math.max(...items.map(item => item.value), 1) * 1.2; // Add grace for better visual
+  const barWidth = 120;
+  const barSpacing = 30;
+  const chartHeight = 400;
+  const chartY = 120;
+  const chartX = 100;
 
   // Draw bars
   items.forEach((item, index) => {
@@ -212,23 +219,23 @@ export async function generateExpenseChart(data: ExpenseChartData): Promise<stri
     ctx.fillRect(x, y, barWidth, barHeight);
 
     // Value label on bar
-    if (barHeight > 20) {
+    if (barHeight > 30) {
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 11px Arial';
+      ctx.font = 'bold 16px Arial';
       ctx.textAlign = 'center';
       ctx.fillText(
         `$${(item.value / 1000).toFixed(0)}k`,
         x + barWidth / 2,
-        y + barHeight / 2 + 4
+        y + barHeight / 2 + 6
       );
     }
 
     // Category label
     ctx.fillStyle = '#2c3e50';
-    ctx.font = '10px Arial';
+    ctx.font = '14px Arial';
     ctx.textAlign = 'center';
     ctx.save();
-    ctx.translate(x + barWidth / 2, chartY + chartHeight + 20);
+    ctx.translate(x + barWidth / 2, chartY + chartHeight + 30);
     ctx.rotate(-Math.PI / 4);
     ctx.fillText(item.label, 0, 0);
     ctx.restore();
@@ -236,19 +243,21 @@ export async function generateExpenseChart(data: ExpenseChartData): Promise<stri
 
   // Y-axis labels
   ctx.fillStyle = '#7f8c8d';
-  ctx.font = '10px Arial';
+  ctx.font = '14px Arial';
   ctx.textAlign = 'right';
   for (let i = 0; i <= 5; i++) {
     const value = (maxValue / 5) * i;
     const y = chartY + chartHeight - (i / 5) * chartHeight;
-    ctx.fillText(`$${(value / 1000).toFixed(0)}k`, chartX - 10, y + 4);
+    ctx.fillText(`$${(value / 1000).toFixed(0)}k`, chartX - 15, y + 6);
   }
 
-    return canvas.toDataURL('image/png');
+    // Convert to high-quality PNG
+    return canvas.toDataURL('image/png', 1.0);
   } catch (error) {
     console.error('Error generating expense chart:', error);
     return '';
   }
+}
 }
 
 /**
@@ -270,30 +279,36 @@ export async function generateAssetLiabilityChart(
     }
 
     const canvas = document.createElement('canvas');
-    // Higher resolution for better quality in PDF
-    canvas.width = 1200;
-    canvas.height = 1000;
+    // High resolution for PDF - 3x scale for crisp rendering
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 1000 * scale;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
       return '';
     }
 
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 1000;
+
   // Background
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, baseWidth, baseHeight);
 
   // Title
   ctx.fillStyle = '#2c3e50';
-  ctx.font = 'bold 20px Arial';
+  ctx.font = 'bold 24px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Assets vs Liabilities', canvas.width / 2, 30);
+  ctx.fillText('Assets vs Liabilities', baseWidth / 2, 40);
 
   // Assets donut chart
-  const centerX1 = canvas.width / 4;
-  const centerY = canvas.height / 2 + 30;
-  const radius = 100;
-  const innerRadius = 60;
+  const centerX1 = baseWidth / 4;
+  const centerY = baseHeight / 2 + 40;
+  const radius = 140;
+  const innerRadius = 85;
 
   const assetColors = ['#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#9b59b6', '#1abc9c', '#34495e'];
   const assetItems = [
@@ -326,14 +341,14 @@ export async function generateAssetLiabilityChart(
 
   // Center text for assets
   ctx.fillStyle = '#2c3e50';
-  ctx.font = 'bold 14px Arial';
+  ctx.font = 'bold 18px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Assets', centerX1, centerY - 5);
-  ctx.font = '12px Arial';
-  ctx.fillText(`$${totalAssets.toLocaleString()}`, centerX1, centerY + 12);
+  ctx.fillText('Assets', centerX1, centerY - 8);
+  ctx.font = '16px Arial';
+  ctx.fillText(`$${totalAssets.toLocaleString()}`, centerX1, centerY + 16);
 
   // Liabilities donut chart
-  const centerX2 = (canvas.width * 3) / 4;
+  const centerX2 = (baseWidth * 3) / 4;
   const liabilityColors = ['#e74c3c', '#c0392b', '#d35400', '#8e44ad', '#7f8c8d'];
   const liabilityItems = [
     { label: 'Home Loan', value: liabilities.homeLoan, color: liabilityColors[0] },
@@ -362,22 +377,23 @@ export async function generateAssetLiabilityChart(
 
   // Center text for liabilities
   ctx.fillStyle = '#2c3e50';
-  ctx.font = 'bold 14px Arial';
+  ctx.font = 'bold 18px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Liabilities', centerX2, centerY - 5);
-  ctx.font = '12px Arial';
-  ctx.fillText(`$${totalLiabilities.toLocaleString()}`, centerX2, centerY + 12);
+  ctx.fillText('Liabilities', centerX2, centerY - 8);
+  ctx.font = '16px Arial';
+  ctx.fillText(`$${totalLiabilities.toLocaleString()}`, centerX2, centerY + 16);
 
     // Net worth display
     const netWorth = totalAssets - totalLiabilities;
     ctx.fillStyle = netWorth >= 0 ? '#27ae60' : '#e74c3c';
-    ctx.font = 'bold 18px Arial';
+    ctx.font = 'bold 22px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Net Worth', canvas.width / 2, centerY + radius + 40);
-    ctx.font = 'bold 24px Arial';
-    ctx.fillText(`$${netWorth.toLocaleString()}`, canvas.width / 2, centerY + radius + 65);
+    ctx.fillText('Net Worth', baseWidth / 2, centerY + radius + 50);
+    ctx.font = 'bold 32px Arial';
+    ctx.fillText(`$${netWorth.toLocaleString()}`, baseWidth / 2, centerY + radius + 85);
 
-    return canvas.toDataURL('image/png');
+    // Convert to high-quality PNG
+    return canvas.toDataURL('image/png', 1.0);
   } catch (error) {
     console.error('Error generating asset/liability chart:', error);
     return '';
@@ -395,30 +411,36 @@ export async function generateCashFlowChart(income: number, expenses: number): P
     }
 
     const canvas = document.createElement('canvas');
-    // Higher resolution for better quality in PDF
-    canvas.width = 1200;
-    canvas.height = 800;
+    // High resolution for PDF - 3x scale for crisp rendering
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 800 * scale;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
       return '';
     }
 
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 800;
+
   // Background
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, baseWidth, baseHeight);
 
   // Title
   ctx.fillStyle = '#2c3e50';
-  ctx.font = 'bold 24px Arial';
+  ctx.font = 'bold 28px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Monthly Cash Flow Analysis', canvas.width / 2, 40);
+  ctx.fillText('Monthly Cash Flow Analysis', baseWidth / 2, 50);
 
-  const maxValue = Math.max(income, expenses) * 1.2;
-  const barWidth = 150;
-  const chartHeight = 250;
-  const chartY = 80;
-  const chartX = (canvas.width - barWidth * 2 - 50) / 2;
+  const maxValue = Math.max(income, expenses, 1) * 1.3; // Add more grace
+  const barWidth = 200;
+  const chartHeight = 400;
+  const chartY = 120;
+  const chartX = (baseWidth - barWidth * 2 - 80) / 2;
 
   // Income bar
   const incomeHeight = (income / maxValue) * chartHeight;
@@ -426,31 +448,36 @@ export async function generateCashFlowChart(income: number, expenses: number): P
   ctx.fillStyle = '#27ae60';
   ctx.fillRect(chartX, incomeY, barWidth, incomeHeight);
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 14px Arial';
+  ctx.font = 'bold 18px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Income', chartX + barWidth / 2, chartY + chartHeight + 20);
-  ctx.fillText(`$${income.toLocaleString()}`, chartX + barWidth / 2, incomeY + incomeHeight / 2 + 5);
+  ctx.fillText('Income', chartX + barWidth / 2, chartY + chartHeight + 30);
+  if (incomeHeight > 40) {
+    ctx.fillText(`$${income.toLocaleString()}`, chartX + barWidth / 2, incomeY + incomeHeight / 2 + 8);
+  }
 
   // Expenses bar
   const expenseHeight = (expenses / maxValue) * chartHeight;
   const expenseY = chartY + chartHeight - expenseHeight;
   ctx.fillStyle = '#e74c3c';
-  ctx.fillRect(chartX + barWidth + 50, expenseY, barWidth, expenseHeight);
+  ctx.fillRect(chartX + barWidth + 80, expenseY, barWidth, expenseHeight);
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('Expenses', chartX + barWidth + 50 + barWidth / 2, chartY + chartHeight + 20);
-  ctx.fillText(`$${expenses.toLocaleString()}`, chartX + barWidth + 50 + barWidth / 2, expenseY + expenseHeight / 2 + 5);
+  ctx.fillText('Expenses', chartX + barWidth + 80 + barWidth / 2, chartY + chartHeight + 30);
+  if (expenseHeight > 40) {
+    ctx.fillText(`$${expenses.toLocaleString()}`, chartX + barWidth + 80 + barWidth / 2, expenseY + expenseHeight / 2 + 8);
+  }
 
   // Net cash flow
   const cashFlow = income - expenses;
   const cashFlowColor = cashFlow >= 0 ? '#27ae60' : '#e74c3c';
   ctx.fillStyle = cashFlowColor;
-  ctx.font = 'bold 16px Arial';
+  ctx.font = 'bold 20px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Net Cash Flow', canvas.width / 2, chartY + chartHeight + 60);
-  ctx.font = 'bold 24px Arial';
-  ctx.fillText(`$${cashFlow.toLocaleString()}`, canvas.width / 2, chartY + chartHeight + 85);
+  ctx.fillText('Net Cash Flow', baseWidth / 2, chartY + chartHeight + 80);
+  ctx.font = 'bold 32px Arial';
+  ctx.fillText(`$${cashFlow.toLocaleString()}`, baseWidth / 2, chartY + chartHeight + 115);
 
-    return canvas.toDataURL('image/png');
+    // Convert to high-quality PNG
+    return canvas.toDataURL('image/png', 1.0);
   } catch (error) {
     console.error('Error generating cash flow chart:', error);
     return '';
@@ -473,80 +500,104 @@ export async function generateRetirementChart(
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 400;
+    // High resolution for PDF - 3x scale for crisp rendering
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 800 * scale;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
       return '';
     }
 
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 800;
+
   // Background
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, baseWidth, baseHeight);
 
   // Title
   ctx.fillStyle = '#2c3e50';
-  ctx.font = 'bold 20px Arial';
+  ctx.font = 'bold 24px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Retirement Projection', canvas.width / 2, 30);
+  ctx.fillText('Retirement Projection', baseWidth / 2, 40);
 
   const yearsToRetirement = retirementAge - currentAge;
-  const chartHeight = 250;
-  const chartY = 80;
-  const chartX = 80;
-  const chartWidth = canvas.width - chartX * 2;
+  const chartHeight = 400;
+  const chartY = 120;
+  const chartX = 120;
+  const chartWidth = baseWidth - chartX * 2;
+
+  // Draw grid lines first
+  ctx.strokeStyle = '#e0e0e0';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = chartY + (i / 5) * chartHeight;
+    ctx.beginPath();
+    ctx.moveTo(chartX, y);
+    ctx.lineTo(chartX + chartWidth, y);
+    ctx.stroke();
+  }
 
   // Draw line chart
   ctx.strokeStyle = '#3498db';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 5;
   ctx.beginPath();
   ctx.moveTo(chartX, chartY + chartHeight);
   
-  // Projected growth line
-  const points = 10;
+  // Projected growth line with grace to prevent going off chart
+  const maxChartValue = projectedSuper * 1.1; // Add grace
+  const points = 20;
   for (let i = 0; i <= points; i++) {
     const year = (yearsToRetirement / points) * i;
     const value = currentSuper * Math.pow(1.07, year); // 7% growth
     const x = chartX + (i / points) * chartWidth;
-    const y = chartY + chartHeight - (value / projectedSuper) * chartHeight;
-    ctx.lineTo(x, y);
+    const y = chartY + chartHeight - (value / maxChartValue) * chartHeight;
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
   }
   ctx.stroke();
 
   // Current value point
   ctx.fillStyle = '#2ecc71';
   ctx.beginPath();
-  ctx.arc(chartX, chartY + chartHeight, 6, 0, 2 * Math.PI);
+  ctx.arc(chartX, chartY + chartHeight, 10, 0, 2 * Math.PI);
   ctx.fill();
   ctx.fillStyle = '#2c3e50';
-  ctx.font = '10px Arial';
+  ctx.font = '14px Arial';
   ctx.textAlign = 'left';
-  ctx.fillText(`Current: $${currentSuper.toLocaleString()}`, chartX + 10, chartY + chartHeight + 5);
+  ctx.fillText(`Current: $${currentSuper.toLocaleString()}`, chartX + 15, chartY + chartHeight + 8);
 
   // Projected value point
+  const projectedY = chartY + chartHeight - (projectedSuper / maxChartValue) * chartHeight;
   ctx.fillStyle = '#3498db';
   ctx.beginPath();
-  ctx.arc(chartX + chartWidth, chartY + chartHeight - chartHeight, 6, 0, 2 * Math.PI);
+  ctx.arc(chartX + chartWidth, projectedY, 10, 0, 2 * Math.PI);
   ctx.fill();
   ctx.fillStyle = '#2c3e50';
-  ctx.font = '10px Arial';
+  ctx.font = '14px Arial';
   ctx.textAlign = 'right';
-  ctx.fillText(`Projected: $${projectedSuper.toLocaleString()}`, chartX + chartWidth - 10, chartY - 10);
+  ctx.fillText(`Projected: $${projectedSuper.toLocaleString()}`, chartX + chartWidth - 15, projectedY - 15);
 
   // X-axis labels
   ctx.fillStyle = '#7f8c8d';
-  ctx.font = '10px Arial';
+  ctx.font = '14px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(`${currentAge} years`, chartX, chartY + chartHeight + 20);
-  ctx.fillText(`${retirementAge} years`, chartX + chartWidth, chartY + chartHeight + 20);
+  ctx.fillText(`${currentAge} years`, chartX, chartY + chartHeight + 30);
+  ctx.fillText(`${retirementAge} years`, chartX + chartWidth, chartY + chartHeight + 30);
 
   // Y-axis labels
   ctx.textAlign = 'right';
   for (let i = 0; i <= 5; i++) {
-    const value = (projectedSuper / 5) * i;
+    const value = (maxChartValue / 5) * i;
     const y = chartY + chartHeight - (i / 5) * chartHeight;
-    ctx.fillText(`$${(value / 1000).toFixed(0)}k`, chartX - 10, y + 4);
+    ctx.fillText(`$${(value / 1000).toFixed(0)}k`, chartX - 15, y + 6);
   }
 
     return canvas.toDataURL('image/png');
@@ -577,23 +628,30 @@ export async function generateDetailedCashFlowChart(data: {
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 900;
+    // High resolution for PDF - 3x scale for crisp rendering
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 900 * scale;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
       return '';
     }
 
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 900;
+
     // Background
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, baseWidth, baseHeight);
 
     // Title
     ctx.fillStyle = '#2c3e50';
-    ctx.font = 'bold 28px Arial';
+    ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Detailed Cash Flow Breakdown', canvas.width / 2, 45);
+    ctx.fillText('Detailed Cash Flow Breakdown', baseWidth / 2, 50);
 
     const totalIncome = data.employment + data.rental + data.investment + data.other;
     const totalExpenses = data.workExpenses + data.investmentExpenses + data.rentalExpenses + 
@@ -723,11 +781,12 @@ export async function generateDetailedCashFlowChart(data: {
     ctx.fillStyle = netCashFlow >= 0 ? '#27ae60' : '#e74c3c';
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Net Cash Flow', canvas.width / 2, netY + 30);
+    ctx.fillText('Net Cash Flow', baseWidth / 2, netY + 30);
     ctx.font = 'bold 36px Arial';
-    ctx.fillText(`$${netCashFlow.toLocaleString()}`, canvas.width / 2, netY + 70);
+    ctx.fillText(`$${netCashFlow.toLocaleString()}`, baseWidth / 2, netY + 70);
 
-    return canvas.toDataURL('image/png');
+    // Convert to high-quality PNG
+    return canvas.toDataURL('image/png', 1.0);
   } catch (error) {
     console.error('Error generating detailed cash flow chart:', error);
     return '';
@@ -745,23 +804,30 @@ export async function generateFinancialPositionChart(assets: AssetChartData, lia
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 1000;
+    // High resolution for PDF - 3x scale for crisp rendering
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 1000 * scale;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
       return '';
     }
 
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 1000;
+
     // Background
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, baseWidth, baseHeight);
 
     // Title
     ctx.fillStyle = '#2c3e50';
-    ctx.font = 'bold 28px Arial';
+    ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Financial Position Overview', canvas.width / 2, 45);
+    ctx.fillText('Financial Position Overview', baseWidth / 2, 50);
 
     const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
     const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
@@ -906,15 +972,15 @@ export async function generateFinancialPositionChart(assets: AssetChartData, lia
     ctx.fillStyle = netWorth >= 0 ? '#27ae60' : '#e74c3c';
     ctx.font = 'bold 26px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('NET WORTH', canvas.width / 2, netY + 40);
+    ctx.fillText('NET WORTH', baseWidth / 2, netY + 40);
     ctx.font = 'bold 40px Arial';
-    ctx.fillText(`$${netWorth.toLocaleString()}`, canvas.width / 2, netY + 90);
+    ctx.fillText(`$${netWorth.toLocaleString()}`, baseWidth / 2, netY + 90);
 
     // Equity ratio
     const equityRatio = totalAssets > 0 ? ((netWorth / totalAssets) * 100) : 0;
     ctx.fillStyle = '#7f8c8d';
     ctx.font = '16px Arial';
-    ctx.fillText(`Equity Ratio: ${equityRatio.toFixed(1)}%`, canvas.width / 2, netY + 125);
+    ctx.fillText(`Equity Ratio: ${equityRatio.toFixed(1)}%`, baseWidth / 2, netY + 125);
 
     // Visual comparison bars (bottom)
     const comparisonY = 680;
@@ -945,7 +1011,8 @@ export async function generateFinancialPositionChart(assets: AssetChartData, lia
     ctx.font = '16px Arial';
     ctx.fillText(`$${totalLiabilities.toLocaleString()}`, comparisonX + liabilitiesBarWidth - 150, comparisonY + comparisonHeight + 70);
 
-    return canvas.toDataURL('image/png');
+    // Convert to high-quality PNG
+    return canvas.toDataURL('image/png', 1.0);
   } catch (error) {
     console.error('Error generating financial position chart:', error);
     return '';
@@ -973,23 +1040,30 @@ export async function generateDetailedRetirementChart(data: {
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 900;
+    // High resolution for PDF - 3x scale for crisp rendering
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 900 * scale;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
       return '';
     }
 
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 900;
+
     // Background
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, baseWidth, baseHeight);
 
     // Title
     ctx.fillStyle = '#2c3e50';
-    ctx.font = 'bold 28px Arial';
+    ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Retirement Projection Analysis', canvas.width / 2, 45);
+    ctx.fillText('Retirement Projection Analysis', baseWidth / 2, 50);
 
     const yearsToRetirement = data.retirementAge - data.currentAge;
 
@@ -1158,7 +1232,8 @@ export async function generateDetailedRetirementChart(data: {
       breakdownX += width;
     });
 
-    return canvas.toDataURL('image/png');
+    // Convert to high-quality PNG
+    return canvas.toDataURL('image/png', 1.0);
   } catch (error) {
     console.error('Error generating detailed retirement chart:', error);
     return '';
@@ -1181,23 +1256,30 @@ export async function generateTaxOptimizationChart(data: {
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 800;
+    // High resolution for PDF - 3x scale for crisp rendering
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 800 * scale;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
       return '';
     }
 
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 800;
+
     // Background
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, baseWidth, baseHeight);
 
     // Title
     ctx.fillStyle = '#2c3e50';
-    ctx.font = 'bold 28px Arial';
+    ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Tax Optimization Analysis', canvas.width / 2, 45);
+    ctx.fillText('Tax Optimization Analysis', baseWidth / 2, 50);
 
     // Comparison bars
     const barY = 120;
@@ -1248,9 +1330,9 @@ export async function generateTaxOptimizationChart(data: {
     ctx.fillStyle = '#ff9800';
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Potential Annual Tax Savings', canvas.width / 2, savingsY + 35);
+    ctx.fillText('Potential Annual Tax Savings', baseWidth / 2, savingsY + 35);
     ctx.font = 'bold 42px Arial';
-    ctx.fillText(`$${data.taxSavings.toLocaleString()}`, canvas.width / 2, savingsY + 80);
+    ctx.fillText(`$${data.taxSavings.toLocaleString()}`, baseWidth / 2, savingsY + 80);
 
     // Strategies list
     if (data.strategies && data.strategies.length > 0) {
@@ -1271,7 +1353,8 @@ export async function generateTaxOptimizationChart(data: {
       });
     }
 
-    return canvas.toDataURL('image/png');
+    // Convert to high-quality PNG
+    return canvas.toDataURL('image/png', 1.0);
   } catch (error) {
     console.error('Error generating tax optimization chart:', error);
     return '';
