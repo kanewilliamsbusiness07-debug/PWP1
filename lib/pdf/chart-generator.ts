@@ -161,23 +161,30 @@ export async function generateExpenseChart(data: ExpenseChartData): Promise<stri
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 400;
+    // Higher resolution for better quality in PDF
+    canvas.width = 1200;
+    canvas.height = 800;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
       return '';
     }
 
+  // Scale context for higher resolution
+  const scale = 2;
+  ctx.scale(scale, scale);
+  const baseWidth = canvas.width / scale;
+  const baseHeight = canvas.height / scale;
+
   // Background
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, baseWidth, baseHeight);
 
   // Title
   ctx.fillStyle = '#2c3e50';
   ctx.font = 'bold 20px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Annual Expenses Breakdown', canvas.width / 2, 30);
+  ctx.fillText('Annual Expenses Breakdown', baseWidth / 2, 30);
 
   const items = [
     { label: 'Work Related', value: data.workRelated, color: '#3498db' },
@@ -263,8 +270,9 @@ export async function generateAssetLiabilityChart(
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 500;
+    // Higher resolution for better quality in PDF
+    canvas.width = 1200;
+    canvas.height = 1000;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
@@ -387,8 +395,9 @@ export async function generateCashFlowChart(income: number, expenses: number): P
     }
 
     const canvas = document.createElement('canvas');
-    canvas.width = 600;
-    canvas.height = 400;
+    // Higher resolution for better quality in PDF
+    canvas.width = 1200;
+    canvas.height = 800;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       console.warn('Canvas context not available');
@@ -401,9 +410,9 @@ export async function generateCashFlowChart(income: number, expenses: number): P
 
   // Title
   ctx.fillStyle = '#2c3e50';
-  ctx.font = 'bold 20px Arial';
+  ctx.font = 'bold 24px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Monthly Cash Flow Analysis', canvas.width / 2, 30);
+  ctx.fillText('Monthly Cash Flow Analysis', canvas.width / 2, 40);
 
   const maxValue = Math.max(income, expenses) * 1.2;
   const barWidth = 150;
