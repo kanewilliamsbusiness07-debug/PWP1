@@ -400,6 +400,31 @@ export default function SummaryPage() {
       // Calculate summary data
       const summaryData = calculateSummary();
 
+      // Validate summaryData exists and has required properties
+      if (!summaryData || typeof summaryData !== 'object') {
+        throw new Error('Invalid summary data: summary data is missing or invalid');
+      }
+
+      // Ensure summaryData has required numeric properties
+      if (typeof summaryData.monthlyIncome !== 'number' || isNaN(summaryData.monthlyIncome)) {
+        summaryData.monthlyIncome = 0;
+      }
+      if (typeof summaryData.monthlyExpenses !== 'number' || isNaN(summaryData.monthlyExpenses)) {
+        summaryData.monthlyExpenses = 0;
+      }
+      if (typeof summaryData.netWorth !== 'number' || isNaN(summaryData.netWorth)) {
+        summaryData.netWorth = 0;
+      }
+      if (typeof summaryData.totalAssets !== 'number' || isNaN(summaryData.totalAssets)) {
+        summaryData.totalAssets = 0;
+      }
+      if (typeof summaryData.totalLiabilities !== 'number' || isNaN(summaryData.totalLiabilities)) {
+        summaryData.totalLiabilities = 0;
+      }
+      if (!summaryData.clientName || typeof summaryData.clientName !== 'string') {
+        summaryData.clientName = 'Client';
+      }
+
       // Check if we're in the browser
       if (typeof window === 'undefined' || typeof document === 'undefined') {
         throw new Error('PDF generation must run in the browser');
@@ -447,41 +472,77 @@ export default function SummaryPage() {
       // Step 1: Generate chart images
       console.log('📊 Generating charts for PDF...');
 
+      // Ensure all numeric values are valid numbers
+      const safeAnnualIncome = Number(annualIncome) || 0;
+      const safeRentalIncome = Number(rentalIncome) || 0;
+      const safeInvestmentIncome = Number(investmentIncome) || 0;
+      const safeOtherIncome = Number(otherIncome) || 0;
+      
+      const safeWorkExpenses = Number(workExpenses) || 0;
+      const safeInvestmentExpenses = Number(investmentExpenses) || 0;
+      const safeRentalExpenses = Number(rentalExpenses) || 0;
+      const safeVehicleExpenses = Number(vehicleExpenses) || 0;
+      const safeHomeOfficeExpenses = Number(homeOfficeExpenses) || 0;
+      
+      const safeHomeValue = Number(homeValue) || 0;
+      const safeInvestment1Value = Number(investment1Value) || 0;
+      const safeInvestment2Value = Number(investment2Value) || 0;
+      const safeInvestment3Value = Number(investment3Value) || 0;
+      const safeInvestment4Value = Number(investment4Value) || 0;
+      const safeSuperFundValue = Number(superFundValue) || 0;
+      const safeSharesValue = Number(sharesValue) || 0;
+      const safeSavingsValue = Number(savingsValue) || 0;
+      const safeVehicleValue = Number(vehicleValue) || 0;
+      const safeHomeContentsValue = Number(homeContentsValue) || 0;
+      
+      const safeHomeBalance = Number(homeBalance) || 0;
+      const safeInvestment1Balance = Number(investment1Balance) || 0;
+      const safeInvestment2Balance = Number(investment2Balance) || 0;
+      const safeInvestment3Balance = Number(investment3Balance) || 0;
+      const safeInvestment4Balance = Number(investment4Balance) || 0;
+      const safeCreditCardBalance = Number(creditCardBalance) || 0;
+      const safePersonalLoanBalance = Number(personalLoanBalance) || 0;
+      const safeHecsBalance = Number(hecsBalance) || 0;
+      
+      const safeCurrentAge = Number(currentAge) || 35;
+      const safeRetirementAge = Number(retirementAge) || 65;
+      const safeProjectedSuper = Number(projectedSuper) || 0;
+
       // Generate all chart images
       const [incomeChart, expenseChart, assetChart, cashFlowChart, retirementChart] = await Promise.all([
         generateIncomeChart({
-          employment: annualIncome,
-          rental: rentalIncome,
-          investment: investmentIncome,
-          other: otherIncome,
+          employment: safeAnnualIncome,
+          rental: safeRentalIncome,
+          investment: safeInvestmentIncome,
+          other: safeOtherIncome,
         }),
         generateExpenseChart({
-          workRelated: workExpenses,
-          investment: investmentExpenses,
-          rental: rentalExpenses,
-          vehicle: vehicleExpenses,
-          homeOffice: homeOfficeExpenses,
+          workRelated: safeWorkExpenses,
+          investment: safeInvestmentExpenses,
+          rental: safeRentalExpenses,
+          vehicle: safeVehicleExpenses,
+          homeOffice: safeHomeOfficeExpenses,
         }),
         generateAssetLiabilityChart(
           {
-            home: homeValue,
-            investments: investment1Value + investment2Value + investment3Value + investment4Value,
-            super: superFundValue,
-            shares: sharesValue,
-            savings: savingsValue,
-            vehicle: vehicleValue,
-            other: homeContentsValue,
+            home: safeHomeValue,
+            investments: safeInvestment1Value + safeInvestment2Value + safeInvestment3Value + safeInvestment4Value,
+            super: safeSuperFundValue,
+            shares: safeSharesValue,
+            savings: safeSavingsValue,
+            vehicle: safeVehicleValue,
+            other: safeHomeContentsValue,
           },
           {
-            homeLoan: homeBalance,
-            investmentLoans: investment1Balance + investment2Balance + investment3Balance + investment4Balance,
-            creditCard: creditCardBalance,
-            personalLoan: personalLoanBalance,
-            hecs: hecsBalance,
+            homeLoan: safeHomeBalance,
+            investmentLoans: safeInvestment1Balance + safeInvestment2Balance + safeInvestment3Balance + safeInvestment4Balance,
+            creditCard: safeCreditCardBalance,
+            personalLoan: safePersonalLoanBalance,
+            hecs: safeHecsBalance,
           }
         ),
         generateCashFlowChart(summaryData.monthlyIncome, summaryData.monthlyExpenses),
-        generateRetirementChart(currentAge, retirementAge, superFundValue, projectedSuper),
+        generateRetirementChart(safeCurrentAge, safeRetirementAge, safeSuperFundValue, safeProjectedSuper),
       ]);
 
       console.log('✓ Charts generated:', {
@@ -516,96 +577,122 @@ export default function SummaryPage() {
 
       // Step 4: Create PDF using React.createElement (NO JSX!)
       console.log('📄 Creating PDF document...');
+      
+      // Build page children array, filtering out null/undefined
+      const pageChildren: any[] = [
+        // Header
+        React.createElement(
+          View,
+          { key: 'header', style: pdfStyles.header || {} },
+          React.createElement(Text, { style: pdfStyles.title || {} }, 'Financial Summary Report'),
+          React.createElement(Text, { style: { fontSize: 12, marginBottom: 5 } }, `Client: ${clientName}`),
+          React.createElement(Text, { style: { fontSize: 12 } }, `Date: ${new Date().toLocaleDateString()}`)
+        ),
+        
+        // Financial Overview
+        React.createElement(
+          View,
+          { key: 'overview', style: pdfStyles.section || {} },
+          React.createElement(Text, { style: pdfStyles.subtitle || {} }, 'Financial Overview'),
+          React.createElement(
+            View,
+            { style: pdfStyles.row || {} },
+            React.createElement(Text, { style: pdfStyles.label || {} }, 'Total Assets:'),
+            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(totalAssets))
+          ),
+          React.createElement(
+            View,
+            { style: pdfStyles.row || {} },
+            React.createElement(Text, { style: pdfStyles.label || {} }, 'Total Liabilities:'),
+            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(totalLiabilities))
+          ),
+          React.createElement(
+            View,
+            { style: pdfStyles.row || {} },
+            React.createElement(Text, { style: pdfStyles.label || {} }, 'Net Worth:'),
+            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(netWorth))
+          )
+        ),
+        
+        // Cash Flow
+        React.createElement(
+          View,
+          { key: 'cashflow', style: pdfStyles.section || {} },
+          React.createElement(Text, { style: pdfStyles.subtitle || {} }, 'Cash Flow Analysis'),
+          React.createElement(
+            View,
+            { style: pdfStyles.row || {} },
+            React.createElement(Text, { style: pdfStyles.label || {} }, 'Monthly Income:'),
+            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(monthlyIncome))
+          ),
+          React.createElement(
+            View,
+            { style: pdfStyles.row || {} },
+            React.createElement(Text, { style: pdfStyles.label || {} }, 'Monthly Expenses:'),
+            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(monthlyExpenses))
+          ),
+          React.createElement(
+            View,
+            { style: pdfStyles.row || {} },
+            React.createElement(Text, { style: pdfStyles.label || {} }, 'Net Monthly:'),
+            React.createElement(Text, { style: pdfStyles.value || {} }, formatCurrency(monthlyIncome - monthlyExpenses))
+          )
+        ),
+      ];
+
+      // Add charts only if they exist and are valid strings
+      if (chartNetWorth && typeof chartNetWorth === 'string' && chartNetWorth.length > 0) {
+        pageChildren.push(
+          React.createElement(
+            View,
+            { key: 'chart-networth', style: pdfStyles.section || {} },
+            React.createElement(Text, { style: pdfStyles.subtitle || {} }, 'Net Worth Chart'),
+            React.createElement(Image, { src: chartNetWorth, style: pdfStyles.chart || {} })
+          )
+        );
+      }
+
+      if (chartCashFlow && typeof chartCashFlow === 'string' && chartCashFlow.length > 0) {
+        pageChildren.push(
+          React.createElement(
+            View,
+            { key: 'chart-cashflow', style: pdfStyles.section || {} },
+            React.createElement(Text, { style: pdfStyles.subtitle || {} }, 'Cash Flow Chart'),
+            React.createElement(Image, { src: chartCashFlow, style: pdfStyles.chart || {} })
+          )
+        );
+      }
+
+      if (chartAssets && typeof chartAssets === 'string' && chartAssets.length > 0) {
+        pageChildren.push(
+          React.createElement(
+            View,
+            { key: 'chart-assets', style: pdfStyles.section || {} },
+            React.createElement(Text, { style: pdfStyles.subtitle || {} }, 'Asset Allocation'),
+            React.createElement(Image, { src: chartAssets, style: pdfStyles.chart || {} })
+          )
+        );
+      }
+
+      // Filter out any null/undefined children
+      const validPageChildren = pageChildren.filter(child => child != null);
+
+      // Create Page with valid children
+      const page = React.createElement(
+        Page,
+        { 
+          key: 'page-1',
+          size: 'A4', 
+          style: pdfStyles.page || {} 
+        },
+        ...validPageChildren
+      );
+
+      // Create Document with proper props
       const pdfDocument = React.createElement(
         Document,
-        null,
-        React.createElement(
-          Page,
-          { size: 'A4', style: pdfStyles.page },
-          
-          // Header
-          React.createElement(
-            View,
-            { style: pdfStyles.header },
-            React.createElement(Text, { style: pdfStyles.title }, 'Financial Summary Report'),
-            React.createElement(Text, { style: { fontSize: 12, marginBottom: 5 } }, `Client: ${clientName}`),
-            React.createElement(Text, { style: { fontSize: 12 } }, `Date: ${new Date().toLocaleDateString()}`)
-          ),
-          
-          // Financial Overview
-          React.createElement(
-            View,
-            { style: pdfStyles.section },
-            React.createElement(Text, { style: pdfStyles.subtitle }, 'Financial Overview'),
-            React.createElement(
-              View,
-              { style: pdfStyles.row },
-              React.createElement(Text, { style: pdfStyles.label }, 'Total Assets:'),
-              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(totalAssets))
-            ),
-            React.createElement(
-              View,
-              { style: pdfStyles.row },
-              React.createElement(Text, { style: pdfStyles.label }, 'Total Liabilities:'),
-              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(totalLiabilities))
-            ),
-            React.createElement(
-              View,
-              { style: pdfStyles.row },
-              React.createElement(Text, { style: pdfStyles.label }, 'Net Worth:'),
-              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(netWorth))
-            )
-          ),
-          
-          // Cash Flow
-          React.createElement(
-            View,
-            { style: pdfStyles.section },
-            React.createElement(Text, { style: pdfStyles.subtitle }, 'Cash Flow Analysis'),
-            React.createElement(
-              View,
-              { style: pdfStyles.row },
-              React.createElement(Text, { style: pdfStyles.label }, 'Monthly Income:'),
-              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(monthlyIncome))
-            ),
-            React.createElement(
-              View,
-              { style: pdfStyles.row },
-              React.createElement(Text, { style: pdfStyles.label }, 'Monthly Expenses:'),
-              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(monthlyExpenses))
-            ),
-            React.createElement(
-              View,
-              { style: pdfStyles.row },
-              React.createElement(Text, { style: pdfStyles.label }, 'Net Monthly:'),
-              React.createElement(Text, { style: pdfStyles.value }, formatCurrency(monthlyIncome - monthlyExpenses))
-            )
-          ),
-          
-          // Chart 1 (if exists)
-          chartNetWorth ? React.createElement(
-            View,
-            { style: pdfStyles.section },
-            React.createElement(Text, { style: pdfStyles.subtitle }, 'Net Worth Chart'),
-            React.createElement(Image, { src: chartNetWorth, style: pdfStyles.chart })
-          ) : null,
-          
-          // Chart 2 (if exists)
-          chartCashFlow ? React.createElement(
-            View,
-            { style: pdfStyles.section },
-            React.createElement(Text, { style: pdfStyles.subtitle }, 'Cash Flow Chart'),
-            React.createElement(Image, { src: chartCashFlow, style: pdfStyles.chart })
-          ) : null,
-          
-          // Chart 3 (if exists)
-          chartAssets ? React.createElement(
-            View,
-            { style: pdfStyles.section },
-            React.createElement(Text, { style: pdfStyles.subtitle }, 'Asset Allocation'),
-            React.createElement(Image, { src: chartAssets, style: pdfStyles.chart })
-          ) : null
-        )
+        {},
+        page
       );
 
       // Step 5: Generate blob
@@ -710,7 +797,18 @@ export default function SummaryPage() {
       }
     } catch (error) {
       console.error('Error generating PDF:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to generate PDF';
+      
+      // Safely extract error message
+      let errorMessage = 'Failed to generate PDF';
+      if (error != null) {
+        if (error instanceof Error) {
+          errorMessage = error.message || errorMessage;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (typeof error === 'object' && 'message' in error) {
+          errorMessage = String((error as any).message) || errorMessage;
+        }
+      }
       
       // Check for specific error types
       if (errorMessage.includes('Cannot find module') || errorMessage.includes('@react-pdf')) {
@@ -723,6 +821,12 @@ export default function SummaryPage() {
         toast({
           title: 'Browser API Error',
           description: 'PDF generation requires browser APIs. Please ensure you are running this in a browser environment.',
+          variant: 'destructive'
+        });
+      } else if (errorMessage.includes('hasOwnProperty') || errorMessage.includes('undefined')) {
+        toast({
+          title: 'PDF Generation Error',
+          description: 'An error occurred while generating the PDF. Please ensure all client data is properly filled in and try again.',
           variant: 'destructive'
         });
       } else {
