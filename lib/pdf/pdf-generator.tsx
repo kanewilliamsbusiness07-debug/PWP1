@@ -16,12 +16,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 1.6,
     backgroundColor: '#ffffff',
+    display: 'flex',
+    flexDirection: 'column',
   },
   header: {
     marginBottom: 30,
-    borderBottomWidth: 2,
+    borderBottomWidth: 3,
     borderBottomStyle: 'solid',
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#2563eb',
     paddingBottom: 15,
   },
   headerRow: {
@@ -58,8 +60,10 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 25,
-    minHeight: 0, // Allow sections to break across pages
-    break: false, // Prevent breaking within section
+    minHeight: 0,
+    // CRITICAL: Prevent page breaks inside sections
+    break: false,
+    paddingBottom: 10,
   },
   sectionTitle: {
     fontSize: 18,
@@ -70,6 +74,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomStyle: 'solid',
     borderBottomColor: '#3498db',
+    // Prevent title from being orphaned
+    breakInside: 'avoid',
   },
   summaryBox: {
     flexDirection: 'row',
@@ -101,13 +107,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     minHeight: 0,
+    // CRITICAL: Prevent page breaks inside chart containers
+    breakInside: 'avoid',
+    break: false,
+    pageBreakInside: 'avoid',
   },
   chart: {
     width: 515, // Fit within A4 page width (595 - 40*2 padding = 515)
-    height: 'auto', // Maintain aspect ratio
+    maxHeight: 650, // Prevent charts from being too tall
     marginBottom: 15,
     alignSelf: 'center',
     maxWidth: 515,
+    // CRITICAL: Prevent page breaks inside images
+    breakInside: 'avoid',
+    pageBreakInside: 'avoid',
   },
   explanation: {
     backgroundColor: '#f8f9fa',
@@ -183,6 +196,9 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftStyle: 'solid',
     borderLeftColor: '#4caf50',
+    // Prevent breaks inside boxes
+    breakInside: 'avoid',
+    pageBreakInside: 'avoid',
   },
   warningBox: {
     backgroundColor: '#fff3e0',
@@ -192,6 +208,9 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftStyle: 'solid',
     borderLeftColor: '#ff9800',
+    // Prevent breaks inside boxes
+    breakInside: 'avoid',
+    pageBreakInside: 'avoid',
   },
   recommendationBox: {
     backgroundColor: '#e3f2fd',
@@ -201,6 +220,9 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftStyle: 'solid',
     borderLeftColor: '#2196f3',
+    // Prevent breaks inside boxes
+    breakInside: 'avoid',
+    pageBreakInside: 'avoid',
   },
 });
 
@@ -515,7 +537,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
         </View>
 
         {/* Detailed Financial Position */}
-        <View style={styles.section} wrap={false}>
+        <View style={[styles.section, { breakInside: 'avoid' }]}>
           <Text style={styles.sectionTitle}>Detailed Financial Position</Text>
           {financialPositionChart ? (
             <View style={styles.chartContainer}>
@@ -550,7 +572,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
         </View>
 
         {/* Investment Property Potential */}
-        <View style={styles.section} wrap={false}>
+        <View style={[styles.section, { breakInside: 'avoid' }]}>
           <Text style={styles.sectionTitle}>Investment Property Potential</Text>
           {isViable && maxPropertyValue > 0 ? (
             <>
@@ -598,7 +620,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
             <View style={styles.chartContainer}>
               <Image 
                 src={detailedCashFlowChart} 
-                style={[styles.chart, { width: 520, height: 390 }]}
+                style={[styles.chart, { maxHeight: 500 }]}
                 cache={false}
               />
             </View>
@@ -625,13 +647,13 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
         </View>
 
         {/* Detailed Retirement Projection */}
-        <View style={styles.section} wrap={false}>
+        <View style={[styles.section, { breakInside: 'avoid' }]}>
           <Text style={styles.sectionTitle}>Detailed Retirement Projection</Text>
           {detailedRetirementChart ? (
             <View style={styles.chartContainer}>
               <Image 
                 src={detailedRetirementChart} 
-                style={[styles.chart, { width: 520, height: 390 }]}
+                style={[styles.chart, { maxHeight: 500 }]}
                 cache={false}
               />
             </View>
@@ -678,13 +700,13 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
         </View>
 
         {/* Tax Optimization */}
-        <View style={styles.section} wrap={false}>
+        <View style={[styles.section, { breakInside: 'avoid' }]}>
           <Text style={styles.sectionTitle}>Tax Optimization Analysis</Text>
           {taxOptimizationChart ? (
             <View style={styles.chartContainer}>
               <Image 
                 src={taxOptimizationChart} 
-                style={[styles.chart, { width: 520, height: 347 }]}
+                style={[styles.chart, { maxHeight: 450 }]}
                 cache={false}
               />
             </View>
