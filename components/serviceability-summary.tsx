@@ -1,7 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServiceabilityResult } from "@/lib/finance/serviceability";
 import { formatCurrency } from "@/lib/utils/format";
-import { BadgeDollarSign, Home, TrendingUp } from "lucide-react";
+import { BadgeDollarSign, Home, TrendingUp, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ServiceabilitySummaryProps {
   serviceability: ServiceabilityResult;
@@ -9,6 +10,9 @@ interface ServiceabilitySummaryProps {
 }
 
 export function ServiceabilitySummary({ serviceability, monthlyIncome }: ServiceabilitySummaryProps) {
+  const isViable = serviceability.isViable && serviceability.maxPropertyValue > 0;
+  const netCashFlow = serviceability.monthlyRentalIncome - serviceability.maxMonthlyPayment - serviceability.totalMonthlyExpenses;
+
   return (
     <Card>
       <CardHeader>
@@ -21,82 +25,95 @@ export function ServiceabilitySummary({ serviceability, monthlyIncome }: Service
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Maximum Property Value
-              </CardTitle>
-              <BadgeDollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{formatCurrency(serviceability.maxPropertyValue)}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                With {(serviceability.loanToValueRatio * 100).toFixed(0)}% LVR
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Monthly Surplus
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {formatCurrency(serviceability.surplusIncome)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Available for investment
-              </p>
-            </CardContent>
-          </Card>
+        {!isViable ? (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Limited Investment Potential</AlertTitle>
+            <AlertDescription>
+              {serviceability.reason || 
+                (monthlyIncome <= 0 
+                  ? "Please enter your income and expenses to calculate investment property potential."
+                  : "There is insufficient surplus income available for investment property serviceability after ensuring 70% of your current income in retirement. Consider increasing your income or reducing expenses.")}
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="bg-card border-border">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Maximum Property Value
+                  </CardTitle>
+                  <BadgeDollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">{formatCurrency(serviceability.maxPropertyValue)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    With {(serviceability.loanToValueRatio * 100).toFixed(0)}% LVR
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-card border-border">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Monthly Surplus
+                  </CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">
+                    {formatCurrency(serviceability.surplusIncome)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Available for investment
+                  </p>
+                </CardContent>
+              </Card>
 
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Expected Rental Income
-              </CardTitle>
-              <BadgeDollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {formatCurrency(serviceability.monthlyRentalIncome)}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Per month
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+              <Card className="bg-card border-border">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Expected Rental Income
+                  </CardTitle>
+                  <BadgeDollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-foreground">
+                    {formatCurrency(serviceability.monthlyRentalIncome)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Per month
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
-        <div className="mt-6">
-          <h4 className="text-sm font-semibold mb-2">Monthly Cash Flow Breakdown</h4>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Loan Payment</span>
-              <span className="font-medium text-foreground">{formatCurrency(serviceability.maxMonthlyPayment)}</span>
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold mb-2 text-foreground">Monthly Cash Flow Breakdown</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Loan Payment</span>
+                  <span className="font-medium text-foreground">{formatCurrency(serviceability.maxMonthlyPayment)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Property Expenses</span>
+                  <span className="font-medium text-foreground">{formatCurrency(serviceability.totalMonthlyExpenses)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Rental Income</span>
+                  <span className="font-medium text-foreground">{formatCurrency(serviceability.monthlyRentalIncome)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-semibold border-t border-border pt-2">
+                  <span className={netCashFlow >= 0 ? "text-green-600" : "text-red-600"}>Net Cash Flow</span>
+                  <span className={netCashFlow >= 0 ? "text-green-600" : "text-red-600"}>
+                    {formatCurrency(netCashFlow)}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Property Expenses</span>
-              <span className="font-medium text-foreground">{formatCurrency(serviceability.totalMonthlyExpenses)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Rental Income</span>
-              <span className="font-medium text-foreground">{formatCurrency(serviceability.monthlyRentalIncome)}</span>
-            </div>
-            <div className="flex justify-between text-sm font-semibold border-t border-border pt-2 text-foreground">
-              <span>Net Cash Flow</span>
-              <span>{formatCurrency(
-                serviceability.monthlyRentalIncome - 
-                serviceability.maxMonthlyPayment - 
-                serviceability.totalMonthlyExpenses
-              )}</span>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

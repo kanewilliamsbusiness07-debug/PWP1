@@ -1522,17 +1522,15 @@ export default function SummaryPage() {
           </Card>
 
           {/* Investment Property Potential */}
-          {summary.monthlyIncome > 0 && (
-            <ServiceabilitySummary 
-              serviceability={calculatePropertyServiceability(
-                calculateInvestmentSurplus(
-                  summary.monthlyIncome,
-                  summary.monthlyExpenses
-                )
-              )}
-              monthlyIncome={summary.monthlyIncome}
-            />
-          )}
+          <ServiceabilitySummary 
+            serviceability={calculatePropertyServiceability(
+              calculateInvestmentSurplus(
+                summary.monthlyIncome,
+                summary.monthlyExpenses
+              )
+            )}
+            monthlyIncome={summary.monthlyIncome}
+          />
 
           {/* Cash Flow Analysis */}
           <Card>

@@ -10,13 +10,17 @@ export function calculateInvestmentSurplus(
   monthlyIncome: number,
   monthlyExpenses: number
 ): RetirementMetrics {
-  const monthlyDeficitOrSurplus = monthlyIncome - monthlyExpenses;
+  // Handle invalid inputs
+  const validIncome = isNaN(monthlyIncome) || monthlyIncome < 0 ? 0 : monthlyIncome;
+  const validExpenses = isNaN(monthlyExpenses) || monthlyExpenses < 0 ? 0 : monthlyExpenses;
+  
+  const monthlyDeficitOrSurplus = validIncome - validExpenses;
   const projectedPassiveIncomeMonthly = monthlyDeficitOrSurplus * 0.7; // 70% income retention threshold
 
   return {
-    projectedPassiveIncomeMonthly,
-    currentMonthlyIncome: monthlyIncome,
-    monthlyDeficitOrSurplus,
+    projectedPassiveIncomeMonthly: isNaN(projectedPassiveIncomeMonthly) ? 0 : projectedPassiveIncomeMonthly,
+    currentMonthlyIncome: validIncome,
+    monthlyDeficitOrSurplus: isNaN(monthlyDeficitOrSurplus) ? 0 : monthlyDeficitOrSurplus,
     isDeficit: monthlyDeficitOrSurplus < 0
   };
 }
@@ -56,13 +60,32 @@ export function calculatePropertyServiceability(
   expectedRentalYield: number = 0.04,
   propertyExpenses: number = 0.02 // 2% annually for maintenance, insurance, rates etc.
 ): ServiceabilityResult {
+  // Validate inputs
+  const validInterestRate = isNaN(interestRate) || interestRate <= 0 ? 0.06 : interestRate;
+  const validLoanTermYears = isNaN(loanTermYears) || loanTermYears <= 0 ? 30 : loanTermYears;
+  const validLoanToValueRatio = isNaN(loanToValueRatio) || loanToValueRatio <= 0 ? 0.8 : loanToValueRatio;
+  
+  // Check if monthly income is zero or negative
+  if (!retirementMetrics.currentMonthlyIncome || retirementMetrics.currentMonthlyIncome <= 0) {
+    return {
+      maxPropertyValue: 0,
+      maxMonthlyPayment: 0,
+      surplusIncome: 0,
+      loanToValueRatio: validLoanToValueRatio,
+      monthlyRentalIncome: 0,
+      totalMonthlyExpenses: 0,
+      isViable: false,
+      reason: "Please enter your income and expenses to calculate investment property potential."
+    };
+  }
+
   // First check if there's a retirement surplus
   if (retirementMetrics.isDeficit) {
     return {
       maxPropertyValue: 0,
       maxMonthlyPayment: 0,
       surplusIncome: 0,
-      loanToValueRatio,
+      loanToValueRatio: validLoanToValueRatio,
       monthlyRentalIncome: 0,
       totalMonthlyExpenses: 0,
       isViable: false,
@@ -74,12 +97,12 @@ export function calculatePropertyServiceability(
   const retentionThreshold = retirementMetrics.currentMonthlyIncome * 0.7;
   const availableSurplus = Math.max(0, retirementMetrics.projectedPassiveIncomeMonthly - retentionThreshold);
 
-  if (availableSurplus <= 0) {
+  if (availableSurplus <= 0 || isNaN(availableSurplus)) {
     return {
       maxPropertyValue: 0,
       maxMonthlyPayment: 0,
       surplusIncome: 0,
-      loanToValueRatio,
+      loanToValueRatio: validLoanToValueRatio,
       monthlyRentalIncome: 0,
       totalMonthlyExpenses: 0,
       isViable: false,
@@ -93,10 +116,38 @@ export function calculatePropertyServiceability(
   
   // Calculate maximum borrowing based on surplus
   const maxMonthlyPayment = availableSurplus;
-  const maxBorrowing = calculateMaxBorrowingCapacity(maxMonthlyPayment, interestRate, loanTermYears);
+  const maxBorrowing = calculateMaxBorrowingCapacity(maxMonthlyPayment, validInterestRate, validLoanTermYears);
+  
+  // Validate borrowing calculation
+  if (isNaN(maxBorrowing) || maxBorrowing <= 0) {
+    return {
+      maxPropertyValue: 0,
+      maxMonthlyPayment: 0,
+      surplusIncome: availableSurplus,
+      loanToValueRatio: validLoanToValueRatio,
+      monthlyRentalIncome: 0,
+      totalMonthlyExpenses: 0,
+      isViable: false,
+      reason: "Unable to calculate borrowing capacity. Please check your financial inputs."
+    };
+  }
   
   // Calculate maximum property value based on LVR
-  const maxPropertyValue = maxBorrowing / loanToValueRatio;
+  const maxPropertyValue = maxBorrowing / validLoanToValueRatio;
+  
+  // Validate property value
+  if (isNaN(maxPropertyValue) || maxPropertyValue <= 0) {
+    return {
+      maxPropertyValue: 0,
+      maxMonthlyPayment: 0,
+      surplusIncome: availableSurplus,
+      loanToValueRatio: validLoanToValueRatio,
+      monthlyRentalIncome: 0,
+      totalMonthlyExpenses: 0,
+      isViable: false,
+      reason: "Unable to calculate property value. Please check your financial inputs."
+    };
+  }
   
   // Calculate expected rental income
   const annualRentalIncome = maxPropertyValue * expectedRentalYield;
@@ -107,16 +158,44 @@ export function calculatePropertyServiceability(
   
   // Recalculate with rental income contribution
   const totalServiceability = availableSurplus + (monthlyRentalIncome * rentalIncomeMultiplier);
-  const maxBorrowingWithRental = calculateMaxBorrowingCapacity(totalServiceability, interestRate, loanTermYears);
-  const maxPropertyValueWithRental = maxBorrowingWithRental / loanToValueRatio;
+  const maxBorrowingWithRental = calculateMaxBorrowingCapacity(totalServiceability, validInterestRate, validLoanTermYears);
+  
+  // Validate recalculation
+  if (isNaN(maxBorrowingWithRental) || maxBorrowingWithRental <= 0) {
+    // Return the initial calculation if recalculation fails
+    return {
+      maxPropertyValue: maxPropertyValue,
+      maxMonthlyPayment: maxMonthlyPayment,
+      surplusIncome: availableSurplus,
+      loanToValueRatio: validLoanToValueRatio,
+      monthlyRentalIncome: monthlyRentalIncome || 0,
+      totalMonthlyExpenses: monthlyExpenses || 0,
+      isViable: true
+    };
+  }
+  
+  const maxPropertyValueWithRental = maxBorrowingWithRental / validLoanToValueRatio;
+  
+  // Final validation
+  if (isNaN(maxPropertyValueWithRental) || maxPropertyValueWithRental <= 0) {
+    return {
+      maxPropertyValue: maxPropertyValue,
+      maxMonthlyPayment: maxMonthlyPayment,
+      surplusIncome: availableSurplus,
+      loanToValueRatio: validLoanToValueRatio,
+      monthlyRentalIncome: monthlyRentalIncome || 0,
+      totalMonthlyExpenses: monthlyExpenses || 0,
+      isViable: true
+    };
+  }
   
   return {
     maxPropertyValue: maxPropertyValueWithRental,
     maxMonthlyPayment: totalServiceability,
     surplusIncome: availableSurplus,
-    loanToValueRatio,
-    monthlyRentalIncome,
-    totalMonthlyExpenses: monthlyExpenses,
+    loanToValueRatio: validLoanToValueRatio,
+    monthlyRentalIncome: monthlyRentalIncome || 0,
+    totalMonthlyExpenses: monthlyExpenses || 0,
     isViable: true
   };
 }
