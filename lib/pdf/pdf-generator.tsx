@@ -298,7 +298,9 @@ const isValidChartImage = (chart: any): boolean => {
   return true;
 };
 
-export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clientData }) => {
+// CRITICAL: Export as named function component (not arrow function)
+// This ensures the component has proper React component structure that @react-pdf/renderer expects
+export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) {
   // CRITICAL: Sanitize all data before using
   const safeSummary: PDFSummary = summary || {};
   const safeCharts: PDFChartImage[] = Array.isArray(chartImages) ? chartImages : [];
@@ -513,4 +515,4 @@ export const PDFReport: React.FC<PDFReportProps> = ({ summary, chartImages, clie
       </Page>
     </Document>
   );
-};
+}
