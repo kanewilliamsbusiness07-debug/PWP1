@@ -578,31 +578,9 @@ export default function SummaryPage() {
       // Step 4: Create PDF using React.createElement (NO JSX!)
       console.log('📄 Creating PDF document...');
       
-      // Ensure pdfStyles is defined and all properties exist
-      // Create plain objects to avoid prototype chain issues
-      const safeStyles = {
-        page: pdfStyles?.page ? { ...pdfStyles.page } : { padding: 30, backgroundColor: '#ffffff' },
-        header: pdfStyles?.header ? { ...pdfStyles.header } : { marginBottom: 20 },
-        title: pdfStyles?.title ? { ...pdfStyles.title } : { fontSize: 24, marginBottom: 10, color: '#000000' },
-        section: pdfStyles?.section ? { ...pdfStyles.section } : { marginBottom: 15 },
-        subtitle: pdfStyles?.subtitle ? { ...pdfStyles.subtitle } : { fontSize: 16, marginBottom: 8, fontWeight: 'bold', color: '#333333' },
-        row: pdfStyles?.row ? { ...pdfStyles.row } : { flexDirection: 'row', marginBottom: 5 },
-        label: pdfStyles?.label ? { ...pdfStyles.label } : { width: '50%', fontSize: 12, color: '#666666' },
-        value: pdfStyles?.value ? { ...pdfStyles.value } : { width: '50%', fontSize: 12, color: '#000000' },
-        chart: pdfStyles?.chart ? { ...pdfStyles.chart } : { width: '100%', height: 200, marginTop: 10 },
-      };
-      
-      // Remove any undefined values from style objects
-      Object.keys(safeStyles).forEach(key => {
-        const style = safeStyles[key as keyof typeof safeStyles];
-        if (style && typeof style === 'object') {
-          Object.keys(style).forEach(prop => {
-            if (style[prop as keyof typeof style] === undefined) {
-              delete style[prop as keyof typeof style];
-            }
-          });
-        }
-      });
+      // Use pdfStyles directly - it's already defined with correct types from StyleSheet.create()
+      // No need for fallbacks since pdfStyles is defined at component level
+      const safeStyles = pdfStyles;
       
       // Build page children array, ensuring all props are properly defined
       const pageChildren: any[] = [];
