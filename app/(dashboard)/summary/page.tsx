@@ -586,9 +586,6 @@ export default function SummaryPage() {
       if (typeof pdfDocument !== 'object') {
         throw new Error(`PDF document is not an object: ${typeof pdfDocument}`);
       }
-      if (!page) {
-        throw new Error('PDF page is null or undefined');
-      }
       
       console.log('🔄 Generating PDF blob...');
       
