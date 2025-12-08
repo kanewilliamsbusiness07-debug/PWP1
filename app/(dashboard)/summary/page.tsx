@@ -577,13 +577,30 @@ export default function SummaryPage() {
 
       // Step 3: Create PDF document using PDFReport component
       // Deep clone and clean all props to ensure no undefined values exist at any level
-      const deepClean = (obj: any): any => {
-        if (obj === null || obj === undefined) {
+      // This is critical because @react-pdf/renderer cannot handle undefined values
+      const deepClean = (obj: any, depth: number = 0): any => {
+        // Prevent infinite recursion
+        if (depth > 10) {
+          console.warn('deepClean: Maximum depth reached, returning null');
           return null;
         }
-        if (Array.isArray(obj)) {
-          return obj.map(item => deepClean(item));
+
+        // Handle null and undefined
+        if (obj === null) {
+          return null;
         }
+        if (obj === undefined) {
+          return null; // Convert undefined to null
+        }
+
+        // Handle arrays
+        if (Array.isArray(obj)) {
+          return obj
+            .map(item => deepClean(item, depth + 1))
+            .filter(item => item !== undefined); // Remove undefined items
+        }
+
+        // Handle objects
         if (typeof obj === 'object') {
           const cleaned: any = {};
           for (const key in obj) {
@@ -591,23 +608,32 @@ export default function SummaryPage() {
               const value = obj[key];
               // Skip undefined values entirely
               if (value !== undefined) {
-                cleaned[key] = deepClean(value);
+                const cleanedValue = deepClean(value, depth + 1);
+                // Only add if the cleaned value is not undefined
+                if (cleanedValue !== undefined) {
+                  cleaned[key] = cleanedValue;
+                }
               }
             }
           }
           return cleaned;
         }
+
+        // Handle primitives (string, number, boolean)
         return obj;
       };
 
-      // Create clean props object
+      // Create clean props object - ensure all values are defined
       const pdfReportProps = deepClean({
         summary: pdfSummary,
         chartImages: chartImages,
         clientData: pdfClientData,
       });
 
-      // Final validation - ensure required props exist
+      // Final validation - ensure required props exist and have correct types
+      if (!pdfReportProps || typeof pdfReportProps !== 'object') {
+        throw new Error('PDF props validation failed: props object is missing or invalid');
+      }
       if (!pdfReportProps.summary || typeof pdfReportProps.summary !== 'object') {
         throw new Error('PDF props validation failed: summary is missing or invalid');
       }
@@ -624,63 +650,103 @@ export default function SummaryPage() {
         hasClientData: !!pdfReportProps.clientData,
       });
 
-      // Create PDF document using JSX syntax (which React.createElement supports)
-      // This ensures the component is properly structured for @react-pdf/renderer
-      const pdfDocument = (
-        <PDFReport
-          summary={pdfReportProps.summary}
-          chartImages={pdfReportProps.chartImages}
-          clientData={pdfReportProps.clientData}
-        />
-      );
+      // Step 4: Final validation - ensure no undefined values or non-serializable values in props
+      // This is critical for @react-pdf/renderer compatibility
+      const validateProps = (props: any, path: string = ''): void => {
+        if (props === undefined) {
+          throw new Error(`Undefined value found in props at path: ${path}`);
+        }
+        if (props === null) {
+          return; // null is allowed
+        }
+        // Check for functions (not serializable)
+        if (typeof props === 'function') {
+          throw new Error(`Function found in props at path: ${path} (functions are not serializable)`);
+        }
+        // Check for symbols (not serializable)
+        if (typeof props === 'symbol') {
+          throw new Error(`Symbol found in props at path: ${path} (symbols are not serializable)`);
+        }
+        if (Array.isArray(props)) {
+          props.forEach((item, index) => {
+            validateProps(item, `${path}[${index}]`);
+          });
+          return;
+        }
+        if (typeof props === 'object') {
+          // Check for Date objects (should be converted to string)
+          if (props instanceof Date) {
+            throw new Error(`Date object found in props at path: ${path} (dates should be converted to strings)`);
+          }
+          // Check for other non-serializable objects
+          if (props instanceof RegExp || props instanceof Error) {
+            throw new Error(`Non-serializable object found in props at path: ${path}`);
+          }
+          for (const key in props) {
+            if (Object.prototype.hasOwnProperty.call(props, key)) {
+              if (props[key] === undefined) {
+                throw new Error(`Undefined value found in props at path: ${path}.${key}`);
+              }
+              validateProps(props[key], path ? `${path}.${key}` : key);
+            }
+          }
+        }
+      };
 
-      // Step 5: Validate document before generating blob
-      console.log('🔄 Validating PDF document...');
-      if (!pdfDocument) {
-        throw new Error('PDF document is null or undefined');
+      // Validate props before creating element
+      try {
+        validateProps(pdfReportProps);
+      } catch (validationError: any) {
+        console.error('Props validation failed:', validationError);
+        throw new Error(`PDF props validation failed: ${validationError.message}`);
       }
-      if (typeof pdfDocument !== 'object') {
-        throw new Error(`PDF document is not an object: ${typeof pdfDocument}`);
-      }
-      
-      console.log('🔄 Generating PDF blob...');
+
+      // Step 5: Create PDF document using React.createElement to ensure proper structure
+      // This is more reliable than JSX for @react-pdf/renderer
+      console.log('🔄 Creating PDF document element...');
       
       // Ensure pdf function is available and callable
       if (typeof pdf !== 'function') {
         throw new Error('PDF generation function is not available');
       }
       
+      // Ensure PDFReport component is available
+      if (!PDFReport || typeof PDFReport !== 'function') {
+        throw new Error('PDFReport component is not available');
+      }
+      
       // Generate blob with error handling
-      // @react-pdf/renderer's pdf() function should handle React components
-      // that return Document elements, but we need to ensure the element is properly structured
       let pdfBlob: Blob;
       try {
+        // Use React.createElement to create the element with clean props
+        // This ensures the element structure is exactly what the library expects
+        const pdfDocument = React.createElement(PDFReport, {
+          summary: pdfReportProps.summary,
+          chartImages: pdfReportProps.chartImages,
+          clientData: pdfReportProps.clientData,
+        });
+
+        // Validate the element was created correctly
+        if (!pdfDocument) {
+          throw new Error('PDF document element is null or undefined');
+        }
+        if (typeof pdfDocument !== 'object') {
+          throw new Error(`PDF document element is not an object: ${typeof pdfDocument}`);
+        }
+
         // Log the document structure for debugging
         console.log('📄 PDF Document element type:', typeof pdfDocument);
         console.log('📄 PDF Document structure:', {
-          type: pdfDocument?.type?.name || pdfDocument?.type,
+          type: pdfDocument?.type?.name || pdfDocument?.type || 'unknown',
           props: pdfDocument?.props ? Object.keys(pdfDocument.props) : 'no props',
           hasType: !!pdfDocument?.type,
           hasProps: !!pdfDocument?.props,
         });
-        
-        // Ensure pdfDocument is a valid React element
-        if (!pdfDocument || typeof pdfDocument !== 'object') {
-          throw new Error('PDF document is not a valid React element');
-        }
-
-        // Ensure the element has the required React structure
-        if (!pdfDocument.type) {
-          throw new Error('PDF document element is missing type property');
-        }
-        if (!pdfDocument.props) {
-          throw new Error('PDF document element is missing props property');
-        }
 
         // Call pdf() with the component element
-        // The library should render the component and extract the Document
+        // The library will render the component and extract the Document
         console.log('🔄 Calling pdf() with component element...');
-        const pdfInstance = pdf(pdfDocument as any);
+        const pdfInstance = pdf(pdfDocument);
         
         if (!pdfInstance) {
           throw new Error('PDF instance is null or undefined');
@@ -701,13 +767,26 @@ export default function SummaryPage() {
           hasOwnProperty: pdfError?.message?.includes('hasOwnProperty'),
         });
         
+        // Log the props structure for debugging
+        console.error('Props structure at error:', {
+          summaryKeys: pdfReportProps.summary ? Object.keys(pdfReportProps.summary) : 'no summary',
+          chartCount: pdfReportProps.chartImages?.length || 0,
+          clientDataKeys: pdfReportProps.clientData ? Object.keys(pdfReportProps.clientData) : 'no clientData',
+        });
+        
         // The hasOwnProperty error typically means the library encountered undefined
         // when trying to check object properties. This can happen if:
         // 1. The component element structure is incorrect
         // 2. Props contain undefined values that the library can't handle
         // 3. The library is trying to access React internals that don't exist
         if (pdfError?.message?.includes('hasOwnProperty') || pdfError?.message?.includes('undefined')) {
-          throw new Error('PDF generation failed: The PDF library encountered an internal error. This may be due to invalid data structure. Please try again or contact support if the issue persists.');
+          // Try to provide more helpful error message
+          const errorMsg = pdfError?.message || 'Unknown error';
+          throw new Error(
+            `PDF generation failed: The PDF library encountered an error while processing the document. ` +
+            `Error: ${errorMsg}. ` +
+            `This may be due to invalid data structure. Please ensure all client data is properly filled in and try again.`
+          );
         }
         throw pdfError;
       }
