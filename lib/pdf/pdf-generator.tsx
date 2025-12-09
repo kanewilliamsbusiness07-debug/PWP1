@@ -70,7 +70,8 @@ if (typeof window === 'undefined') {
   } catch (e) {
     // Non-fatal - server may not have fonts
     // eslint-disable-next-line no-console
-    console.warn('Server font registration skipped or failed:', e && e.message ? e.message : e);
+    const _err: any = e;
+    console.warn('Server font registration skipped or failed:', _err && _err.message ? _err.message : _err);
   }
 } else {
   // Client-side: register publicly served fonts if present
