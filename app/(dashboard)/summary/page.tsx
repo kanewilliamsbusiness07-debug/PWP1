@@ -37,6 +37,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useFinancialStore } from '@/lib/store/store';
 import { ServiceabilitySummary } from '@/components/serviceability-summary';
 import { calculateInvestmentSurplus, calculatePropertyServiceability } from '@/lib/finance/serviceability';
+import { calculateMonthlySurplus } from '@/lib/finance/calculations';
 import { formatCurrency } from '@/lib/utils/format';
 
 interface FinancialSummary {
@@ -197,43 +198,15 @@ export default function SummaryPage() {
 
     // Calculate income (annual, convert to monthly)
     const annualIncome = financialStore.grossIncome || financialStore.employmentIncome || client?.annualIncome || client?.grossSalary || 0;
-    const rentalIncome = financialStore.rentalIncome || client?.rentalIncome || 0;
-    const investmentIncome = financialStore.investmentIncome || client?.dividends || 0;
-    const otherIncome = financialStore.otherIncome || client?.otherIncome || 0;
-    const totalAnnualIncome = annualIncome + rentalIncome + investmentIncome + otherIncome;
-    const monthlyIncome = totalAnnualIncome / 12;
-
-    // Get monthly expenses from client data (living expenses only)
-    const monthlyExpenses = client?.monthlyExpenses || 0;
-
-    // Calculate tax separately (annual, convert to monthly)
-    // Tax is calculated on taxable income (income minus deductions)
-    const workExpenses = financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0;
-    const investmentExpenses = financialStore.investmentExpenses || client?.investmentExpenses || 0;
-    const rentalExpenses = financialStore.rentalExpenses || client?.rentalExpenses || 0;
-    const vehicleExpenses = client?.vehicleExpenses || 0;
-    const homeOfficeExpenses = client?.homeOfficeExpenses || 0;
-    const totalDeductions = workExpenses + investmentExpenses + rentalExpenses + vehicleExpenses + homeOfficeExpenses;
-    const taxableIncome = Math.max(0, totalAnnualIncome - totalDeductions);
-    // Simplified tax calculation (30% marginal rate)
-    const annualTax = Math.max(0, taxableIncome * 0.30);
-    const monthlyTax = annualTax / 12;
-
-    // Calculate HECS repayment separately (annual, convert to monthly)
-    // HECS repayment is typically 1-10% of income above threshold ($51,550 in 2024-25)
-    const hecsThreshold = 51550;
-    const hecsRepayableIncome = Math.max(0, annualIncome - hecsThreshold);
-    const annualHECSRepayment = hecsBalance > 0 && hecsRepayableIncome > 0 ? hecsRepayableIncome * 0.05 : 0; // 5% rate
-    const monthlyHECSRepayment = annualHECSRepayment / 12;
-
-    // Calculate property expenses separately (from investment properties)
-    const propertyExpenses = (rentalExpenses || 0) / 12; // Property expenses already in annual form
-
-    // Total monthly deductions = living expenses + tax + HECS + property expenses
-    const totalMonthlyDeductions = monthlyExpenses + monthlyTax + monthlyHECSRepayment + propertyExpenses;
-
-    // Net cash flow = income - all deductions
-    const monthlyCashFlow = monthlyIncome - totalMonthlyDeductions;
+    // Use canonical monthly surplus calculation when available
+    const surplusResult = calculateMonthlySurplus(client || {});
+    const monthlyIncome = surplusResult.income.total || 0;
+    const monthlyExpenses = surplusResult.expenses.total || 0;
+    const monthlyTax = surplusResult.expenses.tax || 0;
+    const monthlyHECSRepayment = surplusResult.expenses.hecs || 0;
+    const propertyExpenses = surplusResult.expenses.propertyExpenses || 0;
+    const totalMonthlyDeductions = monthlyExpenses;
+    const monthlyCashFlow = surplusResult.surplus || 0;
 
     // Property calculations
     // Count investment properties from assets array or legacy fields
@@ -290,11 +263,14 @@ export default function SummaryPage() {
     const retirementDeficitSurplus = monthlyCashFlow; // Simplified
     const isRetirementDeficit = retirementDeficitSurplus < 0;
 
-    // Tax calculations (already calculated above, reuse those values)
-    // taxableIncome was already calculated at line 207
-    const currentTax = annualTax; // Already calculated above
-    const optimizedTax = Math.max(0, taxableIncome * 0.25); // Simplified optimization (25% vs 30%)
+    // Tax calculations - derive from canonical monthly values
+    const totalAnnualIncome = (surplusResult.income.total || 0) * 12;
+    const currentTax = (monthlyTax || 0) * 12;
+    const optimizedTax = Math.max(0, currentTax * (25 / 30)); // simplified optimized estimate
     const taxSavings = currentTax - optimizedTax;
+
+    // Recalculate a few legacy-derived values used for recommendations
+    const workExpenses = financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0;
 
     // Generate recommendations
     const recommendations: string[] = [];
