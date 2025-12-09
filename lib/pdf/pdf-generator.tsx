@@ -12,6 +12,7 @@ const styles = StyleSheet.create({
   page: {
     padding: 40,
     paddingBottom: 60, // Extra space for footer
+    paddingTop: 50,
     fontFamily: 'Helvetica',
     fontSize: 11,
     lineHeight: 1.6,
@@ -59,8 +60,14 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   section: {
-    marginBottom: 20,
-    paddingBottom: 8,
+    marginBottom: 25,
+    minHeight: 0,
+    paddingBottom: 10,
+  },
+  sectionNoWrap: {
+    marginBottom: 25,
+    minHeight: 0,
+    paddingBottom: 10,
   },
   sectionTitle: {
     fontSize: 18,
@@ -105,8 +112,8 @@ const styles = StyleSheet.create({
   },
   chart: {
     width: 515, // Fit within A4 page width (595 - 40*2 padding = 515)
-    maxHeight: 400, // Reduced to prevent page overflow
-    marginBottom: 10,
+    maxHeight: 650, // Prevent charts from being too tall
+    marginBottom: 15,
     alignSelf: 'center',
     maxWidth: 515,
   },
@@ -203,6 +210,111 @@ const styles = StyleSheet.create({
     borderLeftStyle: 'solid',
     borderLeftColor: '#2196f3',
   },
+  retirementSurplusBox: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  retirementSurplusLabel: {
+    fontSize: 10,
+    color: '#7f8c8d',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  retirementSurplusValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  retirementSurplusSubtext: {
+    fontSize: 11,
+    color: '#7f8c8d',
+    textAlign: 'center',
+    lineHeight: 1.4,
+  },
+  taxStrategyTable: {
+    width: '100%',
+    marginVertical: 15,
+  },
+  taxStrategyRow: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    paddingHorizontal: 5,
+    borderBottomWidth: 1,
+    borderBottomStyle: 'solid',
+    borderBottomColor: '#e0e0e0',
+  },
+  taxStrategyHeader: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    backgroundColor: '#f8f9fa',
+    borderBottomWidth: 2,
+    borderBottomStyle: 'solid',
+    borderBottomColor: '#3498db',
+  },
+  taxStrategyCell: {
+    fontSize: 10,
+    color: '#333',
+    flex: 1,
+  },
+  taxStrategyCellLabel: {
+    fontSize: 10,
+    color: '#333',
+    flex: 1.5,
+    fontWeight: 'bold',
+  },
+  taxStrategyCellAmount: {
+    fontSize: 10,
+    color: '#333',
+    flex: 1,
+    textAlign: 'right',
+  },
+  taxStrategyCellSaving: {
+    fontSize: 10,
+    color: '#4caf50',
+    flex: 1,
+    textAlign: 'right',
+    fontWeight: 'bold',
+  },
+  taxStrategyCellExplanation: {
+    fontSize: 9,
+    color: '#666',
+    flex: 2,
+    fontStyle: 'italic',
+  },
+  expandedRecommendation: {
+    backgroundColor: '#e3f2fd',
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftStyle: 'solid',
+    borderLeftColor: '#2196f3',
+  },
+  recommendationTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#2196f3',
+    marginBottom: 8,
+  },
+  recommendationDetail: {
+    fontSize: 10,
+    color: '#333',
+    marginBottom: 6,
+    lineHeight: 1.5,
+  },
+  recommendationLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginTop: 6,
+    marginBottom: 2,
+  },
 });
 
 // CRITICAL: Define interfaces for props with optional properties
@@ -226,7 +338,6 @@ interface PDFSummary {
   totalPropertyDebt?: number;
   propertyEquity?: number;
   recommendations?: string[];
-  taxStrategies?: Array<{ strategy: string; savings: number }>;
   // Retirement projections
   projectedRetirementNetWorth?: number;
   projectedRetirementMonthlyCashFlow?: number;
@@ -352,12 +463,6 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
   const totalPropertyDebt = safeNumber(safeSummary.totalPropertyDebt, 0);
   const propertyEquity = safeNumber(safeSummary.propertyEquity, 0);
   const recommendations = safeArray(safeSummary.recommendations, []);
-  const taxStrategies = Array.isArray(safeSummary.taxStrategies) 
-    ? safeSummary.taxStrategies.map((s: any) => ({
-        strategy: safeString(s?.strategy || ''),
-        savings: safeNumber(s?.savings, 0)
-      }))
-    : [];
 
   // Get chart images by type
   const getChartByType = (type: string): string | null => {
@@ -393,9 +498,10 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
 
   return (
     <Document>
+      {/* Page 1: Executive Summary and Overview */}
       <Page size="A4" style={styles.page} wrap>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={styles.header} fixed>
           <View style={styles.headerRow}>
             <View style={styles.headerText}>
               <Text style={styles.companyName}>Perpetual Wealth Partners</Text>
@@ -448,17 +554,27 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
             </View>
           </View>
 
-          {/* Retirement Surplus */}
-          <View style={{ marginBottom: 15, padding: 15, backgroundColor: projectedRetirementSurplus >= 0 ? '#e8f5e9' : '#ffebee', borderRadius: 5 }}>
-            <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 8 }}>Projected Retirement Surplus</Text>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: projectedRetirementSurplus >= 0 ? '#27ae60' : '#e74c3c', marginBottom: 10 }}>
-              {formatCurrency(projectedRetirementSurplus)}
-            </Text>
-            <Text style={{ fontSize: 9, color: '#7f8c8d', lineHeight: 1.4 }}>
-              {projectedRetirementSurplus >= 0 
-                ? 'You are on track for a comfortable retirement'
-                : 'Action required to meet retirement goals'}
-            </Text>
+          {/* Retirement Surplus - Fixed Layout */}
+          <View style={[
+            styles.retirementSurplusBox,
+            { backgroundColor: projectedRetirementSurplus >= 0 ? '#e8f5e9' : '#ffebee' }
+          ]}>
+            <Text style={styles.retirementSurplusLabel}>Projected Retirement Surplus</Text>
+            <View style={{ height: 45, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={[
+                styles.retirementSurplusValue,
+                { color: projectedRetirementSurplus >= 0 ? '#27ae60' : '#e74c3c' }
+              ]}>
+                {formatCurrency(projectedRetirementSurplus)}
+              </Text>
+            </View>
+            <View style={{ height: 20, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={styles.retirementSurplusSubtext}>
+                {projectedRetirementSurplus >= 0 
+                  ? 'You are on track for a comfortable retirement'
+                  : 'Action required to meet retirement goals'}
+              </Text>
+            </View>
           </View>
 
           {/* Property Portfolio */}
@@ -473,8 +589,8 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </View>
         </View>
 
-        {/* Income Analysis */}
-        <View style={styles.section} wrap={false}>
+        {/* Income Analysis - Keep together */}
+        <View style={styles.sectionNoWrap} wrap={false}>
           <Text style={styles.sectionTitle}>Income Analysis</Text>
           {incomeChart && (
             <View style={styles.chartContainer}>
@@ -485,7 +601,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
               />
             </View>
           )}
-          <View style={styles.explanation} wrap={false}>
+          <View style={styles.explanation}>
             <Text style={styles.explanationTitle}>Understanding Your Income</Text>
             <Text style={styles.explanationText}>
               Your total annual income is {formatCurrency(monthlyIncome * 12)}, 
@@ -497,8 +613,8 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </View>
         </View>
 
-        {/* Expense Breakdown */}
-        <View style={styles.section} wrap={false}>
+        {/* Expense Breakdown - Keep together */}
+        <View style={styles.sectionNoWrap} wrap={false}>
           <Text style={styles.sectionTitle}>Expense Breakdown</Text>
           {expenseChart && (
             <View style={styles.chartContainer}>
@@ -509,7 +625,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
               />
             </View>
           )}
-          <View style={styles.explanation} wrap={false}>
+          <View style={styles.explanation}>
             <Text style={styles.explanationTitle}>Understanding Your Expenses</Text>
             <Text style={styles.explanationText}>
               Your monthly expenses total {formatCurrency(monthlyExpenses)}, 
@@ -522,14 +638,14 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </View>
         </View>
 
-        {/* Detailed Financial Position */}
-        <View style={styles.section} wrap={false}>
+        {/* Detailed Financial Position - Keep together */}
+        <View style={styles.sectionNoWrap} wrap={false}>
           <Text style={styles.sectionTitle}>Detailed Financial Position</Text>
           {financialPositionChart ? (
             <View style={styles.chartContainer}>
               <Image 
                 src={financialPositionChart} 
-                style={[styles.chart, { maxHeight: 420 }]}
+                style={[styles.chart, { maxHeight: 400, width: 515 }]}
                 cache={false}
               />
             </View>
@@ -537,12 +653,12 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
             <View style={styles.chartContainer}>
               <Image 
                 src={assetChart} 
-                style={styles.chart}
+                style={[styles.chart, { maxHeight: 400, width: 515 }]}
                 cache={false}
               />
             </View>
           ) : null}
-          <View style={styles.explanation} wrap={false}>
+          <View style={styles.explanation}>
             <Text style={styles.explanationTitle}>Understanding Your Financial Position</Text>
             <Text style={styles.explanationText}>
               Your total assets of {formatCurrency(totalAssets)} are offset by 
@@ -606,7 +722,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
             <View style={styles.chartContainer}>
               <Image 
                 src={detailedCashFlowChart} 
-                style={[styles.chart, { maxHeight: 400 }]}
+                style={[styles.chart, { maxHeight: 500 }]}
                 cache={false}
               />
             </View>
@@ -632,47 +748,55 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </View>
         </View>
 
-        {/* Detailed Retirement Projection */}
-        <View style={styles.section} wrap={false}>
+        {/* Detailed Retirement Projection - Fixed layout */}
+        <View style={styles.sectionNoWrap} wrap={false}>
           <Text style={styles.sectionTitle}>Detailed Retirement Projection</Text>
           {detailedRetirementChart ? (
-            <View style={styles.chartContainer}>
+            <View style={[styles.chartContainer, { marginBottom: 10 }]}>
               <Image 
                 src={detailedRetirementChart} 
-                style={[styles.chart, { maxHeight: 500 }]}
+                style={[styles.chart, { maxHeight: 450, width: 515 }]}
                 cache={false}
               />
             </View>
           ) : retirementChart ? (
-            <View style={styles.chartContainer}>
+            <View style={[styles.chartContainer, { marginBottom: 10 }]}>
               <Image 
                 src={retirementChart} 
-                style={styles.chart}
+                style={[styles.chart, { maxHeight: 450, width: 515 }]}
                 cache={false}
               />
             </View>
           ) : null}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 15, paddingHorizontal: 10 }}>
-            <View style={{ alignItems: 'center', flex: 1, paddingHorizontal: 5 }}>
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-around', 
+            marginTop: 15,
+            marginBottom: 10,
+            paddingHorizontal: 20,
+            width: '90%',
+            alignSelf: 'center'
+          }}>
+            <View style={{ alignItems: 'center', flex: 1, maxWidth: 150 }}>
               <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 6 }}>Years to Retirement</Text>
               <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2196f3' }}>
                 {yearsToRetirement}
               </Text>
             </View>
-            <View style={{ alignItems: 'center', flex: 1, paddingHorizontal: 5 }}>
+            <View style={{ alignItems: 'center', flex: 1, maxWidth: 150 }}>
               <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 6 }}>Projected Lump Sum</Text>
               <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#4caf50' }}>
                 {formatCurrency(projectedRetirementLumpSum)}
               </Text>
             </View>
-            <View style={{ alignItems: 'center', flex: 1, paddingHorizontal: 5 }}>
+            <View style={{ alignItems: 'center', flex: 1, maxWidth: 150 }}>
               <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 6 }}>Monthly Surplus</Text>
               <Text style={{ fontSize: 14, fontWeight: 'bold', color: projectedRetirementSurplus >= 0 ? '#4caf50' : '#e74c3c' }}>
                 {formatCurrency(projectedRetirementSurplus)}
               </Text>
             </View>
           </View>
-          <View style={[isRetirementDeficit ? styles.warningBox : styles.highlightBox, { marginTop: 15 }]} wrap={false}>
+          <View style={isRetirementDeficit ? styles.warningBox : styles.highlightBox}>
             <Text style={styles.explanationTitle}>
               {isRetirementDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
             </Text>
@@ -685,10 +809,49 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </View>
         </View>
 
-        {/* Tax Optimization */}
-        <View style={styles.section} wrap={false}>
+        {/* Tax Optimization - Enhanced with Detailed Breakdown */}
+        <View style={styles.sectionNoWrap} wrap={false}>
           <Text style={styles.sectionTitle}>Tax Optimization Analysis</Text>
-          {taxOptimizationChart ? (
+          
+          {/* Tax Summary Box */}
+          <View style={{ 
+            backgroundColor: taxSavings > 0 ? '#e8f5e9' : '#f8f9fa', 
+            padding: 15, 
+            borderRadius: 5, 
+            marginBottom: 15,
+            borderLeftWidth: 4,
+            borderLeftStyle: 'solid',
+            borderLeftColor: taxSavings > 0 ? '#4caf50' : '#3498db'
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Current Annual Tax</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2c3e50' }}>
+                  {formatCurrency(currentTax)}
+                </Text>
+              </View>
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Optimized Annual Tax</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#4caf50' }}>
+                  {formatCurrency(optimizedTax)}
+                </Text>
+              </View>
+            </View>
+            <View style={{ 
+              paddingTop: 10, 
+              borderTopWidth: 1, 
+              borderTopStyle: 'solid', 
+              borderTopColor: '#e0e0e0',
+              marginTop: 10
+            }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Potential Annual Savings</Text>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#ff9800' }}>
+                {formatCurrency(taxSavings)}
+              </Text>
+            </View>
+          </View>
+
+          {taxOptimizationChart && (
             <View style={styles.chartContainer}>
               <Image 
                 src={taxOptimizationChart} 
@@ -696,126 +859,781 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
                 cache={false}
               />
             </View>
-          ) : null}
-          
-          {/* Tax Comparison */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, padding: 12, backgroundColor: '#f8f9fa', borderRadius: 5 }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Current Annual Tax</Text>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#e74c3c' }}>
-                {formatCurrency(currentTax)}
-              </Text>
-            </View>
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Optimized Annual Tax</Text>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#27ae60' }}>
-                {formatCurrency(optimizedTax)}
-              </Text>
-            </View>
-            <View style={{ flex: 1, alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Potential Savings</Text>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#ff9800' }}>
-                {formatCurrency(taxSavings)}
-              </Text>
-            </View>
-          </View>
+          )}
 
-          {/* Detailed Tax Strategies */}
-          {taxStrategies.length > 0 && (
-            <View style={{ marginTop: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#2c3e50', marginBottom: 10 }}>
-                Recommended Tax Optimization Strategies:
+          {/* Detailed Strategy Breakdown */}
+          {taxSavings > 0 && (
+            <View style={{ marginTop: 15 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#2c3e50', marginBottom: 12 }}>
+                Tax Optimization Strategies
               </Text>
-              {taxStrategies.map((strategy, index) => (
-                <View key={index} style={{ 
-                  flexDirection: 'row', 
-                  justifyContent: 'space-between', 
-                  padding: 10, 
-                  backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8f9fa',
-                  marginBottom: 5,
-                  borderRadius: 4,
-                  borderLeftWidth: 3,
-                  borderLeftColor: '#3498db'
-                }}>
-                  <View style={{ flex: 1, paddingRight: 10 }}>
-                    <Text style={{ fontSize: 10, color: '#2c3e50', lineHeight: 1.4 }}>
-                      {index + 1}. {strategy.strategy}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end', minWidth: 100 }}>
-                    <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#27ae60' }}>
-                      {formatCurrency(strategy.savings)}/yr
-                    </Text>
-                  </View>
+              
+              {/* Strategy Table */}
+              <View style={styles.taxStrategyTable}>
+                {/* Header */}
+                <View style={styles.taxStrategyHeader}>
+                  <Text style={[styles.taxStrategyCell, { fontWeight: 'bold', flex: 1.5 }]}>Strategy</Text>
+                  <Text style={[styles.taxStrategyCell, { fontWeight: 'bold', flex: 1, textAlign: 'right' }]}>Amount</Text>
+                  <Text style={[styles.taxStrategyCell, { fontWeight: 'bold', flex: 1, textAlign: 'right' }]}>Tax Saving</Text>
+                  <Text style={[styles.taxStrategyCell, { fontWeight: 'bold', flex: 2 }]}>Explanation</Text>
                 </View>
-              ))}
+
+                {/* Strategy 1: Salary Sacrifice to Super */}
+                {taxSavings > 0 && (
+                  <View style={styles.taxStrategyRow}>
+                    <Text style={styles.taxStrategyCellLabel}>1. Salary Sacrifice to Super</Text>
+                    <Text style={styles.taxStrategyCellAmount}>
+                      {formatCurrency(Math.min(taxSavings * 3, monthlyIncome * 12 * 0.15))}
+                    </Text>
+                    <Text style={styles.taxStrategyCellSaving}>
+                      {formatCurrency(Math.min(taxSavings * 0.5, (monthlyIncome * 12 * 0.15) * 0.235))}
+                    </Text>
+                    <Text style={styles.taxStrategyCellExplanation}>
+                      Reduces taxable income through pre-tax super contributions. Taxed at 15% instead of marginal rate (typically 32.5-45%).
+                    </Text>
+                  </View>
+                )}
+
+                {/* Strategy 2: Negative Gearing */}
+                {monthlyExpenses < monthlyIncome * 0.8 && (
+                  <View style={styles.taxStrategyRow}>
+                    <Text style={styles.taxStrategyCellLabel}>2. Negative Gearing Benefits</Text>
+                    <Text style={styles.taxStrategyCellAmount}>
+                      {formatCurrency(Math.min(taxSavings * 2, monthlyIncome * 2))}
+                    </Text>
+                    <Text style={styles.taxStrategyCellSaving}>
+                      {formatCurrency(Math.min(taxSavings * 0.3, (monthlyIncome * 2) * 0.325))}
+                    </Text>
+                    <Text style={styles.taxStrategyCellExplanation}>
+                      Investment property losses offset taxable income. Deductible expenses include interest, repairs, and depreciation.
+                    </Text>
+                  </View>
+                )}
+
+                {/* Strategy 3: Work-Related Deductions */}
+                <View style={styles.taxStrategyRow}>
+                  <Text style={styles.taxStrategyCellLabel}>3. Work-Related Deductions</Text>
+                  <Text style={styles.taxStrategyCellAmount}>
+                    {formatCurrency(Math.max(0, taxSavings * 1.5))}
+                  </Text>
+                  <Text style={styles.taxStrategyCellSaving}>
+                    {formatCurrency(Math.max(0, taxSavings * 0.2))}
+                  </Text>
+                  <Text style={styles.taxStrategyCellExplanation}>
+                    Claim eligible expenses: home office, professional development, tools, uniforms, and travel. Ensure proper documentation.
+                  </Text>
+                </View>
+              </View>
             </View>
           )}
-          
-          {taxSavings > 0 && (
-            <View style={styles.highlightBox}>
-              <Text style={styles.explanationTitle}>Total Potential Tax Savings</Text>
+
+          {taxSavings <= 0 && (
+            <View style={styles.recommendationBox}>
+              <Text style={styles.explanationTitle}>Tax Optimization Opportunities</Text>
               <Text style={styles.explanationText}>
-                By implementing the recommended strategies above, you could potentially save {formatCurrency(taxSavings)} annually in tax. 
-                This represents a {currentTax > 0 ? ((taxSavings / currentTax) * 100).toFixed(1) : 0}% reduction in your annual tax liability.
+                Your current annual tax is {formatCurrency(currentTax)}. Consider the following strategies to optimize your tax position:{'\n\n'}
+                • Salary sacrifice to superannuation: Reduce taxable income by up to $27,500/year (inclusive of employer contributions){'\n'}
+                • Negative gearing: Investment property expenses can offset other income{'\n'}
+                • Maximize deductions: Ensure all work-related, investment, and rental expenses are properly claimed{'\n'}
+                • Income splitting: Where possible, distribute income to lower-earning family members
               </Text>
             </View>
           )}
         </View>
 
-        {/* Recommendations & Action Items */}
+        {/* Recommendations & Action Items - Expanded with Details */}
         {recommendations.length > 0 && (
-          <View style={styles.section} wrap={false}>
+          <View style={styles.sectionNoWrap} wrap={false}>
             <Text style={styles.sectionTitle}>Recommendations & Action Items</Text>
-            {recommendations.map((rec, index) => (
-              <View key={index} style={[styles.recommendationBox, { marginBottom: 12, padding: 14 }]} wrap={false}>
-                <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-                  <View style={{ 
-                    width: 24, 
-                    height: 24, 
-                    borderRadius: 12, 
-                    backgroundColor: '#2196f3', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    marginRight: 10
-                  }}>
-                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#ffffff' }}>
-                      {index + 1}
-                    </Text>
-                  </View>
-                  <Text style={{ 
-                    fontSize: 11, 
-                    fontWeight: 'bold', 
-                    color: '#2c3e50',
-                    flex: 1,
-                    paddingTop: 4
-                  }}>
-                    Action Item {index + 1}
+            {recommendations.map((rec, index) => {
+              // Generate expanded recommendation based on content
+              const expandRecommendation = (recText: string, idx: number) => {
+                const lowerRec = recText.toLowerCase();
+                
+                // Superannuation recommendations
+                if (lowerRec.includes('super') || lowerRec.includes('superannuation')) {
+                  const superAmount = Math.min(monthlyIncome * 0.15 * 12, 27500);
+                  const superTaxSaving = superAmount * 0.175; // Approx tax saving
+                  return {
+                    title: recText,
+                    action: `Implement salary sacrifice of ${formatCurrency(superAmount)}/year to superannuation`,
+                    benefit: `Reduce taxable income by ${formatCurrency(superAmount)}, saving approximately ${formatCurrency(superTaxSaving)} in tax annually`,
+                    timeline: 'Set up with employer within 30 days',
+                    impact: `Increases projected retirement fund from ${formatCurrency(projectedRetirementLumpSum)} to approximately ${formatCurrency(projectedRetirementLumpSum * 1.2)} (20% increase)`
+                  };
+                }
+                
+                // Investment property recommendations
+                if (lowerRec.includes('property') || lowerRec.includes('investment property')) {
+                  return {
+                    title: recText,
+                    action: 'Research properties in growth suburbs with strong rental yields',
+                    benefit: `Negative gearing can save approximately ${formatCurrency(taxSavings * 0.3)}/year in tax, plus capital growth potential`,
+                    timeline: '6-12 months for property purchase',
+                    requirements: `Save additional deposit, obtain pre-approval for loan up to ${formatCurrency(maxPropertyValue > 0 ? maxPropertyValue : totalPropertyValue * 1.5)}`,
+                    impact: 'Build equity and passive income stream while benefiting from tax deductions'
+                  };
+                }
+                
+                // Work expenses recommendations
+                if (lowerRec.includes('work') || lowerRec.includes('deduction')) {
+                  return {
+                    title: recText,
+                    action: 'Maximize claimable work-related expenses including home office, professional development, and tools',
+                    benefit: `Additional deductions of ${formatCurrency(monthlyExpenses * 0.2 * 12)}/year could save approximately ${formatCurrency(monthlyExpenses * 0.2 * 12 * 0.325)} in tax`,
+                    timeline: 'Immediate - claim in next tax return',
+                    requirements: 'Ensure proper documentation and receipts for all expenses',
+                    impact: 'Reduce taxable income and improve cash flow through tax refunds'
+                  };
+                }
+                
+                // Portfolio recommendations
+                if (lowerRec.includes('portfolio') || lowerRec.includes('allocation') || lowerRec.includes('share')) {
+                  return {
+                    title: recText,
+                    action: 'Review and rebalance investment portfolio to optimize returns and risk',
+                    benefit: 'Better diversification reduces risk while maintaining growth potential',
+                    timeline: '3-6 months for portfolio review and adjustment',
+                    requirements: 'Consult with financial advisor for personalized asset allocation strategy',
+                    impact: 'Improved risk-adjusted returns and better alignment with retirement goals'
+                  };
+                }
+                
+                // Health insurance recommendations
+                if (lowerRec.includes('health') || lowerRec.includes('insurance')) {
+                  return {
+                    title: recText,
+                    action: 'Consider private health insurance to avoid Medicare Levy Surcharge',
+                    benefit: `Save approximately ${formatCurrency(monthlyIncome * 12 * 0.01)}/year in Medicare Levy Surcharge`,
+                    timeline: 'Enroll before June 30 to avoid surcharge in following tax year',
+                    requirements: 'Compare policies and select appropriate level of cover',
+                    impact: 'Avoid surcharge while gaining access to private healthcare'
+                  };
+                }
+                
+                // Default expanded format
+                return {
+                  title: recText,
+                  action: 'Review current financial strategy and implement improvements',
+                  benefit: 'Optimize financial position for long-term wealth accumulation',
+                  timeline: 'Within 90 days',
+                  impact: 'Enhanced financial security and retirement readiness'
+                };
+              };
+
+              const expanded = expandRecommendation(rec, index);
+              
+              return (
+                <View key={index} style={styles.expandedRecommendation}>
+                  <Text style={styles.recommendationTitle}>
+                    {index + 1}. {expanded.title}
+                  </Text>
+                  <Text style={styles.recommendationLabel}>Action:</Text>
+                  <Text style={styles.recommendationDetail}>
+                    {expanded.action}
+                  </Text>
+                  <Text style={styles.recommendationLabel}>Benefit:</Text>
+                  <Text style={styles.recommendationDetail}>
+                    {expanded.benefit}
+                  </Text>
+                  {expanded.timeline && (
+                    <>
+                      <Text style={styles.recommendationLabel}>Timeline:</Text>
+                      <Text style={styles.recommendationDetail}>
+                        {expanded.timeline}
+                      </Text>
+                    </>
+                  )}
+                  {expanded.requirements && (
+                    <>
+                      <Text style={styles.recommendationLabel}>Requirements:</Text>
+                      <Text style={styles.recommendationDetail}>
+                        {expanded.requirements}
+                      </Text>
+                    </>
+                  )}
+                  <Text style={styles.recommendationLabel}>Impact:</Text>
+                  <Text style={styles.recommendationDetail}>
+                    {expanded.impact}
                   </Text>
                 </View>
-                <Text style={{ 
-                  fontSize: 10, 
-                  color: '#555', 
-                  lineHeight: 1.6,
-                  paddingLeft: 34
-                }}>
-                  {rec}
-                </Text>
-              </View>
-            ))}
-            <View style={[styles.highlightBox, { marginTop: 15 }]}>
-              <Text style={styles.explanationTitle}>Next Steps</Text>
-              <Text style={styles.explanationText}>
-                Review these recommendations with your financial advisor to develop a customized action plan. 
-                Prioritize strategies that align with your financial goals and risk tolerance. 
-                Regular reviews every 6-12 months will help ensure you stay on track.
-              </Text>
-            </View>
+              );
+            })}
           </View>
         )}
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>
+            Generated on {reportDate} | Perpetual Wealth Partners
+          </Text>
+        </View>
+      </Page>
+
+      {/* Page 2: Income, Expenses, Financial Position */}
+      <Page size="A4" style={styles.page} wrap>
+        {/* Header */}
+        <View style={styles.header} fixed>
+          <View style={styles.headerRow}>
+            <View style={styles.headerText}>
+              <Text style={styles.companyName}>Perpetual Wealth Partners</Text>
+              <Text style={styles.clientInfo}>
+                Report Date: {reportDate}{'\n'}
+                Prepared for: {clientFullName}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.reportTitle}>Financial Planning Report</Text>
+        </View>
+
+        {/* Income Analysis - Keep together */}
+        <View style={styles.sectionNoWrap} wrap={false}>
+          <Text style={styles.sectionTitle}>Income Analysis</Text>
+          {incomeChart && (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={incomeChart} 
+                style={styles.chart}
+                cache={false}
+              />
+            </View>
+          )}
+          <View style={styles.explanation}>
+            <Text style={styles.explanationTitle}>Understanding Your Income</Text>
+            <Text style={styles.explanationText}>
+              Your total annual income is {formatCurrency(monthlyIncome * 12)}, 
+              which breaks down to {formatCurrency(monthlyIncome)} per month.{'\n\n'}
+              • Primary income source: Employment income{'\n'}
+              • Additional income streams: Rental and investment income provide diversification{'\n'}
+              • Recommendation: Consider increasing passive income sources to build financial resilience
+            </Text>
+          </View>
+        </View>
+
+        {/* Expense Breakdown - Keep together */}
+        <View style={styles.sectionNoWrap} wrap={false}>
+          <Text style={styles.sectionTitle}>Expense Breakdown</Text>
+          {expenseChart && (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={expenseChart} 
+                style={styles.chart}
+                cache={false}
+              />
+            </View>
+          )}
+          <View style={styles.explanation}>
+            <Text style={styles.explanationTitle}>Understanding Your Expenses</Text>
+            <Text style={styles.explanationText}>
+              Your monthly expenses total {formatCurrency(monthlyExpenses)}, 
+              representing {monthlyIncome > 0 ? ((monthlyExpenses / monthlyIncome) * 100).toFixed(1) : 0}% 
+              of your monthly income.{'\n\n'}
+              • Work-related expenses: Tax-deductible expenses that reduce your taxable income{'\n'}
+              • Investment expenses: Costs associated with managing your investment portfolio{'\n'}
+              • Recommendation: Review expense categories regularly to identify optimization opportunities
+            </Text>
+          </View>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>
+            Generated on {reportDate} | Perpetual Wealth Partners
+          </Text>
+        </View>
+      </Page>
+
+      {/* Page 3: Financial Position, Investment Property, Cash Flow */}
+      <Page size="A4" style={styles.page} wrap>
+        {/* Header */}
+        <View style={styles.header} fixed>
+          <View style={styles.headerRow}>
+            <View style={styles.headerText}>
+              <Text style={styles.companyName}>Perpetual Wealth Partners</Text>
+              <Text style={styles.clientInfo}>
+                Report Date: {reportDate}{'\n'}
+                Prepared for: {clientFullName}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.reportTitle}>Financial Planning Report</Text>
+        </View>
+
+        {/* Detailed Financial Position - Keep together */}
+        <View style={styles.sectionNoWrap} wrap={false}>
+          <Text style={styles.sectionTitle}>Detailed Financial Position</Text>
+          {financialPositionChart ? (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={financialPositionChart} 
+                style={[styles.chart, { maxHeight: 380, width: 515 }]}
+                cache={false}
+              />
+            </View>
+          ) : assetChart ? (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={assetChart} 
+                style={[styles.chart, { maxHeight: 380, width: 515 }]}
+                cache={false}
+              />
+            </View>
+          ) : null}
+          <View style={styles.explanation}>
+            <Text style={styles.explanationTitle}>Understanding Your Financial Position</Text>
+            <Text style={styles.explanationText}>
+              Your total assets of {formatCurrency(totalAssets)} are offset by 
+              liabilities of {formatCurrency(totalLiabilities)}, resulting in a net worth 
+              of {formatCurrency(netWorth)}.{'\n\n'}
+              • Asset allocation: Diversification across property, superannuation, and investments{'\n'}
+              • Debt-to-asset ratio: {totalAssets > 0 ? ((totalLiabilities / totalAssets) * 100).toFixed(1) : 0}% 
+              (lower is generally better){'\n'}
+              • Equity ratio: {totalAssets > 0 ? ((netWorth / totalAssets) * 100).toFixed(1) : 0}%{'\n'}
+              • Recommendation: Focus on building assets while strategically managing debt
+            </Text>
+          </View>
+        </View>
+
+        {/* Investment Property Potential */}
+        <View style={styles.sectionNoWrap} wrap={false}>
+          <Text style={styles.sectionTitle}>Investment Property Potential</Text>
+          {isViable && maxPropertyValue > 0 ? (
+            <>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 15 }}>
+                <View style={styles.metricBox}>
+                  <Text style={[styles.metricValue, { fontSize: 18, color: '#2196f3' }]}>
+                    {formatCurrency(maxPropertyValue)}
+                  </Text>
+                  <Text style={styles.metricLabel}>Max Property Value</Text>
+                </View>
+                <View style={styles.metricBox}>
+                  <Text style={[styles.metricValue, { fontSize: 18, color: '#4caf50' }]}>
+                    {formatCurrency(surplusIncome)}
+                  </Text>
+                  <Text style={styles.metricLabel}>Monthly Surplus</Text>
+                </View>
+                <View style={styles.metricBox}>
+                  <Text style={[styles.metricValue, { fontSize: 18, color: '#ff9800' }]}>
+                    {formatCurrency(monthlyRentalIncome)}
+                  </Text>
+                  <Text style={styles.metricLabel}>Expected Rental Income</Text>
+                </View>
+              </View>
+              <View style={styles.highlightBox}>
+                <Text style={styles.explanationText}>
+                  Based on your surplus income above the 70% retention threshold, you have capacity to service an investment property. 
+                  The calculation assumes an {safeNumber(serviceability.loanToValueRatio, 0.8) * 100}% loan-to-value ratio and conservative rental yield assumptions.
+                </Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.warningBox}>
+              <Text style={styles.explanationTitle}>Limited Investment Potential</Text>
+              <Text style={styles.explanationText}>
+                {serviceability.reason || 'There is insufficient surplus income available for investment property serviceability after ensuring 70% of your current income in retirement.'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>
+            Generated on {reportDate} | Perpetual Wealth Partners
+          </Text>
+        </View>
+      </Page>
+
+      {/* Page 4: Cash Flow, Retirement Projection */}
+      <Page size="A4" style={styles.page} wrap>
+        {/* Header */}
+        <View style={styles.header} fixed>
+          <View style={styles.headerRow}>
+            <View style={styles.headerText}>
+              <Text style={styles.companyName}>Perpetual Wealth Partners</Text>
+              <Text style={styles.clientInfo}>
+                Report Date: {reportDate}{'\n'}
+                Prepared for: {clientFullName}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.reportTitle}>Financial Planning Report</Text>
+        </View>
+
+        {/* Detailed Cash Flow Analysis */}
+        <View style={styles.sectionNoWrap} wrap={false}>
+          <Text style={styles.sectionTitle}>Detailed Cash Flow Breakdown</Text>
+          {detailedCashFlowChart ? (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={detailedCashFlowChart} 
+                style={[styles.chart, { maxHeight: 400, width: 515 }]}
+                cache={false}
+              />
+            </View>
+          ) : cashFlowChart ? (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={cashFlowChart} 
+                style={[styles.chart, { maxHeight: 400, width: 515 }]}
+                cache={false}
+              />
+            </View>
+          ) : null}
+          <View style={monthlyCashFlow >= 0 ? styles.highlightBox : styles.warningBox}>
+            <Text style={styles.explanationTitle}>
+              {monthlyCashFlow >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
+            </Text>
+            <Text style={styles.explanationText}>
+              {monthlyCashFlow >= 0 
+                ? `You have a positive monthly cash flow of ${formatCurrency(monthlyCashFlow)}, representing a savings rate of ${monthlyIncome > 0 ? ((monthlyCashFlow / monthlyIncome) * 100).toFixed(1) : 0}%. This surplus can be used for investments, debt reduction, or building emergency funds.`
+                : `Your monthly expenses exceed income by ${formatCurrency(Math.abs(monthlyCashFlow))}. Consider reviewing expenses, increasing income, or adjusting your financial strategy.`
+              }
+            </Text>
+          </View>
+        </View>
+
+        {/* Detailed Retirement Projection - Fixed layout */}
+        <View style={styles.sectionNoWrap} wrap={false}>
+          <Text style={styles.sectionTitle}>Detailed Retirement Projection</Text>
+          {detailedRetirementChart ? (
+            <View style={[styles.chartContainer, { marginBottom: 10 }]}>
+              <Image 
+                src={detailedRetirementChart} 
+                style={[styles.chart, { maxHeight: 400, width: 515 }]}
+                cache={false}
+              />
+            </View>
+          ) : retirementChart ? (
+            <View style={[styles.chartContainer, { marginBottom: 10 }]}>
+              <Image 
+                src={retirementChart} 
+                style={[styles.chart, { maxHeight: 400, width: 515 }]}
+                cache={false}
+              />
+            </View>
+          ) : null}
+          <View style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-around', 
+            marginTop: 10,
+            marginBottom: 15,
+            paddingHorizontal: 20,
+            width: '90%',
+            alignSelf: 'center',
+            maxWidth: 475
+          }}>
+            <View style={{ alignItems: 'center', flex: 1, minWidth: 140 }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 6 }}>Years to Retirement</Text>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2196f3' }}>
+                {yearsToRetirement}
+              </Text>
+            </View>
+            <View style={{ alignItems: 'center', flex: 1, minWidth: 140 }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 6 }}>Projected Lump Sum</Text>
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#4caf50' }}>
+                {formatCurrency(projectedRetirementLumpSum)}
+              </Text>
+            </View>
+            <View style={{ alignItems: 'center', flex: 1, minWidth: 140 }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 6 }}>Monthly Surplus</Text>
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: projectedRetirementSurplus >= 0 ? '#4caf50' : '#e74c3c' }}>
+                {formatCurrency(projectedRetirementSurplus)}
+              </Text>
+            </View>
+          </View>
+          <View style={isRetirementDeficit ? styles.warningBox : styles.highlightBox}>
+            <Text style={styles.explanationTitle}>
+              {isRetirementDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
+            </Text>
+            <Text style={styles.explanationText}>
+              {isRetirementDeficit
+                ? `Based on current projections, you may face a retirement shortfall. With ${yearsToRetirement} years until retirement, consider increasing superannuation contributions or adjusting your retirement timeline.`
+                : `Your retirement planning is on track. Your projected retirement lump sum of ${formatCurrency(projectedRetirementLumpSum)} provides a solid foundation for your retirement years.`
+              }
+            </Text>
+          </View>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>
+            Generated on {reportDate} | Perpetual Wealth Partners
+          </Text>
+        </View>
+      </Page>
+
+      {/* Page 5: Tax Optimization and Recommendations */}
+      <Page size="A4" style={styles.page} wrap>
+        {/* Header */}
+        <View style={styles.header} fixed>
+          <View style={styles.headerRow}>
+            <View style={styles.headerText}>
+              <Text style={styles.companyName}>Perpetual Wealth Partners</Text>
+              <Text style={styles.clientInfo}>
+                Report Date: {reportDate}{'\n'}
+                Prepared for: {clientFullName}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.reportTitle}>Financial Planning Report</Text>
+        </View>
+
+        {/* Tax Optimization - Enhanced with Detailed Breakdown */}
+        <View style={styles.sectionNoWrap} wrap={false}>
+          <Text style={styles.sectionTitle}>Tax Optimization Analysis</Text>
+          
+          {/* Tax Summary Box */}
+          <View style={{ 
+            backgroundColor: taxSavings > 0 ? '#e8f5e9' : '#f8f9fa', 
+            padding: 15, 
+            borderRadius: 5, 
+            marginBottom: 15,
+            borderLeftWidth: 4,
+            borderLeftStyle: 'solid',
+            borderLeftColor: taxSavings > 0 ? '#4caf50' : '#3498db'
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Current Annual Tax</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2c3e50' }}>
+                  {formatCurrency(currentTax)}
+                </Text>
+              </View>
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Optimized Annual Tax</Text>
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#4caf50' }}>
+                  {formatCurrency(optimizedTax)}
+                </Text>
+              </View>
+            </View>
+            <View style={{ 
+              paddingTop: 10, 
+              borderTopWidth: 1, 
+              borderTopStyle: 'solid', 
+              borderTopColor: '#e0e0e0',
+              marginTop: 10
+            }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Potential Annual Savings</Text>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#ff9800' }}>
+                {formatCurrency(taxSavings)}
+              </Text>
+            </View>
+          </View>
+
+          {taxOptimizationChart && (
+            <View style={styles.chartContainer}>
+              <Image 
+                src={taxOptimizationChart} 
+                style={[styles.chart, { maxHeight: 300, width: 515 }]}
+                cache={false}
+              />
+            </View>
+          )}
+
+          {/* Detailed Strategy Breakdown */}
+          {taxSavings > 0 && (
+            <View style={{ marginTop: 15 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#2c3e50', marginBottom: 12 }}>
+                Tax Optimization Strategies
+              </Text>
+              
+              {/* Strategy Table */}
+              <View style={styles.taxStrategyTable}>
+                {/* Header */}
+                <View style={styles.taxStrategyHeader}>
+                  <Text style={[styles.taxStrategyCell, { fontWeight: 'bold', flex: 1.5 }]}>Strategy</Text>
+                  <Text style={[styles.taxStrategyCell, { fontWeight: 'bold', flex: 1, textAlign: 'right' }]}>Amount</Text>
+                  <Text style={[styles.taxStrategyCell, { fontWeight: 'bold', flex: 1, textAlign: 'right' }]}>Tax Saving</Text>
+                  <Text style={[styles.taxStrategyCell, { fontWeight: 'bold', flex: 2 }]}>Explanation</Text>
+                </View>
+
+                {/* Strategy 1: Salary Sacrifice to Super */}
+                {taxSavings > 0 && (
+                  <View style={styles.taxStrategyRow}>
+                    <Text style={styles.taxStrategyCellLabel}>1. Salary Sacrifice to Super</Text>
+                    <Text style={styles.taxStrategyCellAmount}>
+                      {formatCurrency(Math.min(taxSavings * 3, monthlyIncome * 12 * 0.15))}
+                    </Text>
+                    <Text style={styles.taxStrategyCellSaving}>
+                      {formatCurrency(Math.min(taxSavings * 0.5, (monthlyIncome * 12 * 0.15) * 0.235))}
+                    </Text>
+                    <Text style={styles.taxStrategyCellExplanation}>
+                      Reduces taxable income through pre-tax super contributions. Taxed at 15% instead of marginal rate (typically 32.5-45%).
+                    </Text>
+                  </View>
+                )}
+
+                {/* Strategy 2: Negative Gearing */}
+                {monthlyExpenses < monthlyIncome * 0.8 && (
+                  <View style={styles.taxStrategyRow}>
+                    <Text style={styles.taxStrategyCellLabel}>2. Negative Gearing Benefits</Text>
+                    <Text style={styles.taxStrategyCellAmount}>
+                      {formatCurrency(Math.min(taxSavings * 2, monthlyIncome * 2))}
+                    </Text>
+                    <Text style={styles.taxStrategyCellSaving}>
+                      {formatCurrency(Math.min(taxSavings * 0.3, (monthlyIncome * 2) * 0.325))}
+                    </Text>
+                    <Text style={styles.taxStrategyCellExplanation}>
+                      Investment property losses offset taxable income. Deductible expenses include interest, repairs, and depreciation.
+                    </Text>
+                  </View>
+                )}
+
+                {/* Strategy 3: Work-Related Deductions */}
+                <View style={styles.taxStrategyRow}>
+                  <Text style={styles.taxStrategyCellLabel}>3. Work-Related Deductions</Text>
+                  <Text style={styles.taxStrategyCellAmount}>
+                    {formatCurrency(Math.max(0, taxSavings * 1.5))}
+                  </Text>
+                  <Text style={styles.taxStrategyCellSaving}>
+                    {formatCurrency(Math.max(0, taxSavings * 0.2))}
+                  </Text>
+                  <Text style={styles.taxStrategyCellExplanation}>
+                    Claim eligible expenses: home office, professional development, tools, uniforms, and travel. Ensure proper documentation.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {taxSavings <= 0 && (
+            <View style={styles.recommendationBox}>
+              <Text style={styles.explanationTitle}>Tax Optimization Opportunities</Text>
+              <Text style={styles.explanationText}>
+                Your current annual tax is {formatCurrency(currentTax)}. Consider the following strategies to optimize your tax position:{'\n\n'}
+                • Salary sacrifice to superannuation: Reduce taxable income by up to $27,500/year (inclusive of employer contributions){'\n'}
+                • Negative gearing: Investment property expenses can offset other income{'\n'}
+                • Maximize deductions: Ensure all work-related, investment, and rental expenses are properly claimed{'\n'}
+                • Income splitting: Where possible, distribute income to lower-earning family members
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Recommendations & Action Items - Expanded with Details */}
+        {recommendations.length > 0 && (
+          <View style={styles.sectionNoWrap} wrap={false}>
+            <Text style={styles.sectionTitle}>Recommendations & Action Items</Text>
+            {recommendations.map((rec, index) => {
+              // Generate expanded recommendation based on content
+              const expandRecommendation = (recText: string, idx: number) => {
+                const lowerRec = recText.toLowerCase();
+                
+                // Superannuation recommendations
+                if (lowerRec.includes('super') || lowerRec.includes('superannuation')) {
+                  const superAmount = Math.min(monthlyIncome * 0.15 * 12, 27500);
+                  const superTaxSaving = superAmount * 0.175; // Approx tax saving
+                  return {
+                    title: recText,
+                    action: `Implement salary sacrifice of ${formatCurrency(superAmount)}/year to superannuation`,
+                    benefit: `Reduce taxable income by ${formatCurrency(superAmount)}, saving approximately ${formatCurrency(superTaxSaving)} in tax annually`,
+                    timeline: 'Set up with employer within 30 days',
+                    impact: `Increases projected retirement fund from ${formatCurrency(projectedRetirementLumpSum)} to approximately ${formatCurrency(projectedRetirementLumpSum * 1.2)} (20% increase)`
+                  };
+                }
+                
+                // Investment property recommendations
+                if (lowerRec.includes('property') || lowerRec.includes('investment property')) {
+                  return {
+                    title: recText,
+                    action: 'Research properties in growth suburbs with strong rental yields',
+                    benefit: `Negative gearing can save approximately ${formatCurrency(taxSavings * 0.3)}/year in tax, plus capital growth potential`,
+                    timeline: '6-12 months for property purchase',
+                    requirements: `Save additional deposit, obtain pre-approval for loan up to ${formatCurrency(maxPropertyValue > 0 ? maxPropertyValue : totalPropertyValue * 1.5)}`,
+                    impact: 'Build equity and passive income stream while benefiting from tax deductions'
+                  };
+                }
+                
+                // Work expenses recommendations
+                if (lowerRec.includes('work') || lowerRec.includes('deduction')) {
+                  return {
+                    title: recText,
+                    action: 'Maximize claimable work-related expenses including home office, professional development, and tools',
+                    benefit: `Additional deductions of ${formatCurrency(monthlyExpenses * 0.2 * 12)}/year could save approximately ${formatCurrency(monthlyExpenses * 0.2 * 12 * 0.325)} in tax`,
+                    timeline: 'Immediate - claim in next tax return',
+                    requirements: 'Ensure proper documentation and receipts for all expenses',
+                    impact: 'Reduce taxable income and improve cash flow through tax refunds'
+                  };
+                }
+                
+                // Portfolio recommendations
+                if (lowerRec.includes('portfolio') || lowerRec.includes('allocation') || lowerRec.includes('share')) {
+                  return {
+                    title: recText,
+                    action: 'Review and rebalance investment portfolio to optimize returns and risk',
+                    benefit: 'Better diversification reduces risk while maintaining growth potential',
+                    timeline: '3-6 months for portfolio review and adjustment',
+                    requirements: 'Consult with financial advisor for personalized asset allocation strategy',
+                    impact: 'Improved risk-adjusted returns and better alignment with retirement goals'
+                  };
+                }
+                
+                // Health insurance recommendations
+                if (lowerRec.includes('health') || lowerRec.includes('insurance')) {
+                  return {
+                    title: recText,
+                    action: 'Consider private health insurance to avoid Medicare Levy Surcharge',
+                    benefit: `Save approximately ${formatCurrency(monthlyIncome * 12 * 0.01)}/year in Medicare Levy Surcharge`,
+                    timeline: 'Enroll before June 30 to avoid surcharge in following tax year',
+                    requirements: 'Compare policies and select appropriate level of cover',
+                    impact: 'Avoid surcharge while gaining access to private healthcare'
+                  };
+                }
+                
+                // Default expanded format
+                return {
+                  title: recText,
+                  action: 'Review current financial strategy and implement improvements',
+                  benefit: 'Optimize financial position for long-term wealth accumulation',
+                  timeline: 'Within 90 days',
+                  impact: 'Enhanced financial security and retirement readiness'
+                };
+              };
+
+              const expanded = expandRecommendation(rec, index);
+              
+              return (
+                <View key={index} style={styles.expandedRecommendation}>
+                  <Text style={styles.recommendationTitle}>
+                    {index + 1}. {expanded.title}
+                  </Text>
+                  <Text style={styles.recommendationLabel}>Action:</Text>
+                  <Text style={styles.recommendationDetail}>
+                    {expanded.action}
+                  </Text>
+                  <Text style={styles.recommendationLabel}>Benefit:</Text>
+                  <Text style={styles.recommendationDetail}>
+                    {expanded.benefit}
+                  </Text>
+                  {expanded.timeline && (
+                    <>
+                      <Text style={styles.recommendationLabel}>Timeline:</Text>
+                      <Text style={styles.recommendationDetail}>
+                        {expanded.timeline}
+                      </Text>
+                    </>
+                  )}
+                  {expanded.requirements && (
+                    <>
+                      <Text style={styles.recommendationLabel}>Requirements:</Text>
+                      <Text style={styles.recommendationDetail}>
+                        {expanded.requirements}
+                      </Text>
+                    </>
+                  )}
+                  <Text style={styles.recommendationLabel}>Impact:</Text>
+                  <Text style={styles.recommendationDetail}>
+                    {expanded.impact}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Footer */}
+        <View style={styles.footer} fixed>
           <Text style={styles.footerText}>
             Generated on {reportDate} | Perpetual Wealth Partners
           </Text>

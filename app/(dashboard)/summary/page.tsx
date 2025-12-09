@@ -67,7 +67,6 @@ interface FinancialSummary {
   totalPropertyDebt: number;
   propertyEquity: number;
   recommendations: string[];
-  taxStrategies?: Array<{ strategy: string; savings: number }>;
 }
 
 export default function SummaryPage() {
@@ -209,81 +208,31 @@ export default function SummaryPage() {
     const retirementDeficitSurplus = monthlyCashFlow; // Simplified
     const isRetirementDeficit = retirementDeficitSurplus < 0;
 
-    // Tax calculations with detailed strategies
+    // Tax calculations (simplified - would need actual tax calculation)
     const taxableIncome = totalAnnualIncome - totalAnnualExpenses;
     const currentTax = Math.max(0, taxableIncome * 0.30); // Simplified 30% rate
-    
-    // Calculate tax optimization strategies with savings
-    const taxStrategies: Array<{ strategy: string; savings: number }> = [];
-    
-    // Strategy 1: Additional work-related deductions
-    const potentialWorkDeductions = Math.max(0, (annualIncome * 0.05) - workExpenses);
-    if (potentialWorkDeductions > 1000) {
-      const savings = potentialWorkDeductions * 0.30; // At 30% marginal rate
-      taxStrategies.push({
-        strategy: `Maximize work-related deductions (potential: ${formatCurrency(potentialWorkDeductions)})`,
-        savings: savings
-      });
-    }
-    
-    // Strategy 2: Salary sacrifice to super
-    const maxSuperContribution = Math.min(30000, annualIncome * 0.105); // 10.5% of income or cap
-    if (superFundValue < totalAnnualIncome * 2 && annualIncome > 50000) {
-      const savings = maxSuperContribution * 0.15; // 15% tax in super vs 30%+ outside
-      taxStrategies.push({
-        strategy: `Salary sacrifice to superannuation (up to ${formatCurrency(maxSuperContribution)} annually)`,
-        savings: savings
-      });
-    }
-    
-    // Strategy 3: Negative gearing opportunity
-    if (monthlyCashFlow > 2000 && investmentProperties < 2) {
-      const potentialLoss = monthlyCashFlow * 6; // Estimate 6 months of surplus as potential loss
-      const savings = potentialLoss * 0.30; // At 30% marginal rate
-      taxStrategies.push({
-        strategy: `Investment property negative gearing opportunity (estimated annual loss: ${formatCurrency(potentialLoss * 2)})`,
-        savings: savings
-      });
-    }
-    
-    // Strategy 4: Private health insurance for Medicare Levy Surcharge
-    if (!client?.privateHealthInsurance && annualIncome > 90000) {
-      const mlsSaving = annualIncome * 0.01; // 1% Medicare Levy Surcharge
-      taxStrategies.push({
-        strategy: `Private health insurance to avoid Medicare Levy Surcharge (${formatCurrency(mlsSaving)} annual saving)`,
-        savings: mlsSaving
-      });
-    }
-    
-    // Calculate total optimized tax savings
-    const totalStrategySavings = taxStrategies.reduce((sum, s) => sum + s.savings, 0);
-    const optimizedTax = Math.max(0, currentTax - totalStrategySavings);
-    const taxSavings = totalStrategySavings;
+    const optimizedTax = Math.max(0, taxableIncome * 0.25); // Simplified optimization
+    const taxSavings = currentTax - optimizedTax;
 
-    // Generate detailed recommendations
+    // Generate recommendations
     const recommendations: string[] = [];
     if (superFundValue < totalAnnualIncome * 2) {
-      recommendations.push(`Increase superannuation contributions through salary sacrifice. Current super balance of ${formatCurrency(superFundValue)} is below recommended level of ${formatCurrency(totalAnnualIncome * 2)}. Consider contributing up to ${formatCurrency(Math.min(30000, annualIncome * 0.105))} annually to benefit from concessional tax rates of 15% instead of your marginal rate.`);
+      recommendations.push('Increase superannuation contributions through salary sacrifice');
     }
-    if (monthlyCashFlow > 2000 && investmentProperties < 2) {
-      recommendations.push(`Consider an additional investment property for negative gearing benefits. With a monthly surplus of ${formatCurrency(monthlyCashFlow)}, you have capacity to service an investment property. Negative gearing allows you to claim property losses against your taxable income, potentially saving ${formatCurrency(taxStrategies.find(s => s.strategy.includes('negative'))?.savings || 0)} annually in tax.`);
+    if (monthlyCashFlow > 0 && investmentProperties < 2) {
+      recommendations.push('Consider additional investment property for negative gearing benefits');
     }
     if (workExpenses < annualIncome * 0.05) {
-      const potentialSavings = taxStrategies.find(s => s.strategy.includes('work-related'))?.savings || 0;
-      recommendations.push(`Maximize work-related tax deductions. Currently claiming ${formatCurrency(workExpenses)}, but could potentially claim up to ${formatCurrency(annualIncome * 0.05)}. This could save you approximately ${formatCurrency(potentialSavings)} annually in tax. Review all work-related expenses including vehicle use, home office, professional development, and equipment.`);
+      recommendations.push('Maximize work-related tax deductions');
     }
-    if (sharesValue < totalAssets * 0.2 && totalAssets > 100000) {
-      recommendations.push(`Review and optimize investment portfolio allocation. Shares currently represent ${totalAssets > 0 ? ((sharesValue / totalAssets) * 100).toFixed(1) : 0}% of your portfolio. Consider increasing equity exposure to 20-30% for better long-term returns and tax-effective franking credits.`);
+    if (sharesValue < totalAssets * 0.2) {
+      recommendations.push('Review and optimize investment portfolio allocation');
     }
     if (!client?.privateHealthInsurance && annualIncome > 90000) {
-      const mlsSaving = taxStrategies.find(s => s.strategy.includes('Private health'))?.savings || 0;
-      recommendations.push(`Consider private health insurance to avoid Medicare Levy Surcharge. With income above ${formatCurrency(90000)}, you're subject to an additional 1% Medicare Levy Surcharge. Private health insurance could save you approximately ${formatCurrency(mlsSaving)} annually.`);
-    }
-    if (totalLiabilities > totalAssets * 0.5) {
-      recommendations.push(`Focus on debt reduction strategy. Your debt-to-asset ratio is ${totalAssets > 0 ? ((totalLiabilities / totalAssets) * 100).toFixed(1) : 0}%, which is above the recommended 50%. Consider prioritizing high-interest debt repayment and building equity in your properties.`);
+      recommendations.push('Consider private health insurance to avoid Medicare Levy Surcharge');
     }
     if (recommendations.length === 0) {
-      recommendations.push('Continue current financial strategy with regular reviews. Your financial position is well-balanced. Consider annual strategy reviews to optimize tax efficiency and investment returns as your circumstances change.');
+      recommendations.push('Continue current financial strategy');
     }
 
     return {
@@ -305,8 +254,7 @@ export default function SummaryPage() {
       totalPropertyValue,
       totalPropertyDebt,
       propertyEquity,
-      recommendations,
-      taxStrategies
+      recommendations
     };
   };
 
@@ -699,12 +647,6 @@ export default function SummaryPage() {
         totalPropertyDebt: ensureDefined(summaryData.totalPropertyDebt, 0),
         propertyEquity: ensureDefined(summaryData.propertyEquity, 0),
         recommendations: Array.isArray(summaryData.recommendations) ? summaryData.recommendations.filter((r: any) => r != null) : [],
-        taxStrategies: Array.isArray(summaryData.taxStrategies) 
-          ? summaryData.taxStrategies.map((s: any) => ({
-              strategy: typeof s?.strategy === 'string' ? s.strategy : '',
-              savings: typeof s?.savings === 'number' && !isNaN(s.savings) ? s.savings : 0
-            }))
-          : [],
         projectedRetirementNetWorth: ensureDefined(projectedRetirementNetWorth, 0),
         projectedRetirementMonthlyCashFlow: ensureDefined(projectedRetirementMonthlyCashFlow, 0),
         projectedRetirementSurplus: ensureDefined(summaryData.retirementDeficitSurplus, 0),

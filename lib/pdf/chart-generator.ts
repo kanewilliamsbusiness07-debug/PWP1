@@ -863,7 +863,7 @@ export async function generateFinancialPositionChart(assets: AssetChartData, lia
     let currentY = assetsY + 70;
     assetItems.forEach((item) => {
       const percentage = totalAssets > 0 ? (item.value / totalAssets) * 100 : 0;
-      const barWidth = totalAssets > 0 ? (item.value / totalAssets) * (assetsWidth - 140) : 0;
+      const barWidth = totalAssets > 0 ? (item.value / totalAssets) * (assetsWidth - 200) : 0; // Reduced to leave more space for text
 
       // Color indicator
       ctx.fillStyle = item.color;
@@ -872,28 +872,30 @@ export async function generateFinancialPositionChart(assets: AssetChartData, lia
       // Bar
       ctx.fillRect(assetsX + 50, currentY - 12, barWidth, 20);
 
-      // Label with proper spacing to prevent overlap
+      // Label - positioned to avoid overlap
       ctx.fillStyle = '#2c3e50';
       ctx.font = '12px Arial';
       ctx.textAlign = 'left';
-      const labelX = assetsX + 75 + barWidth;
-      const maxLabelWidth = assetsX + assetsWidth - 220; // Leave room for percentage/value
-      if (labelX + ctx.measureText(item.label).width < maxLabelWidth) {
-        ctx.fillText(item.label, labelX, currentY + 2);
-      } else {
-        // Truncate label if too long
-        const truncatedLabel = item.label.length > 20 ? item.label.substring(0, 17) + '...' : item.label;
-        ctx.fillText(truncatedLabel, labelX, currentY + 2);
+      const labelX = assetsX + 80 + Math.max(barWidth, 50); // Ensure label starts after bar
+      const maxLabelWidth = assetsWidth - 250; // Limit label width
+      let labelText = item.label;
+      if (ctx.measureText(labelText).width > maxLabelWidth) {
+        // Truncate if too long
+        while (ctx.measureText(labelText + '...').width > maxLabelWidth && labelText.length > 0) {
+          labelText = labelText.slice(0, -1);
+        }
+        labelText += '...';
       }
+      ctx.fillText(labelText, labelX, currentY + 2);
 
-      // Percentage and value
+      // Percentage and value - on separate line if needed, or right-aligned
       ctx.fillStyle = '#7f8c8d';
       ctx.font = '11px Arial';
       ctx.textAlign = 'right';
-      ctx.fillText(`${percentage.toFixed(1)}%`, assetsX + assetsWidth - 120, currentY + 2);
-      ctx.fillText(`$${(item.value / 1000).toFixed(0)}k`, assetsX + assetsWidth - 20, currentY + 2);
+      const valueText = `${percentage.toFixed(1)}% - $${item.value.toLocaleString()}`;
+      ctx.fillText(valueText, assetsX + assetsWidth - 20, currentY + 2);
 
-      currentY += 40;
+      currentY += 45; // Increased spacing between items
     });
 
     // Total assets
@@ -933,7 +935,7 @@ export async function generateFinancialPositionChart(assets: AssetChartData, lia
     currentY = liabilitiesY + 70;
     liabilityItems.forEach((item) => {
       const percentage = totalLiabilities > 0 ? (item.value / totalLiabilities) * 100 : 0;
-      const barWidth = totalLiabilities > 0 ? (item.value / totalLiabilities) * (liabilitiesWidth - 140) : 0;
+      const barWidth = totalLiabilities > 0 ? (item.value / totalLiabilities) * (liabilitiesWidth - 200) : 0; // Reduced to leave more space
 
       // Color indicator
       ctx.fillStyle = item.color;
@@ -942,28 +944,30 @@ export async function generateFinancialPositionChart(assets: AssetChartData, lia
       // Bar
       ctx.fillRect(liabilitiesX + 50, currentY - 12, barWidth, 20);
 
-      // Label with proper spacing to prevent overlap
+      // Label - positioned to avoid overlap
       ctx.fillStyle = '#2c3e50';
       ctx.font = '12px Arial';
       ctx.textAlign = 'left';
-      const labelX = liabilitiesX + 75 + barWidth;
-      const maxLabelWidth = liabilitiesX + liabilitiesWidth - 220; // Leave room for percentage/value
-      if (labelX + ctx.measureText(item.label).width < maxLabelWidth) {
-        ctx.fillText(item.label, labelX, currentY + 2);
-      } else {
-        // Truncate label if too long
-        const truncatedLabel = item.label.length > 20 ? item.label.substring(0, 17) + '...' : item.label;
-        ctx.fillText(truncatedLabel, labelX, currentY + 2);
+      const labelX = liabilitiesX + 80 + Math.max(barWidth, 50); // Ensure label starts after bar
+      const maxLabelWidth = liabilitiesWidth - 250; // Limit label width
+      let labelText = item.label;
+      if (ctx.measureText(labelText).width > maxLabelWidth) {
+        // Truncate if too long
+        while (ctx.measureText(labelText + '...').width > maxLabelWidth && labelText.length > 0) {
+          labelText = labelText.slice(0, -1);
+        }
+        labelText += '...';
       }
+      ctx.fillText(labelText, labelX, currentY + 2);
 
-      // Percentage and value
+      // Percentage and value - right-aligned
       ctx.fillStyle = '#7f8c8d';
       ctx.font = '11px Arial';
       ctx.textAlign = 'right';
-      ctx.fillText(`${percentage.toFixed(1)}%`, liabilitiesX + liabilitiesWidth - 120, currentY + 2);
-      ctx.fillText(`$${(item.value / 1000).toFixed(0)}k`, liabilitiesX + liabilitiesWidth - 20, currentY + 2);
+      const valueText = `${percentage.toFixed(1)}% - $${item.value.toLocaleString()}`;
+      ctx.fillText(valueText, liabilitiesX + liabilitiesWidth - 20, currentY + 2);
 
-      currentY += 40;
+      currentY += 45; // Increased spacing between items
     });
 
     // Total liabilities
@@ -1084,75 +1088,70 @@ export async function generateDetailedRetirementChart(data: {
 
     const yearsToRetirement = data.retirementAge - data.currentAge;
 
-    // Key metrics boxes (top) - Adjusted to fit within bounds
+    // Key metrics boxes (top)
     const metricsY = 100;
-    const metricWidth = 260;
-    const metricSpacing = 15;
+    const metricWidth = 270;
+    const metricSpacing = 30;
 
     // Years to retirement
     ctx.fillStyle = '#e3f2fd';
-    ctx.fillRect(30, metricsY, metricWidth, 100);
+    ctx.fillRect(50, metricsY, metricWidth, 100);
     ctx.strokeStyle = '#2196f3';
     ctx.lineWidth = 2;
-    ctx.strokeRect(30, metricsY, metricWidth, 100);
+    ctx.strokeRect(50, metricsY, metricWidth, 100);
     ctx.fillStyle = '#2196f3';
-    ctx.font = 'bold 14px Arial';
+    ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Years to Retirement', 30 + metricWidth / 2, metricsY + 22);
-    ctx.font = 'bold 32px Arial';
-    ctx.fillText(`${yearsToRetirement}`, 30 + metricWidth / 2, metricsY + 65);
+    ctx.fillText('Years to Retirement', 50 + metricWidth / 2, metricsY + 25);
+    ctx.font = 'bold 36px Arial';
+    ctx.fillText(`${yearsToRetirement}`, 50 + metricWidth / 2, metricsY + 70);
 
     // Projected lump sum
     ctx.fillStyle = '#e8f5e9';
-    ctx.fillRect(30 + metricWidth + metricSpacing, metricsY, metricWidth, 100);
+    ctx.fillRect(50 + metricWidth + metricSpacing, metricsY, metricWidth, 100);
     ctx.strokeStyle = '#4caf50';
     ctx.lineWidth = 2;
-    ctx.strokeRect(30 + metricWidth + metricSpacing, metricsY, metricWidth, 100);
+    ctx.strokeRect(50 + metricWidth + metricSpacing, metricsY, metricWidth, 100);
     ctx.fillStyle = '#4caf50';
-    ctx.font = 'bold 14px Arial';
-    ctx.fillText('Projected Lump Sum', 30 + metricWidth + metricSpacing + metricWidth / 2, metricsY + 22);
-    ctx.font = 'bold 20px Arial';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText('Projected Lump Sum', 50 + metricWidth + metricSpacing + metricWidth / 2, metricsY + 25);
+    ctx.font = 'bold 24px Arial';
     const lumpSumText = `$${(data.projectedLumpSum / 1000).toFixed(0)}k`;
-    ctx.fillText(lumpSumText, 30 + metricWidth + metricSpacing + metricWidth / 2, metricsY + 65);
+    ctx.fillText(lumpSumText, 50 + metricWidth + metricSpacing + metricWidth / 2, metricsY + 70);
 
     // Monthly income
     ctx.fillStyle = '#fff3e0';
-    ctx.fillRect(30 + (metricWidth + metricSpacing) * 2, metricsY, metricWidth, 100);
+    ctx.fillRect(50 + (metricWidth + metricSpacing) * 2, metricsY, metricWidth, 100);
     ctx.strokeStyle = '#ff9800';
     ctx.lineWidth = 2;
-    ctx.strokeRect(30 + (metricWidth + metricSpacing) * 2, metricsY, metricWidth, 100);
+    ctx.strokeRect(50 + (metricWidth + metricSpacing) * 2, metricsY, metricWidth, 100);
     ctx.fillStyle = '#ff9800';
-    ctx.font = 'bold 14px Arial';
-    ctx.fillText('Monthly Income', 30 + (metricWidth + metricSpacing) * 2 + metricWidth / 2, metricsY + 22);
-    ctx.font = 'bold 20px Arial';
-    const monthlyIncomeText = `$${data.projectedMonthlyIncome.toLocaleString()}`;
-    ctx.fillText(monthlyIncomeText.length > 15 ? `$${(data.projectedMonthlyIncome / 1000).toFixed(0)}k` : monthlyIncomeText, 30 + (metricWidth + metricSpacing) * 2 + metricWidth / 2, metricsY + 65);
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText('Monthly Income', 50 + (metricWidth + metricSpacing) * 2 + metricWidth / 2, metricsY + 25);
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText(`$${data.projectedMonthlyIncome.toLocaleString()}`, 50 + (metricWidth + metricSpacing) * 2 + metricWidth / 2, metricsY + 70);
 
     // Monthly surplus
     ctx.fillStyle = data.monthlySurplus >= 0 ? '#e8f5e9' : '#ffebee';
-    ctx.fillRect(30 + (metricWidth + metricSpacing) * 3, metricsY, metricWidth, 100);
+    ctx.fillRect(50 + (metricWidth + metricSpacing) * 3, metricsY, metricWidth, 100);
     ctx.strokeStyle = data.monthlySurplus >= 0 ? '#4caf50' : '#e74c3c';
     ctx.lineWidth = 2;
-    ctx.strokeRect(30 + (metricWidth + metricSpacing) * 3, metricsY, metricWidth, 100);
+    ctx.strokeRect(50 + (metricWidth + metricSpacing) * 3, metricsY, metricWidth, 100);
     ctx.fillStyle = data.monthlySurplus >= 0 ? '#4caf50' : '#e74c3c';
-    ctx.font = 'bold 14px Arial';
-    ctx.fillText('Monthly Surplus', 30 + (metricWidth + metricSpacing) * 3 + metricWidth / 2, metricsY + 22);
-    ctx.font = 'bold 20px Arial';
-    const monthlySurplusText = `$${data.monthlySurplus.toLocaleString()}`;
-    ctx.fillText(monthlySurplusText.length > 15 ? `$${(data.monthlySurplus / 1000).toFixed(0)}k` : monthlySurplusText, 30 + (metricWidth + metricSpacing) * 3 + metricWidth / 2, metricsY + 65);
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText('Monthly Surplus', 50 + (metricWidth + metricSpacing) * 3 + metricWidth / 2, metricsY + 25);
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText(`$${data.monthlySurplus.toLocaleString()}`, 50 + (metricWidth + metricSpacing) * 3 + metricWidth / 2, metricsY + 70);
 
     // Growth projection chart
-    const chartY = 230;
-    const chartX = 80;
-    const chartHeight = 380;
-    const chartWidth = 1040;
+    const chartY = 250;
+    const chartX = 100;
+    const chartHeight = 350;
+    const chartWidth = 1000;
 
-    // Chart background with border
+    // Chart background
     ctx.fillStyle = '#f8f9fa';
     ctx.fillRect(chartX, chartY, chartWidth, chartHeight);
-    ctx.strokeStyle = '#d0d0d0';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(chartX, chartY, chartWidth, chartHeight);
 
     // Draw grid lines
     ctx.strokeStyle = '#e0e0e0';
@@ -1165,24 +1164,25 @@ export async function generateDetailedRetirementChart(data: {
       ctx.stroke();
     }
 
-    // Calculate values with proper bounds
-    const currentTotal = data.currentSuper + data.currentSavings + data.currentShares + data.currentProperties;
-    const maxChartValue = Math.max(data.projectedLumpSum, currentTotal) * 1.15; // Add 15% grace to prevent going off chart
-    const minChartValue = currentTotal * 0.95; // Slight buffer at bottom
-
-    // Projection line
+    // Projection line - Fixed bounds calculation
     ctx.strokeStyle = '#3498db';
     ctx.lineWidth = 5;
     ctx.beginPath();
 
-    const points = 30;
+    const currentTotal = data.currentSuper + data.currentSavings + data.currentShares + data.currentProperties;
+    const points = 20;
+    
+    // Calculate max value with grace to ensure line stays in bounds
+    const maxChartValue = Math.max(data.projectedLumpSum, currentTotal) * 1.1;
+    const minChartValue = Math.min(currentTotal, data.projectedLumpSum * 0.9);
     
     for (let i = 0; i <= points; i++) {
       const year = (yearsToRetirement / points) * i;
-      // Growth calculation
+      // Growth calculation with 7% annual return
       const value = currentTotal * Math.pow(1.07, year);
       const x = chartX + (i / points) * chartWidth;
-      // Normalize to chart bounds with grace
+      
+      // Normalize value to chart bounds
       const normalizedValue = (value - minChartValue) / (maxChartValue - minChartValue);
       const y = chartY + chartHeight - (normalizedValue * chartHeight);
       
@@ -1197,32 +1197,26 @@ export async function generateDetailedRetirementChart(data: {
     }
     ctx.stroke();
 
-    // Current value point
-    const currentY = chartY + chartHeight - ((currentTotal - minChartValue) / (maxChartValue - minChartValue)) * chartHeight;
-    const clampedCurrentY = Math.max(chartY, Math.min(chartY + chartHeight, currentY));
+    // Current value point - at bottom of chart
+    const currentY = chartY + chartHeight;
     ctx.fillStyle = '#2ecc71';
     ctx.beginPath();
-    ctx.arc(chartX, clampedCurrentY, 10, 0, 2 * Math.PI);
+    ctx.arc(chartX, currentY, 10, 0, 2 * Math.PI);
     ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
     ctx.fillStyle = '#2c3e50';
     ctx.font = '13px Arial';
     ctx.textAlign = 'left';
-    ctx.fillText(`Current: $${currentTotal.toLocaleString()}`, chartX + 15, clampedCurrentY + 18);
+    ctx.fillText(`Current: $${currentTotal.toLocaleString()}`, chartX + 15, currentY + 5);
 
-    // Projected value point
+    // Projected value point - calculate correct position
     const projectedNormalized = (data.projectedLumpSum - minChartValue) / (maxChartValue - minChartValue);
     const projectedY = chartY + chartHeight - (projectedNormalized * chartHeight);
-    const clampedProjectedY = Math.max(chartY, Math.min(chartY + chartHeight, projectedY));
+    const clampedProjectedY = Math.max(chartY + 20, Math.min(chartY + chartHeight - 20, projectedY));
+    
     ctx.fillStyle = '#3498db';
     ctx.beginPath();
     ctx.arc(chartX + chartWidth, clampedProjectedY, 10, 0, 2 * Math.PI);
     ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
     ctx.fillStyle = '#2c3e50';
     ctx.font = '13px Arial';
     ctx.textAlign = 'right';
@@ -1235,46 +1229,64 @@ export async function generateDetailedRetirementChart(data: {
     ctx.fillText(`${data.currentAge}`, chartX, chartY + chartHeight + 25);
     ctx.fillText(`${data.retirementAge}`, chartX + chartWidth, chartY + chartHeight + 25);
 
-    // Y-axis labels
+    // Y-axis labels - use maxChartValue for scale
     ctx.textAlign = 'right';
     for (let i = 0; i <= 5; i++) {
-      const value = (data.projectedLumpSum / 5) * i;
+      const value = (maxChartValue / 5) * i;
       const y = chartY + chartHeight - (i / 5) * chartHeight;
       ctx.fillText(`$${(value / 1000).toFixed(0)}k`, chartX - 15, y + 4);
     }
 
-    // Asset breakdown (bottom)
-    const breakdownY = 650;
+    // Asset breakdown (bottom) - Fixed to prevent overflow
+    const breakdownY = 680;
     ctx.fillStyle = '#2c3e50';
-    ctx.font = 'bold 20px Arial';
+    ctx.font = 'bold 18px Arial';
     ctx.textAlign = 'left';
-    ctx.fillText('Current Asset Breakdown', 50, breakdownY);
+    ctx.fillText('Current Asset Breakdown', 100, breakdownY);
 
     const assetBreakdown = [
-      { label: 'Superannuation', value: data.currentSuper, color: '#3498db' },
+      { label: 'Super', value: data.currentSuper, color: '#3498db' },
       { label: 'Savings', value: data.currentSavings, color: '#2ecc71' },
       { label: 'Shares', value: data.currentShares, color: '#f39c12' },
       { label: 'Properties', value: data.currentProperties, color: '#e74c3c' },
     ].filter(item => item.value > 0);
 
     const breakdownTotal = assetBreakdown.reduce((sum, item) => sum + item.value, 0);
-    let breakdownX = 50;
-    assetBreakdown.forEach((item, index) => {
-      const width = Math.max(120, (item.value / breakdownTotal) * 1100); // Minimum width for readability
+    if (breakdownTotal > 0) {
+      const breakdownWidth = 1000;
+      const breakdownX = 100;
+      let currentBreakdownX = breakdownX;
       
-      ctx.fillStyle = item.color;
-      ctx.fillRect(breakdownX, breakdownY + 35, width, 35);
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 11px Arial';
-      ctx.textAlign = 'center';
-      const percentage = (item.value / breakdownTotal) * 100;
-      // Split label if needed to prevent overflow
-      const labelText = `${item.label}: ${percentage.toFixed(1)}%`;
-      ctx.fillText(labelText, breakdownX + width / 2, breakdownY + 56);
-      
-      breakdownX += width;
-    });
+      assetBreakdown.forEach((item, index) => {
+        const width = (item.value / breakdownTotal) * breakdownWidth;
+        
+        // Ensure minimum width for visibility
+        const minWidth = 80;
+        const finalWidth = Math.max(width, minWidth);
+        
+        // Check if we exceed bounds
+        if (currentBreakdownX + finalWidth > breakdownX + breakdownWidth) {
+          return; // Skip if would overflow
+        }
+        
+        ctx.fillStyle = item.color;
+        ctx.fillRect(currentBreakdownX, breakdownY + 35, finalWidth, 35);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        const percentage = (item.value / breakdownTotal) * 100;
+        
+        // Truncate label if needed
+        let displayLabel = item.label;
+        if (ctx.measureText(`${displayLabel}: ${percentage.toFixed(1)}%`).width > finalWidth - 10) {
+          displayLabel = item.label.substring(0, 6);
+        }
+        ctx.fillText(`${displayLabel}: ${percentage.toFixed(1)}%`, currentBreakdownX + finalWidth / 2, breakdownY + 55);
+        
+        currentBreakdownX += finalWidth;
+      });
+    }
 
     // Convert to high-quality PNG
     return canvas.toDataURL('image/png', 1.0);
