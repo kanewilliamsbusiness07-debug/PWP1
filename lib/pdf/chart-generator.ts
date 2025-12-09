@@ -258,7 +258,6 @@ export async function generateExpenseChart(data: ExpenseChartData): Promise<stri
     return '';
   }
 }
-}
 
 /**
  * Generate a donut chart for assets vs liabilities
