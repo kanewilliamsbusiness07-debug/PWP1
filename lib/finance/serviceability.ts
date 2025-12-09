@@ -1,4 +1,4 @@
-import { calculateLoanPayment, calculateMaxBorrowingCapacity } from './calculations';
+import { calculateLoanPayment, calculateMaxBorrowingCapacity, calculateMonthlySurplus } from './calculations';
 
 /**
  * Calculate the potential investment surplus based on income and expenses
@@ -217,4 +217,99 @@ export function calculateRetirementInvestmentSurplus(
 ): number {
   const requiredRetirementIncome = currentMonthlyIncome * requiredRetentionRatio;
   return Math.max(0, projectedPassiveIncome - requiredRetirementIncome);
+}
+
+// ---------------------------------------------------------------------------
+// New canonical serviceability calculation
+// Follows the specification: uses net income after tax, includes existing
+// commitments, stress-tests at +3%, checks 10% buffer and serviceability ratio.
+// ---------------------------------------------------------------------------
+export interface ServiceabilityInput {
+  clientData: any;
+  proposedLoan?: {
+    amount: number;
+    interestRate?: number; // as decimal e.g., 0.06
+    termYears?: number;
+  };
+}
+
+export interface CanonicalServiceabilityResult {
+  loanAmount: number;
+  monthlyRepayment: number;
+  totalMonthlyCommitments: number;
+  monthlyNetIncome: number;
+  netSurplusAfterLoan: number;
+  serviceabilityRatio: number; // percent
+  requiredBuffer: number;
+  actualBuffer: number;
+  hasBuffer: boolean;
+  stressTestRepayment: number;
+  passesStressTest: boolean;
+  canAfford: boolean;
+  assessment: 'APPROVED' | 'DECLINED';
+  reasons: string[];
+}
+
+export function calculateServiceability(input: ServiceabilityInput): CanonicalServiceabilityResult {
+  const clientData = input.clientData || {};
+  const proposedLoan = input.proposedLoan || { amount: 0, interestRate: 0.06, termYears: 30 };
+
+  const monthlySurplusResult = calculateMonthlySurplus(clientData);
+
+  const monthlyNetIncome = (monthlySurplusResult.income.total || 0) - (monthlySurplusResult.expenses.tax || 0);
+
+  // Sum existing commitments from the monthly surplus expenses (loanRepayments)
+  const existingLoanRepayments = monthlySurplusResult.expenses.loanRepayments || 0;
+
+  // Proposed loan repayment
+  const monthlyRepayment = calculateLoanPayment({
+    principal: proposedLoan.amount || 0,
+    annualInterestRate: proposedLoan.interestRate || 0.06,
+    termYears: proposedLoan.termYears || 30
+  });
+
+  const totalMonthlyCommitments = existingLoanRepayments + monthlyRepayment;
+
+  const netSurplusAfterLoan = monthlySurplusResult.surplus - monthlyRepayment;
+
+  const serviceabilityRatio = monthlyNetIncome > 0 ? (totalMonthlyCommitments / monthlyNetIncome) * 100 : Infinity;
+
+  const requiredBuffer = monthlyNetIncome * 0.10;
+  const actualBuffer = monthlyNetIncome - totalMonthlyCommitments;
+  const hasBuffer = actualBuffer >= requiredBuffer;
+
+  // Stress test at +3% interest
+  const stressTestRate = (proposedLoan.interestRate || 0.06) + 0.03;
+  const stressTestRepayment = calculateLoanPayment({
+    principal: proposedLoan.amount || 0,
+    annualInterestRate: stressTestRate,
+    termYears: proposedLoan.termYears || 30
+  });
+  const passesStressTest = (monthlyNetIncome - existingLoanRepayments - stressTestRepayment) > requiredBuffer;
+
+  const canAfford = isFinite(serviceabilityRatio) && serviceabilityRatio <= 35 && hasBuffer && passesStressTest && netSurplusAfterLoan >= 0;
+
+  const reasons: string[] = [];
+  if (!isFinite(serviceabilityRatio)) reasons.push('Insufficient net income to calculate serviceability');
+  if (serviceabilityRatio > 35) reasons.push('Serviceability ratio too high (>35%)');
+  if (!hasBuffer) reasons.push('Insufficient buffer remaining');
+  if (!passesStressTest) reasons.push('Failed stress test at higher interest rate');
+  if (netSurplusAfterLoan < 0) reasons.push('Negative cash flow after loan');
+
+  return {
+    loanAmount: proposedLoan.amount || 0,
+    monthlyRepayment,
+    totalMonthlyCommitments,
+    monthlyNetIncome,
+    netSurplusAfterLoan,
+    serviceabilityRatio,
+    requiredBuffer,
+    actualBuffer,
+    hasBuffer,
+    stressTestRepayment,
+    passesStressTest,
+    canAfford,
+    assessment: canAfford ? 'APPROVED' : 'DECLINED',
+    reasons
+  };
 }
