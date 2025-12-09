@@ -348,3 +348,112 @@ export const DEFAULT_ASSUMPTIONS: ProjectionAssumptions = {
   salaryGrowthRate: 0.035,   // 3.5% annual salary increases
   expectedRentGrowthRate: 0.04 // 4% rent growth
 };
+
+// ---------------------------------------------------------------------------
+// Monthly surplus / cash flow calculation
+// ---------------------------------------------------------------------------
+import { calculateTax, DEFAULT_TAX_RULES } from '../tax/tax-engine';
+
+export interface MonthlySurplusResult {
+  income: {
+    employment: number;
+    rental: number;
+    investment: number;
+    other: number;
+    total: number;
+  };
+  expenses: {
+    living: number;
+    tax: number;
+    hecs: number;
+    propertyExpenses: number;
+    loanRepayments: number;
+    total: number;
+  };
+  surplus: number;
+  savingsRate: number; // percent
+}
+
+/**
+ * Calculate monthly surplus (cash flow) according to canonical definition:
+ * Monthly Surplus = Total Monthly Income - Total Monthly Expenses
+ */
+export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
+  const employmentAnnual = Number(clientData?.income?.employment || 0);
+  const rentalAnnual = Number(clientData?.income?.rental || 0);
+  const investmentAnnual = Number(clientData?.income?.investment || 0);
+  const otherAnnual = Number(clientData?.income?.other || 0);
+
+  const employment = employmentAnnual / 12;
+  const rental = rentalAnnual / 12;
+  const investment = investmentAnnual / 12;
+  const other = otherAnnual / 12;
+
+  const totalMonthlyIncome = employment + rental + investment + other;
+
+  // Living expenses (monthly)
+  const livingExpenses = Number(clientData?.financials?.monthlyExpenses || 0);
+
+  // Annual taxable income and tax calculations using tax engine
+  const annualTaxableIncome = employmentAnnual + rentalAnnual + investmentAnnual + otherAnnual;
+  const taxResult = calculateTax({
+    grossIncome: annualTaxableIncome,
+    deductions: [],
+    hecsBalance: Number(clientData?.liabilities?.hecsDebt?.currentBalance || 0)
+  }, DEFAULT_TAX_RULES);
+
+  const annualTax = taxResult.totalTax;
+  const monthlyTax = annualTax / 12;
+
+  // HECS repayment already included in taxResult.hecsRepayment, but expose separately for clarity
+  const monthlyHECS = (taxResult.hecsRepayment || 0) / 12;
+
+  // Property expenses only for investment properties (annual -> monthly)
+  let monthlyPropertyExpenses = 0;
+  const properties = clientData?.assets?.properties || [];
+  for (const p of properties) {
+    if ((p?.type || '').toString().toLowerCase() === 'investment') {
+      monthlyPropertyExpenses += Number(p?.annualExpenses || p?.annualExpense || 0) / 12;
+    }
+  }
+
+  // Loan repayments: home loan, investment loans, personal loans, credit cards
+  let monthlyLoanRepayments = 0;
+  const homeLoan = clientData?.liabilities?.homeLoan;
+  if (homeLoan && Number(homeLoan.monthlyRepayment)) monthlyLoanRepayments += Number(homeLoan.monthlyRepayment);
+
+  const investmentLoans = clientData?.liabilities?.investmentLoans || [];
+  for (const l of investmentLoans) monthlyLoanRepayments += Number(l?.monthlyRepayment || 0);
+
+  const personalLoans = clientData?.liabilities?.personalLoans || [];
+  for (const l of personalLoans) monthlyLoanRepayments += Number(l?.monthlyRepayment || 0);
+
+  const creditCards = clientData?.liabilities?.creditCards || [];
+  for (const c of creditCards) monthlyLoanRepayments += Number(c?.minimumPayment || 0);
+
+  const totalMonthlyExpenses = livingExpenses + monthlyTax + monthlyHECS + monthlyPropertyExpenses + monthlyLoanRepayments;
+
+  const monthlySurplus = totalMonthlyIncome - totalMonthlyExpenses;
+
+  const savingsRate = totalMonthlyIncome > 0 ? (monthlySurplus / totalMonthlyIncome) * 100 : 0;
+
+  return {
+    income: {
+      employment,
+      rental,
+      investment,
+      other,
+      total: totalMonthlyIncome
+    },
+    expenses: {
+      living: livingExpenses,
+      tax: monthlyTax,
+      hecs: monthlyHECS,
+      propertyExpenses: monthlyPropertyExpenses,
+      loanRepayments: monthlyLoanRepayments,
+      total: totalMonthlyExpenses
+    },
+    surplus: monthlySurplus,
+    savingsRate
+  };
+}
