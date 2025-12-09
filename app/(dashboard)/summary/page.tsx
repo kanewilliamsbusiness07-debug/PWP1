@@ -149,6 +149,16 @@ export default function SummaryPage() {
         vehicleValue + savingsValue + homeContentsValue + superFundValue + sharesValue;
       totalPropertyValue = homeValue + investment1Value + investment2Value + investment3Value + investment4Value;
     }
+    
+    // Calculate sharesValue from assets array or legacy fields for recommendations
+    let sharesValue = 0;
+    if (client?.assets && Array.isArray(client.assets)) {
+      const sharesAssets = client.assets.filter((asset: any) => asset.type === 'shares');
+      sharesValue = sharesAssets.reduce((sum: number, asset: any) => sum + (asset.currentValue || 0), 0);
+    } else {
+      // Fallback to legacy fields
+      sharesValue = client?.sharesTotalValue || client?.currentShares || financialStore.investments || 0;
+    }
 
     // Calculate liabilities - prioritize Financial Position page data, fallback to legacy fields
     let totalLiabilities = 0;
