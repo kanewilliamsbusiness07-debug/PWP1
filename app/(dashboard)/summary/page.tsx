@@ -701,8 +701,8 @@ export default function SummaryPage() {
         recommendations: Array.isArray(summaryData.recommendations) ? summaryData.recommendations.filter((r: any) => r != null) : [],
         taxStrategies: Array.isArray(summaryData.taxStrategies) 
           ? summaryData.taxStrategies.map((s: any) => ({
-              strategy: safeString(s?.strategy || ''),
-              savings: safeNumber(s?.savings, 0)
+              strategy: typeof s?.strategy === 'string' ? s.strategy : '',
+              savings: typeof s?.savings === 'number' && !isNaN(s.savings) ? s.savings : 0
             }))
           : [],
         projectedRetirementNetWorth: ensureDefined(projectedRetirementNetWorth, 0),
