@@ -772,7 +772,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
 
           <ReportFooter reportDate={reportDate} />
         </Page>
-      ))}
+      )}
 
       {/* ====================================================================== */}
       {/* PAGE 3: DETAILED FINANCIAL POSITION */}
