@@ -8,7 +8,8 @@
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Loader2, Trash2, User, Mail, Phone, Calendar, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import * as formatModule from 'date-fns/format';
+const format: (date: Date | number, fmt: string) => string = (formatModule as any).default ?? (formatModule as any);
 import { useClientStorage, ClientData } from '@/lib/hooks/use-client-storage';
 import { useToast } from '@/hooks/use-toast';
 import {
