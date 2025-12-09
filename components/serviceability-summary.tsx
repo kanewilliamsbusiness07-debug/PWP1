@@ -43,6 +43,7 @@ export function ServiceabilitySummary({ serviceability, monthlyIncome, targetRen
                 <label className="block text-sm text-muted-foreground font-medium mb-2">Target Rent (per week)</label>
                 <Input
                   type="number"
+                  step="0.01"
                   placeholder="400"
                   className="h-8 text-sm"
                   value={targetRentPerWeek}
@@ -57,6 +58,7 @@ export function ServiceabilitySummary({ serviceability, monthlyIncome, targetRen
                 <label className="block text-sm text-muted-foreground font-medium mb-2">Property Expenses (per month)</label>
                 <Input
                   type="number"
+                  step="0.01"
                   placeholder="200"
                   className="h-8 text-sm"
                   value={propertyExpensesPerMonth}

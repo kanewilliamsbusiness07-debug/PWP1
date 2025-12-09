@@ -700,7 +700,7 @@ export default function InvestmentPropertiesPage() {
                             <FormControl>
                               <Input
                                 type="text"
-                                step="0.1"
+                                step="0.01"
                                 placeholder="6.5"
                                 {...field}
                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
