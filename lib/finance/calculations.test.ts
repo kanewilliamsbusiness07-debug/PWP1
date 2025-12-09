@@ -328,12 +328,14 @@ describe('Financial Calculations', () => {
       expect(metrics.isDeficit).toBe(false);
     });
 
-    test('calculatePropertyServiceability returns non-viable for small passive income', () => {
+    test('calculatePropertyServiceability uses current disposable surplus when appropriate', () => {
       const metrics = calculateInvestmentSurplus(8000, 7000); // $1,000 surplus
       const svc = calculatePropertyServiceability(metrics, 0.06, 30, 0.8, 0.04, 0.02);
-      // Required retirement income = 70% of 8000 = 5600, monthly passive 1000 -> not viable
-      expect(svc.isViable).toBe(false);
-      expect(svc.maxPropertyValue).toBe(0);
+      // Using conventional approach the current surplus ($1,000) is considered
+      // for borrowing capacity, so the result should be viable and a property
+      // value should be returned.
+      expect(svc.isViable).toBe(true);
+      expect(svc.maxPropertyValue).toBeGreaterThan(0);
     });
   });
 

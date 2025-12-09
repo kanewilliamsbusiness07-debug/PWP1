@@ -37,7 +37,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { useFinancialStore } from '@/lib/store/store';
 import { ServiceabilitySummary } from '@/components/serviceability-summary';
 import { calculateInvestmentSurplus, calculatePropertyServiceability } from '@/lib/finance/serviceability';
-import { calculateMonthlySurplus } from '@/lib/finance/calculations';
+import {
+  calculateMonthlySurplus,
+  calculateRetirementLumpSum,
+  calculatePassiveIncome,
+  calculateRetirementDeficitSurplus,
+  DEFAULT_ASSUMPTIONS
+} from '@/lib/finance/calculations';
 import { formatCurrency } from '@/lib/utils/format';
 
 interface FinancialSummary {
@@ -259,9 +265,30 @@ export default function SummaryPage() {
       superFundValue = client?.superFundValue || client?.currentSuper || financialStore.superBalance || 0;
     }
     
-    const projectedRetirementLumpSum = superFundValue * Math.pow(1.07, yearsToRetirement); // 7% growth assumption
-    const retirementDeficitSurplus = monthlyCashFlow; // Simplified
-    const isRetirementDeficit = retirementDeficitSurplus < 0;
+    // Compute projected retirement lump sum using canonical projection function
+    const currentAssetsForRetirement = {
+      super: safeSuperFundValue,
+      shares: safeSharesValue,
+      properties: propertyEquity,
+      savings: safeSavingsValue,
+    };
+
+    const projectedRetirementLumpSum = calculateRetirementLumpSum(
+      currentAssetsForRetirement,
+      DEFAULT_ASSUMPTIONS,
+      yearsToRetirement
+    );
+
+    // Compute projected passive income at retirement (annual), then derive monthly
+    const rentalAnnual = (surplusResult.income.rental || 0) * 12;
+    const projectedPassiveAnnual = calculatePassiveIncome(projectedRetirementLumpSum, rentalAnnual, DEFAULT_ASSUMPTIONS);
+    const projectedRetirementMonthlyCashFlow = projectedPassiveAnnual / 12;
+
+    // Calculate retirement deficit/surplus using canonical function
+    const annualDebtPayments = (surplusResult.expenses.loanRepayments || 0) * 12;
+    const retirementDeficitObj = calculateRetirementDeficitSurplus(projectedPassiveAnnual, annualDebtPayments, (surplusResult.income.employment || 0) * 12);
+    const retirementDeficitSurplus = retirementDeficitObj.monthlyAmount;
+    const isRetirementDeficit = retirementDeficitObj.isDeficit;
 
     // Tax calculations - derive from canonical monthly values
     const totalAnnualIncome = (surplusResult.income.total || 0) * 12;
@@ -302,6 +329,11 @@ export default function SummaryPage() {
       monthlyExpenses,
       monthlyCashFlow,
       projectedRetirementLumpSum,
+      projectedRetirementMonthlyCashFlow,
+      // For backward compatibility with PDF and other consumers use
+      // `projectedRetirementSurplus` to represent the projected monthly
+      // passive income (surplus) at retirement.
+      projectedRetirementSurplus: projectedRetirementMonthlyCashFlow,
       retirementDeficitSurplus,
       isRetirementDeficit,
       yearsToRetirement,
