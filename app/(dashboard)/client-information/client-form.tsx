@@ -189,6 +189,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       propertyEquity: client?.propertyEquity || 0,
       monthlyDebtPayments: client?.monthlyDebtPayments || 0,
       monthlyRentalIncome: client?.monthlyRentalIncome || 0,
+      monthlyExpenses: client?.monthlyExpenses || 0,
       inflationRate: client?.inflationRate || 0,
       salaryGrowthRate: client?.salaryGrowthRate || 0,
       superReturn: client?.superReturn || 0,
@@ -229,11 +230,11 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       
       // Critical financial fields that need immediate sync across pages
       const criticalFields = [
-        'annualIncome', 'rentalIncome', 'employmentIncome', 
+        'annualIncome', 'rentalIncome', 'employmentIncome',
         'currentSavings', 'currentShares', 'currentSuper',
         'dividends', 'frankedDividends', 'capitalGains', 'otherIncome',
         'workRelatedExpenses', 'investmentExpenses', 'rentalExpenses',
-        'monthlyRentalIncome', 'monthlyDebtPayments'
+        'monthlyRentalIncome', 'monthlyDebtPayments', 'monthlyExpenses'
       ];
       
       // Check if any critical field changed by comparing with previous values
@@ -425,6 +426,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         propertyEquity: client.propertyEquity || 0,
         monthlyDebtPayments: client.monthlyDebtPayments || 0,
         monthlyRentalIncome: client.monthlyRentalIncome || 0,
+        monthlyExpenses: client.monthlyExpenses || 0,
         inflationRate: client.inflationRate || 0,
         salaryGrowthRate: client.salaryGrowthRate || 0,
         superReturn: client.superReturn || 0,
@@ -795,6 +797,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 propertyEquity: 0,
                                 monthlyDebtPayments: 0,
                                 monthlyRentalIncome: 0,
+                                monthlyExpenses: 0,
                                 inflationRate: 0,
                                 salaryGrowthRate: 0,
                                 superReturn: 0,
@@ -1406,6 +1409,48 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                               />
                             </FormControl>
                             <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Monthly Expenses</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="monthlyExpenses"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              Total Monthly Expenses
+                              <span className="ml-2 text-xs text-muted-foreground" title="Your total monthly living expenses including rent/mortgage payments, groceries, utilities, transport, insurance, entertainment, etc. Do NOT include: taxes (already calculated), property investment expenses, or HECS debt repayments (handled separately).">
+                                ℹ️
+                              </span>
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9.]*"
+                                placeholder="e.g., 4500"
+                                {...field}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                }}
+                                onBlur={(e) => {
+                                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Enter your total monthly expenses. This represents all living costs and should NOT include taxes, property expenses, or HECS repayments.
+                            </p>
                           </FormItem>
                         )}
                       />

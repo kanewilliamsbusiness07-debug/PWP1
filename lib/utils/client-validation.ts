@@ -182,6 +182,7 @@ export const clientValidationSchema = z.object({
   propertyEquity: z.number().min(0, 'Property equity cannot be negative').max(10000000, 'Property equity is too high').optional(),
   monthlyDebtPayments: z.number().min(0, 'Monthly debt payments cannot be negative').max(1000000, 'Monthly debt payments are too high').optional(),
   monthlyRentalIncome: z.number().min(0, 'Monthly rental income cannot be negative').max(1000000, 'Monthly rental income is too high').optional(),
+  monthlyExpenses: z.number().min(0, 'Monthly expenses cannot be negative').max(1000000, 'Monthly expenses are too high').optional(),
   
   // Projection Assumptions
   inflationRate: z.number().min(0, 'Inflation rate cannot be negative').max(50, 'Inflation rate cannot exceed 50%').optional(),
