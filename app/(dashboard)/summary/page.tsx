@@ -1657,8 +1657,8 @@ export default function SummaryPage() {
                 
                 {summary.isRetirementDeficit && (
                   <div className="mt-4 p-3 bg-destructive/10 rounded-lg">
-                    <p className="text-sm text-destructive">
-                      <strong>Action Required:</strong> Consider increasing retirement savings or adjusting retirement timeline to address the projected deficit.
+                    <p className="text-sm text-destructive font-semibold">
+                      Action required to close retirement gap
                     </p>
                   </div>
                 )}
@@ -1688,8 +1688,8 @@ export default function SummaryPage() {
                 </div>
                 
                 <div className="mt-4 p-3 bg-emerald-500/10 rounded-lg">
-                  <p className="text-sm text-emerald-500">
-                    <strong>Optimization Opportunity:</strong> Implementing recommended tax strategies could save you ${summary.taxSavings.toLocaleString()} annually.
+                  <p className="text-sm text-emerald-500 font-semibold">
+                    Potential annual tax savings: ${summary.taxSavings.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -1698,164 +1698,30 @@ export default function SummaryPage() {
         </div>
 
         {/* Recommendations & Actions */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">1. Net Worth Calculation</h4>
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
-                  <p className="font-medium">Formula: Net Worth = Total Assets - Total Liabilities</p>
-                  <div className="space-y-1 pl-4">
-                    <p><strong>Total Assets Breakdown:</strong></p>
-                    <p>• Home Value: ${(activeClient?.homeValue || 0).toLocaleString()}</p>
-                    <p>• Investment Properties: ${((activeClient?.investment1Value || 0) + (activeClient?.investment2Value || 0) + (activeClient?.investment3Value || 0) + (activeClient?.investment4Value || 0)).toLocaleString()}</p>
-                    <p>• Vehicle: ${(activeClient?.vehicleValue || 0).toLocaleString()}</p>
-                    <p>• Savings: ${((activeClient?.savingsValue || activeClient?.currentSavings || financialStore.cashSavings || 0)).toLocaleString()}</p>
-                    <p>• Superannuation: ${((activeClient?.superFundValue || activeClient?.currentSuper || financialStore.superBalance || 0)).toLocaleString()}</p>
-                    <p>• Shares/Investments: ${((activeClient?.sharesTotalValue || activeClient?.currentShares || financialStore.investments || 0)).toLocaleString()}</p>
-                    <p className="pt-2"><strong>Total Assets = ${summary.totalAssets.toLocaleString()}</strong></p>
-                  </div>
-                  <div className="space-y-1 pl-4 pt-2">
-                    <p><strong>Total Liabilities Breakdown:</strong></p>
-                    <p>• Home Loan: ${(activeClient?.homeBalance || 0).toLocaleString()}</p>
-                    <p>• Investment Property Loans: ${((activeClient?.investment1Balance || 0) + (activeClient?.investment2Balance || 0) + (activeClient?.investment3Balance || 0) + (activeClient?.investment4Balance || 0)).toLocaleString()}</p>
-                    <p>• Credit Card: ${(activeClient?.creditCardBalance || 0).toLocaleString()}</p>
-                    <p>• Personal Loans: ${(activeClient?.personalLoanBalance || 0).toLocaleString()}</p>
-                    <p>• HECS/HELP Debt: ${((activeClient?.hecsBalance || activeClient?.helpDebt || 0)).toLocaleString()}</p>
-                    <p className="pt-2"><strong>Total Liabilities = ${summary.totalLiabilities.toLocaleString()}</strong></p>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <p><strong>Net Worth = ${summary.totalAssets.toLocaleString()} - ${summary.totalLiabilities.toLocaleString()} = ${summary.netWorth.toLocaleString()}</strong></p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Monthly Cash Flow (concise) */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">2. Monthly Cash Flow</h4>
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="font-medium">Monthly Cash Flow: <strong>${summary.monthlyCashFlow.toLocaleString()}</strong></p>
-                  <p className="text-sm text-muted-foreground">Savings Rate: {summary.monthlyIncome > 0 ? ((summary.monthlyCashFlow / summary.monthlyIncome) * 100).toFixed(1) : '0'}%</p>
-                </div>
-              </div>
-
-              {/* Retirement Projection (concise) */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">3. Retirement Projection</h4>
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="font-medium">Projected Retirement Balance: <strong>${summary.projectedRetirementLumpSum.toLocaleString()}</strong></p>
-                  <p className="text-sm text-muted-foreground">Years to Retirement: {summary.yearsToRetirement}</p>
-                  <p className={summary.isRetirementDeficit ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>Status: {summary.isRetirementDeficit ? 'DEFICIT' : 'SURPLUS'}</p>
-                </div>
-              </div>
-
-              {/* Tax Summary (concise) */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">4. Tax Summary</h4>
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="font-medium">Current Tax (estimated): <strong>${summary.currentTax.toLocaleString()}</strong></p>
-                  <p className="text-sm text-muted-foreground">Potential Tax Savings: <strong>${summary.taxSavings.toLocaleString()}</strong></p>
-                </div>
-              </div>
-
-              {/* Property Serviceability Calculation */}
-              {summary.monthlyIncome > 0 && (() => {
-                const serviceability = calculatePropertyServiceability(
-                  calculateInvestmentSurplus(summary.monthlyIncome, summary.monthlyExpenses)
-                );
-                return (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-foreground">5. Property Serviceability Calculation</h4>
-                    <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
-                      <p className="font-medium">Formula: Max Borrowing = PMT × [(1+r)^n - 1] / [r(1+r)^n]</p>
-                      <p className="text-xs text-muted-foreground">Where: PMT = monthly payment capacity, r = monthly interest rate, n = number of payments</p>
-                      <div className="space-y-1 pl-4">
-                        <p><strong>Available Surplus Calculation:</strong></p>
-                        <p>Monthly Surplus = ${summary.monthlyIncome.toLocaleString()} - ${summary.monthlyExpenses.toLocaleString()} = ${summary.monthlyCashFlow.toLocaleString()}</p>
-                        <p>Retention Threshold (70% of income) = 0.70 × ${summary.monthlyIncome.toLocaleString()} = ${(summary.monthlyIncome * 0.7).toLocaleString()}</p>
-                        <p>Available Surplus = ${(summary.monthlyIncome * 0.7).toLocaleString()} - ${(summary.monthlyIncome * 0.7).toLocaleString()} = ${serviceability.surplusIncome.toLocaleString()}</p>
-                        <p className="pt-2"><strong>Maximum Borrowing Capacity:</strong></p>
-                        <p>Assumed Interest Rate: 6% per annum (0.5% monthly)</p>
-                        <p>Loan Term: 30 years (360 months)</p>
-                        <p>Monthly Payment Capacity: ${serviceability.maxMonthlyPayment.toLocaleString()}</p>
-                        <p className="pt-1">Max Borrowing = ${serviceability.maxMonthlyPayment.toLocaleString()} × [(1.005)^360 - 1] / [0.005 × (1.005)^360]</p>
-                        <p>Max Borrowing = ${serviceability.maxMonthlyPayment.toLocaleString()} × {((Math.pow(1.005, 360) - 1) / (0.005 * Math.pow(1.005, 360))).toFixed(2)}</p>
-                        <p className="pt-2"><strong>Maximum Property Value:</strong></p>
-                        <p>Loan-to-Value Ratio (LVR): 80%</p>
-                        <p>Max Property Value = Max Borrowing ÷ 0.80</p>
-                        <p className="pt-1"><strong>Maximum Property Value = ${serviceability.maxPropertyValue.toLocaleString()}</strong></p>
-                        <p className="pt-2"><strong>Expected Rental Income:</strong></p>
-                        <p>Rental Yield: 4% per annum</p>
-                        <p>Annual Rental Income = ${serviceability.maxPropertyValue.toLocaleString()} × 0.04 = ${(serviceability.maxPropertyValue * 0.04).toLocaleString()}</p>
-                        <p>Monthly Rental Income = ${serviceability.monthlyRentalIncome.toLocaleString()}</p>
-                        <p className="pt-2"><strong>Property Expenses:</strong></p>
-                        <p>Annual Expenses: 2% of property value</p>
-                        <p>Monthly Expenses = (${serviceability.maxPropertyValue.toLocaleString()} × 0.02) ÷ 12 = ${serviceability.totalMonthlyExpenses.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Loan Payment Formula */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">6. Loan Payment Formula</h4>
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
-                  <p className="font-medium">Standard Amortization Formula:</p>
-                  <p className="font-mono text-xs">PMT = P × [r(1+r)^n] / [(1+r)^n - 1]</p>
-                  <div className="space-y-1 pl-4 pt-2">
-                    <p>Where:</p>
-                    <p>• PMT = Monthly payment</p>
-                    <p>• P = Principal loan amount</p>
-                    <p>• r = Monthly interest rate (annual rate ÷ 12)</p>
-                    <p>• n = Total number of payments (years × 12)</p>
-                    <p className="pt-2 text-xs text-muted-foreground">This formula calculates the fixed monthly payment required to fully amortize a loan over its term, including both principal and interest components.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Negative Gearing Formula */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">7. Negative Gearing Calculation</h4>
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
-                  <p className="font-medium">Formula: Tax Benefit = Net Loss × Marginal Tax Rate</p>
-                  <div className="space-y-1 pl-4">
-                    <p><strong>Net Loss Calculation:</strong></p>
-                    <p>Net Loss = Total Property Expenses - Total Rental Income</p>
-                    <p className="pt-1">Where Total Expenses includes:</p>
-                    <p>• Mortgage interest payments</p>
-                    <p>• Repairs and maintenance</p>
-                    <p>• Property management fees</p>
-                    <p>• Insurance and council rates</p>
-                    <p>• Depreciation (2.5% of building value)</p>
-                    <p className="pt-2"><strong>Tax Benefit:</strong></p>
-                    <p>If Net Loss {'>'} 0, the loss can be deducted from taxable income</p>
-                    <p>Tax Benefit = Net Loss × Marginal Tax Rate</p>
-                    <p className="text-xs text-muted-foreground pt-1">Note: This reduces taxable income, resulting in tax savings at your marginal rate.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Assumptions */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">8. Calculation Assumptions</h4>
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
-                  <div className="space-y-1 pl-4">
-                    <p><strong>Retirement Projections:</strong></p>
-                    <p>• Superannuation growth rate: 7% per annum (compounded)</p>
-                    <p>• Required retirement income: 70% of current income</p>
-                    <p>• Safe withdrawal rate: 4% of retirement lump sum</p>
-                    <p className="pt-2"><strong>Property Serviceability:</strong></p>
-                    <p>• Interest rate: 6% per annum</p>
-                    <p>• Loan term: 30 years</p>
-                    <p>• Maximum LVR: 80%</p>
-                    <p>• Expected rental yield: 4% per annum</p>
-                    <p>• Property expenses: 2% of property value annually</p>
-                    <p>• Rental income serviceability factor: 75%</p>
-                    <p className="pt-2"><strong>Tax Calculations:</strong></p>
-                    <p>• Current tax rate assumption: 30% (simplified)</p>
-                    <p>• Optimized tax rate: 25% (with strategies)</p>
-                    <p>• Medicare Levy: 2% (if applicable)</p>
-                    <p className="pt-2 text-xs text-muted-foreground">Note: These assumptions are estimates. Actual rates and returns may vary. Consult with a qualified financial advisor for personalized advice.</p>
-                  </div>
-                </div>
+        <div className="mt-8 pt-6 border-t">
+          <h3 className="text-lg font-bold mb-4 text-foreground">Financial Snapshot</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">Net Worth</p>
+              <p className="text-2xl font-bold text-foreground">${summary.netWorth.toLocaleString()}</p>
+            </div>
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">Monthly Surplus</p>
+              <p className={`text-2xl font-bold ${summary.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                ${summary.monthlyCashFlow.toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">Retirement Status</p>
+              <p className={`text-2xl font-bold ${summary.isRetirementDeficit ? 'text-red-600' : 'text-green-600'}`}>
+                {summary.isRetirementDeficit ? 'Action Required' : 'On Track'}
+              </p>
+            </div>
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <p className="text-sm text-muted-foreground">Potential Tax Savings</p>
+              <p className="text-2xl font-bold text-emerald-600">${summary.taxSavings.toLocaleString()}</p>
+            </div>
+          </div>
         </div>
 
         {/* Recommendations & Actions */}
