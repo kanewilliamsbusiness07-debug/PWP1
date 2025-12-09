@@ -433,20 +433,39 @@ export default function SummaryPage() {
     // Generate optimization strategies with correct marginal tax rate
     const marginalTaxRate = calculateMarginalTaxRate(taxableIncome, client?.privateHealthInsurance || false);
 
+    // Build a tax-form-like data object mirroring Tax Optimization page defaults
+    const taxFormLike = {
+      annualIncome: totalAnnualIncome,
+      employmentIncome: totalAnnualIncome,
+      investmentIncome: Number(client?.investmentIncome || 0),
+      rentalIncome: rentalIncomeAnnual,
+      otherIncome: Number(client?.otherIncome || 0),
+      frankedDividends: Number(client?.frankedDividends || 0),
+      capitalGains: Number(client?.capitalGains || 0),
+
+      // Deductions
+      workRelatedExpenses: Number(financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0),
+      vehicleExpenses: Number(client?.vehicleExpenses || 0),
+      uniformsAndLaundry: Number(client?.uniformsAndLaundry || 0),
+      homeOfficeExpenses: Number(client?.homeOfficeExpenses || 0),
+      selfEducationExpenses: Number(client?.selfEducationExpenses || 0),
+      investmentExpenses: Number(financialStore.investmentExpenses || client?.investmentExpenses || 0),
+      charityDonations: Number(client?.charityDonations || 0),
+      accountingFees: Number(client?.accountingFees || 0),
+      otherDeductions: Number(client?.otherDeductions || 0),
+      rentalExpenses: rentalExpensesAnnual,
+
+      // Super & flags
+      superContributions: Number(client?.superContributions || 0),
+      healthInsurance: client?.healthInsurance || client?.privateHealthInsurance || false,
+      hecs: Boolean(client?.hecs || false),
+      helpDebt: Number(client?.helpDebt || 0),
+      hecsBalance: Number(client?.hecsBalance || client?.helpDebt || 0),
+      privateHealthInsurance: Boolean(client?.privateHealthInsurance || false)
+    };
+
     const optimizationStrategies = generateOptimizationStrategies(
-      {
-        annualIncome: totalAnnualIncome,
-        investmentIncome: Number(client?.investmentIncome || 0),
-        rentalIncome: rentalIncomeAnnual,
-        otherIncome: Number(client?.otherIncome || 0),
-        charityDonations: Number(client?.charityDonations || 0),
-        workRelatedExpenses: Number(financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0),
-        capitalGains: Number(client?.capitalGains || 0),
-        rentalExpenses: rentalExpensesAnnual,
-        healthInsurance: client?.healthInsurance || client?.privateHealthInsurance || false,
-        superContributions: Number(client?.superContributions || 0),
-        frankedDividends: Number(client?.frankedDividends || 0)
-      },
+      taxFormLike as any,
       {
         annualIncome: totalAnnualIncome,
         taxableIncome,
@@ -459,7 +478,7 @@ export default function SummaryPage() {
         averageTaxRate: totalAnnualIncome > 0 ? (currentTax / totalAnnualIncome) * 100 : 0,
         frankedCredits,
         totalDeductions: totalDeductions + negativeGearing
-      }
+      } as any
     );
 
     const totalTaxSavings = calculateTotalTaxSavings(optimizationStrategies);
