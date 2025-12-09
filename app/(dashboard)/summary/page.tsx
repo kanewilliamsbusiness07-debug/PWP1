@@ -1737,13 +1737,15 @@ export default function SummaryPage() {
 
             let finalService = baseline;
             const rentPerWeek = typeof targetRentPerWeek === 'string' ? (targetRentPerWeek === '' ? 0 : Number(targetRentPerWeek)) : (targetRentPerWeek || 0);
-            if (rentPerWeek > 0 && baseline.maxPropertyValue > 0) {
-              const targetAnnual = rentPerWeek * 52;
-              // derive expected rental yield from target rent and baseline max property value
-              const expectedRentalYield = targetAnnual / baseline.maxPropertyValue;
-              // ensure reasonable bounds
-              const safeYield = isFinite(expectedRentalYield) && expectedRentalYield > 0 ? expectedRentalYield : 0.04;
-              finalService = calculatePropertyServiceability(retirementMetrics, undefined, undefined, undefined, safeYield);
+            
+            // If user entered a rent amount, use it to override the monthly rental income in the result
+            if (rentPerWeek > 0) {
+              const monthlyRentFromInput = rentPerWeek * 4.33; // 52 weeks/year ÷ 12 months
+              // Override the calculated service with the actual rent entered
+              finalService = {
+                ...baseline,
+                monthlyRentalIncome: monthlyRentFromInput
+              };
             }
 
             return (
@@ -1895,7 +1897,7 @@ export default function SummaryPage() {
         {/* Layout: Recommendations & Actions on left, Financial Snapshot on right */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8 pt-6 border-t">
           {/* Left column: Sidebar - Financial Snapshot, Report Actions, Key Recommendations */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             {/* Financial Snapshot (moved to sidebar top) */}
             <Card>
               <CardHeader>
