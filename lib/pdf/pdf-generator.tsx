@@ -467,7 +467,7 @@ interface PDFReportProps {
 
 const formatCurrency = (value: any): string => {
   if (value === null || value === undefined || isNaN(Number(value))) return '$0.00';
-  return `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 0 })}`;
+  return `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const safeNumber = (value: any, defaultValue: number = 0): number => {
