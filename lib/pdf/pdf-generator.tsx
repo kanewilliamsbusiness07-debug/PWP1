@@ -61,8 +61,6 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 25,
     minHeight: 0,
-    // CRITICAL: Prevent page breaks inside sections
-    break: false,
     paddingBottom: 10,
   },
   sectionTitle: {
@@ -74,8 +72,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomStyle: 'solid',
     borderBottomColor: '#3498db',
-    // Prevent title from being orphaned
-    breakInside: 'avoid',
   },
   summaryBox: {
     flexDirection: 'row',
@@ -107,10 +103,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     minHeight: 0,
-    // CRITICAL: Prevent page breaks inside chart containers
-    breakInside: 'avoid',
-    break: false,
-    pageBreakInside: 'avoid',
   },
   chart: {
     width: 515, // Fit within A4 page width (595 - 40*2 padding = 515)
@@ -118,9 +110,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     alignSelf: 'center',
     maxWidth: 515,
-    // CRITICAL: Prevent page breaks inside images
-    breakInside: 'avoid',
-    pageBreakInside: 'avoid',
   },
   explanation: {
     backgroundColor: '#f8f9fa',
@@ -196,9 +185,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftStyle: 'solid',
     borderLeftColor: '#4caf50',
-    // Prevent breaks inside boxes
-    breakInside: 'avoid',
-    pageBreakInside: 'avoid',
   },
   warningBox: {
     backgroundColor: '#fff3e0',
@@ -208,9 +194,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftStyle: 'solid',
     borderLeftColor: '#ff9800',
-    // Prevent breaks inside boxes
-    breakInside: 'avoid',
-    pageBreakInside: 'avoid',
   },
   recommendationBox: {
     backgroundColor: '#e3f2fd',
@@ -220,9 +203,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftStyle: 'solid',
     borderLeftColor: '#2196f3',
-    // Prevent breaks inside boxes
-    breakInside: 'avoid',
-    pageBreakInside: 'avoid',
   },
 });
 
@@ -537,7 +517,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
         </View>
 
         {/* Detailed Financial Position */}
-        <View style={[styles.section, { breakInside: 'avoid' }]}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Detailed Financial Position</Text>
           {financialPositionChart ? (
             <View style={styles.chartContainer}>
@@ -572,7 +552,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
         </View>
 
         {/* Investment Property Potential */}
-        <View style={[styles.section, { breakInside: 'avoid' }]}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Investment Property Potential</Text>
           {isViable && maxPropertyValue > 0 ? (
             <>
@@ -647,7 +627,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
         </View>
 
         {/* Detailed Retirement Projection */}
-        <View style={[styles.section, { breakInside: 'avoid' }]}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Detailed Retirement Projection</Text>
           {detailedRetirementChart ? (
             <View style={styles.chartContainer}>
@@ -700,7 +680,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
         </View>
 
         {/* Tax Optimization */}
-        <View style={[styles.section, { breakInside: 'avoid' }]}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Tax Optimization Analysis</Text>
           {taxOptimizationChart ? (
             <View style={styles.chartContainer}>
