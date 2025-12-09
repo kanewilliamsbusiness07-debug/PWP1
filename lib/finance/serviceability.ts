@@ -15,7 +15,11 @@ export function calculateInvestmentSurplus(
   const validExpenses = isNaN(monthlyExpenses) || monthlyExpenses < 0 ? 0 : monthlyExpenses;
   
   const monthlyDeficitOrSurplus = validIncome - validExpenses;
-  const projectedPassiveIncomeMonthly = monthlyDeficitOrSurplus * 0.7; // 70% income retention threshold
+  // Projected passive income is estimated from available monthly surplus/deficit.
+  // Do not apply the retirement retention factor here to avoid double-reducing
+  // the projected income; retention (required retirement income) is applied
+  // in `calculatePropertyServiceability` when comparing required vs available.
+  const projectedPassiveIncomeMonthly = monthlyDeficitOrSurplus;
 
   return {
     projectedPassiveIncomeMonthly: isNaN(projectedPassiveIncomeMonthly) ? 0 : projectedPassiveIncomeMonthly,

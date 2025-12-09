@@ -93,7 +93,9 @@ export function projectAssetValue(
   inflationRate: number,
   years: number
 ): number {
-  const realGrowthRate = nominalGrowthRate - inflationRate;
+  // Convert nominal growth to real growth using exact formula:
+  // (1 + nominal) / (1 + inflation) - 1
+  const realGrowthRate = (1 + nominalGrowthRate) / (1 + inflationRate) - 1;
   return currentValue * Math.pow(1 + realGrowthRate, years);
 }
 

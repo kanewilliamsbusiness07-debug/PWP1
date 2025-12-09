@@ -19,6 +19,7 @@ import {
   PropertyExpenses,
   DEFAULT_ASSUMPTIONS
 } from './calculations';
+import { calculateInvestmentSurplus, calculatePropertyServiceability } from './serviceability';
 
 describe('Financial Calculations', () => {
   describe('calculateLoanPayment', () => {
@@ -73,7 +74,8 @@ describe('Financial Calculations', () => {
   describe('projectAssetValue', () => {
     test('projects asset value with real growth rate', () => {
       const result = projectAssetValue(100000, 0.07, 0.025, 10);
-      const expectedRealGrowth = 0.07 - 0.025; // 4.5% real
+      // Use exact real return formula: (1+nominal)/(1+inflation)-1
+      const expectedRealGrowth = (1 + 0.07) / (1 + 0.025) - 1;
       const expected = 100000 * Math.pow(1 + expectedRealGrowth, 10);
       
       expect(result).toBeCloseTo(expected, 1);
@@ -313,6 +315,24 @@ describe('Financial Calculations', () => {
       
       expect(payment).toBeCloseTo(monthlyCapacity, 1);
       expect(maxBorrow).toBeGreaterThan(400000);
+    });
+  });
+
+  describe('Serviceability calculations', () => {
+    test('calculateInvestmentSurplus returns projected passive equal to monthly surplus', () => {
+      const metrics = calculateInvestmentSurplus(8000, 6000); // $2,000 surplus
+      expect(metrics.currentMonthlyIncome).toBe(8000);
+      expect(metrics.monthlyDeficitOrSurplus).toBe(2000);
+      expect(metrics.projectedPassiveIncomeMonthly).toBe(2000);
+      expect(metrics.isDeficit).toBe(false);
+    });
+
+    test('calculatePropertyServiceability returns non-viable for small passive income', () => {
+      const metrics = calculateInvestmentSurplus(8000, 7000); // $1,000 surplus
+      const svc = calculatePropertyServiceability(metrics, 0.06, 30, 0.8, 0.04, 0.02);
+      // Required retirement income = 70% of 8000 = 5600, monthly passive 1000 -> not viable
+      expect(svc.isViable).toBe(false);
+      expect(svc.maxPropertyValue).toBe(0);
     });
   });
 
