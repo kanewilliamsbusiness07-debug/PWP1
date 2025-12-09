@@ -379,10 +379,11 @@ export interface MonthlySurplusResult {
  * Monthly Surplus = Total Monthly Income - Total Monthly Expenses
  */
 export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
-  const employmentAnnual = Number(clientData?.income?.employment || 0);
-  const rentalAnnual = Number(clientData?.income?.rental || 0);
-  const investmentAnnual = Number(clientData?.income?.investment || 0);
-  const otherAnnual = Number(clientData?.income?.other || 0);
+  // Support both nested (income.employment) and flat (employmentIncome) structures
+  const employmentAnnual = Number(clientData?.income?.employment || clientData?.employmentIncome || clientData?.annualIncome || 0);
+  const rentalAnnual = Number(clientData?.income?.rental || clientData?.rentalIncome || 0);
+  const investmentAnnual = Number(clientData?.income?.investment || clientData?.investmentIncome || 0);
+  const otherAnnual = Number(clientData?.income?.other || clientData?.otherIncome || 0);
 
   const employment = employmentAnnual / 12;
   const rental = rentalAnnual / 12;
@@ -392,7 +393,7 @@ export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
   const totalMonthlyIncome = employment + rental + investment + other;
 
   // Living expenses (monthly)
-  const livingExpenses = Number(clientData?.financials?.monthlyExpenses || 0);
+  const livingExpenses = Number(clientData?.financials?.monthlyExpenses || clientData?.monthlyExpenses || 0);
 
   // Annual taxable income and tax calculations using tax engine
   const annualTaxableIncome = employmentAnnual + rentalAnnual + investmentAnnual + otherAnnual;
