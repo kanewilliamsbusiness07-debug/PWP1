@@ -44,7 +44,6 @@ import {
   calculateRetirementDeficitSurplus,
   DEFAULT_ASSUMPTIONS
 } from '@/lib/finance/calculations';
-import { calculateTax } from '@/lib/tax/tax-engine';
 import { generateOptimizationStrategies, calculateTotalTaxSavings } from '@/lib/finance/tax-optimization-strategies';
 import { formatCurrency } from '@/lib/utils/format';
 
@@ -303,45 +302,164 @@ export default function SummaryPage() {
     const retirementDeficitSurplus = retirementDeficitObj.monthlyAmount;
     const isRetirementDeficit = retirementDeficitObj.isDeficit;
 
-    // Tax calculations - use canonical tax engine for consistency
+    // Tax calculations - replicate exact logic from Tax Optimization page
     const totalAnnualIncome = (surplusResult.income.total || 0) * 12;
 
-    // Build tax input expected by tax engine
-    const taxInput = {
-      grossIncome: totalAnnualIncome,
-      deductions: [
-        { category: 'work-related', amount: Number(financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0), description: 'Work related expenses' },
-        { category: 'investment', amount: Number(financialStore.investmentExpenses || client?.investmentExpenses || 0), description: 'Investment expenses' },
-        { category: 'rental', amount: Number(client?.rentalExpenses || 0), description: 'Rental expenses' },
-        { category: 'charitable', amount: Number(client?.charityDonations || 0), description: 'Charity donations' }
-      ],
-      negativeGearingLoss: Math.max(0, (client?.rentalExpenses || 0) - ((surplusResult.income.rental || 0) * 12)),
-      capitalGains: Number(client?.capitalGains || 0),
-      frankedDividends: Number(client?.frankedDividends || 0),
-      hecsBalance: Number(client?.hecsBalance || client?.helpDebt || 0),
-      medicareExemption: false
+    // Tax brackets 2024-25
+    const taxBrackets = [
+      { min: 0, max: 18200, rate: 0, baseAmount: 0 },
+      { min: 18201, max: 45000, rate: 0.19, baseAmount: 0 },
+      { min: 45001, max: 120000, rate: 0.325, baseAmount: 5092 },
+      { min: 120001, max: 180000, rate: 0.37, baseAmount: 29467 },
+      { min: 180001, max: Infinity, rate: 0.45, baseAmount: 51667 }
+    ];
+
+    const MEDICARE_LEVY_RATE = 0.02;
+    const MEDICARE_LEVY_THRESHOLD_SINGLE = 24276;
+    const MEDICARE_LEVY_SURCHARGE_THRESHOLD = 90000;
+
+    const hecsThresholds = [
+      { min: 51550, max: 59518, rate: 0.01 },
+      { min: 59519, max: 65000, rate: 0.02 },
+      { min: 65001, max: 71999, rate: 0.025 },
+      { min: 72000, max: 79999, rate: 0.03 },
+      { min: 80000, max: 89999, rate: 0.035 },
+      { min: 90000, max: 100000, rate: 0.04 },
+      { min: 100001, max: 109999, rate: 0.045 },
+      { min: 110000, max: 124999, rate: 0.05 },
+      { min: 125000, max: 139999, rate: 0.055 },
+      { min: 140000, max: Infinity, rate: 0.10 }
+    ];
+
+    const calculateIncomeTax = (taxableIncome: number): number => {
+      if (taxableIncome <= 0) return 0;
+      for (let i = taxBrackets.length - 1; i >= 0; i--) {
+        const bracket = taxBrackets[i];
+        if (taxableIncome >= bracket.min) {
+          const taxableInBracket = taxableIncome - bracket.min;
+          return bracket.baseAmount + (taxableInBracket * bracket.rate);
+        }
+      }
+      return 0;
     };
 
-    const taxResult = calculateTax(taxInput as any);
-    const currentTax = taxResult.totalTax;
+    const calculateMedicareLevy = (taxableIncome: number, hasPrivateHealth: boolean): number => {
+      if (taxableIncome <= MEDICARE_LEVY_THRESHOLD_SINGLE) return 0;
+      let medicareLevy = taxableIncome * MEDICARE_LEVY_RATE;
+      if (!hasPrivateHealth && taxableIncome > MEDICARE_LEVY_SURCHARGE_THRESHOLD) {
+        let surchargeRate = 0.01;
+        if (taxableIncome > 105000 && taxableIncome <= 140000) {
+          surchargeRate = 0.0125;
+        } else if (taxableIncome > 140000) {
+          surchargeRate = 0.015;
+        }
+        medicareLevy += taxableIncome * surchargeRate;
+      }
+      return medicareLevy;
+    };
 
-    // Generate all optimization strategies and calculate total tax savings
-    // This matches the logic used in the Tax Optimization page
+    const calculateHecsRepayment = (grossIncome: number, hecsBalance: number): number => {
+      if (hecsBalance <= 0 || grossIncome < 51550) return 0;
+      for (let i = hecsThresholds.length - 1; i >= 0; i--) {
+        const threshold = hecsThresholds[i];
+        if (grossIncome >= threshold.min) {
+          const repayment = grossIncome * threshold.rate;
+          return Math.min(repayment, hecsBalance);
+        }
+      }
+      return 0;
+    };
+
+    const calculateMarginalTaxRate = (taxableIncome: number, hasPrivateHealth: boolean): number => {
+      for (let i = taxBrackets.length - 1; i >= 0; i--) {
+        const bracket = taxBrackets[i];
+        if (taxableIncome >= bracket.min) {
+          let marginalRate = bracket.rate;
+          if (taxableIncome > MEDICARE_LEVY_THRESHOLD_SINGLE) {
+            marginalRate += MEDICARE_LEVY_RATE;
+          }
+          if (!hasPrivateHealth && taxableIncome > MEDICARE_LEVY_SURCHARGE_THRESHOLD) {
+            if (taxableIncome > 140000) {
+              marginalRate += 0.015;
+            } else if (taxableIncome > 105000) {
+              marginalRate += 0.0125;
+            } else {
+              marginalRate += 0.01;
+            }
+          }
+          return marginalRate * 100;
+        }
+      }
+      return 0;
+    };
+
+    // Calculate tax exactly as Tax Optimization page does
+    const totalDeductions = 
+      Number(financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0) +
+      Number(client?.vehicleExpenses || 0) +
+      Number(client?.uniformsAndLaundry || 0) +
+      Number(client?.homeOfficeExpenses || 0) +
+      Number(client?.selfEducationExpenses || 0) +
+      Number(financialStore.investmentExpenses || client?.investmentExpenses || 0) +
+      Number(client?.charityDonations || 0) +
+      Number(client?.accountingFees || 0);
+
+    const rentalExpensesAnnual = Number(client?.rentalExpenses || 0);
+    const rentalIncomeAnnual = (surplusResult.income.rental || 0) * 12;
+    const negativeGearing = Math.max(0, rentalExpensesAnnual - rentalIncomeAnnual);
+
+    const frankedCredits = Number(client?.frankedDividends || 0) * 0.3;
+    const assessableCapitalGains = (Number(client?.capitalGains || 0)) * 0.5;
+
+    let taxableIncome = 
+      totalAnnualIncome +
+      Number(client?.investmentIncome || 0) +
+      rentalIncomeAnnual +
+      Number(client?.frankedDividends || 0) +
+      assessableCapitalGains +
+      Number(client?.otherIncome || 0) -
+      totalDeductions -
+      negativeGearing;
+    taxableIncome = Math.max(0, taxableIncome);
+
+    const incomeTaxBeforeCredits = calculateIncomeTax(taxableIncome);
+    const incomeTax = Math.max(0, incomeTaxBeforeCredits - frankedCredits);
+
+    const medicareLevy = calculateMedicareLevy(taxableIncome, client?.privateHealthInsurance || false);
+    const hecsRepayment = calculateHecsRepayment(totalAnnualIncome, Number(client?.hecsBalance || client?.helpDebt || 0));
+
+    const currentTax = incomeTax + medicareLevy + hecsRepayment;
+
+    // Generate optimization strategies with correct marginal tax rate
+    const marginalTaxRate = calculateMarginalTaxRate(taxableIncome, client?.privateHealthInsurance || false);
+
     const optimizationStrategies = generateOptimizationStrategies(
       {
         annualIncome: totalAnnualIncome,
         investmentIncome: Number(client?.investmentIncome || 0),
-        rentalIncome: Number((surplusResult.income.rental || 0) * 12),
+        rentalIncome: rentalIncomeAnnual,
         otherIncome: Number(client?.otherIncome || 0),
         charityDonations: Number(client?.charityDonations || 0),
         workRelatedExpenses: Number(financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0),
         capitalGains: Number(client?.capitalGains || 0),
-        rentalExpenses: Number(client?.rentalExpenses || 0),
+        rentalExpenses: rentalExpensesAnnual,
         healthInsurance: client?.healthInsurance || client?.privateHealthInsurance || false,
         superContributions: Number(client?.superContributions || 0),
         frankedDividends: Number(client?.frankedDividends || 0)
       },
-      taxResult as any
+      {
+        annualIncome: totalAnnualIncome,
+        taxableIncome,
+        incomeTax,
+        medicareLevy,
+        hecsRepayment,
+        totalTax: currentTax,
+        afterTaxIncome: totalAnnualIncome - currentTax,
+        marginalTaxRate,
+        averageTaxRate: totalAnnualIncome > 0 ? (currentTax / totalAnnualIncome) * 100 : 0,
+        frankedCredits,
+        totalDeductions: totalDeductions + negativeGearing
+      }
     );
 
     const totalTaxSavings = calculateTotalTaxSavings(optimizationStrategies);
