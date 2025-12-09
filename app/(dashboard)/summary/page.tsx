@@ -1729,56 +1729,32 @@ export default function SummaryPage() {
             </CardContent>
           </Card>
 
-          {/* Investment Property Potential */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-foreground">Investment Property - Target Rent</CardTitle>
-                <CardDescription className="text-muted-foreground">Enter a target rent per week to fine-tune the potential property calculations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm text-muted-foreground mb-1">Target Rent (per week)</label>
-                    <Input
-                      type="number"
-                      placeholder="400"
-                      value={targetRentPerWeek}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setTargetRentPerWeek(v === '' ? '' : Number(parseFloat(v)));
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Preview</div>
-                    <div className="text-lg font-semibold">${targetRentPerWeek ? Number(targetRentPerWeek).toLocaleString() : '—'}</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Compute serviceability: baseline, then adjust with target rent if provided */}
-            {(() => {
-              const retirementMetrics = calculateInvestmentSurplus(summary.monthlyIncome, summary.monthlyExpenses);
-              const baseline = calculatePropertyServiceability(retirementMetrics);
+          {/* Investment Property Potential - with inline rent input */}
+          {(() => {
+            const retirementMetrics = calculateInvestmentSurplus(summary.monthlyIncome, summary.monthlyExpenses);
+            const baseline = calculatePropertyServiceability(retirementMetrics);
 
-              let finalService = baseline;
-              const rentPerWeek = typeof targetRentPerWeek === 'string' ? (targetRentPerWeek === '' ? 0 : Number(targetRentPerWeek)) : (targetRentPerWeek || 0);
-              if (rentPerWeek > 0 && baseline.maxPropertyValue > 0) {
-                const targetAnnual = rentPerWeek * 52;
-                // derive expected rental yield from target rent and baseline max property value
-                const expectedRentalYield = targetAnnual / baseline.maxPropertyValue;
-                // ensure reasonable bounds
-                const safeYield = isFinite(expectedRentalYield) && expectedRentalYield > 0 ? expectedRentalYield : 0.04;
-                finalService = calculatePropertyServiceability(retirementMetrics, undefined, undefined, undefined, safeYield);
-              }
+            let finalService = baseline;
+            const rentPerWeek = typeof targetRentPerWeek === 'string' ? (targetRentPerWeek === '' ? 0 : Number(targetRentPerWeek)) : (targetRentPerWeek || 0);
+            if (rentPerWeek > 0 && baseline.maxPropertyValue > 0) {
+              const targetAnnual = rentPerWeek * 52;
+              // derive expected rental yield from target rent and baseline max property value
+              const expectedRentalYield = targetAnnual / baseline.maxPropertyValue;
+              // ensure reasonable bounds
+              const safeYield = isFinite(expectedRentalYield) && expectedRentalYield > 0 ? expectedRentalYield : 0.04;
+              finalService = calculatePropertyServiceability(retirementMetrics, undefined, undefined, undefined, safeYield);
+            }
 
-              return (
-                <ServiceabilitySummary serviceability={finalService} monthlyIncome={summary.monthlyIncome} />
-              );
-            })()}
-          </div>
+            return (
+              <ServiceabilitySummary 
+                serviceability={finalService} 
+                monthlyIncome={summary.monthlyIncome}
+                targetRentPerWeek={targetRentPerWeek}
+                onRentChange={(value) => setTargetRentPerWeek(value)}
+              />
+            );
+          })()}
 
           {/* Cash Flow Analysis */}
           <Card>
@@ -1917,7 +1893,7 @@ export default function SummaryPage() {
         </div>
 
         {/* Layout: Recommendations & Actions on left, Financial Snapshot on right */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8 pt-6 border-t">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8 pt-6 border-t">
           {/* Left column: Sidebar - Financial Snapshot, Report Actions, Key Recommendations */}
           <div className="lg:col-span-1 space-y-6">
             {/* Financial Snapshot (moved to sidebar top) */}

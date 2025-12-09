@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { ServiceabilityResult } from "@/lib/finance/serviceability";
 import { formatCurrency } from "@/lib/utils/format";
 import { BadgeDollarSign, Home, TrendingUp, AlertCircle } from "lucide-react";
@@ -7,11 +8,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 interface ServiceabilitySummaryProps {
   serviceability: ServiceabilityResult;
   monthlyIncome: number;
+  targetRentPerWeek?: number | string;
+  onRentChange?: (value: number | string) => void;
 }
 
-export function ServiceabilitySummary({ serviceability, monthlyIncome }: ServiceabilitySummaryProps) {
+export function ServiceabilitySummary({ serviceability, monthlyIncome, targetRentPerWeek, onRentChange }: ServiceabilitySummaryProps) {
   const isViable = serviceability.isViable && serviceability.maxPropertyValue > 0;
   const netCashFlow = serviceability.monthlyRentalIncome - serviceability.maxMonthlyPayment - serviceability.totalMonthlyExpenses;
+  const rentPerWeek = typeof targetRentPerWeek === 'string' ? (targetRentPerWeek === '' ? 0 : Number(targetRentPerWeek)) : (targetRentPerWeek || 0);
 
   return (
     <Card>
@@ -25,6 +29,31 @@ export function ServiceabilitySummary({ serviceability, monthlyIncome }: Service
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Rent input section */}
+        {onRentChange && (
+          <div className="mb-6 pb-4 border-b">
+            <div className="flex items-end gap-3">
+              <div className="flex-1">
+                <label className="block text-sm text-muted-foreground font-medium mb-2">Target Rent (per week)</label>
+                <Input
+                  type="number"
+                  placeholder="400"
+                  className="h-8 text-sm"
+                  value={targetRentPerWeek}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    onRentChange(v === '' ? '' : Number(parseFloat(v)));
+                  }}
+                />
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground mb-1">Monthly Equivalent</div>
+                <div className="text-sm font-semibold">${rentPerWeek ? (rentPerWeek * 4).toLocaleString() : '—'}</div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {!isViable ? (
           <Alert>
             <AlertCircle className="h-4 w-4" />
