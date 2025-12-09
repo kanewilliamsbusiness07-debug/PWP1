@@ -772,6 +772,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
 
           <ReportFooter reportDate={reportDate} />
         </Page>
+      ))}
 
       {/* ====================================================================== */}
       {/* PAGE 3: DETAILED FINANCIAL POSITION */}
@@ -856,8 +857,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
       {/* PAGE 4: RETIREMENT PROJECTION */}
       {/* ====================================================================== */}
 
-      {(!renderOnly || renderOnly === 5) && (console.log('PDFReport: Rendering Page 5 - Retirement Projection'), (
-        <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
         <View style={{ flex: 1 }} wrap={false}>
