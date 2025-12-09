@@ -97,9 +97,16 @@ export function calculatePropertyServiceability(
     };
   }
 
-  // Calculate available surplus after ensuring 70% of current income in retirement
+  // Conventional approach: compute borrowing capacity from net disposable
+  // income (current surplus) but also allow future projected passive income
+  // to be considered if it produces a larger available surplus after
+  // applying the required retention threshold for retirement income.
   const retentionThreshold = retirementMetrics.currentMonthlyIncome * 0.7;
-  const availableSurplus = Math.max(0, retirementMetrics.projectedPassiveIncomeMonthly - retentionThreshold);
+  const surplusFromCurrent = Math.max(0, retirementMetrics.monthlyDeficitOrSurplus || 0);
+  const surplusFromProjected = Math.max(0, (retirementMetrics.projectedPassiveIncomeMonthly || 0) - retentionThreshold);
+
+  // Use the larger of current surplus or projected passive income (post-retention)
+  const availableSurplus = Math.max(surplusFromCurrent, surplusFromProjected);
 
   if (availableSurplus <= 0 || isNaN(availableSurplus)) {
     return {
@@ -110,7 +117,7 @@ export function calculatePropertyServiceability(
       monthlyRentalIncome: 0,
       totalMonthlyExpenses: 0,
       isViable: false,
-      reason: "No surplus available after ensuring 70% of current income in retirement"
+      reason: "No surplus available after applying retention or current disposable income"
     };
   }
 
@@ -256,10 +263,13 @@ export function calculateServiceability(input: ServiceabilityInput): CanonicalSe
 
   const monthlySurplusResult = calculateMonthlySurplus(clientData);
 
-  const monthlyNetIncome = (monthlySurplusResult.income.total || 0) - (monthlySurplusResult.expenses.tax || 0);
-
-  // Sum existing commitments from the monthly surplus expenses (loanRepayments)
+  // Calculate monthly net income as disposable income before the proposed loan
+  // i.e. total income minus recurring living costs, taxes, HECS and property
+  // expenses but excluding existing loan repayments. We derive this by taking
+  // the current surplus and adding back existing loan repayments so the
+  // resulting figure represents income available to service commitments.
   const existingLoanRepayments = monthlySurplusResult.expenses.loanRepayments || 0;
+  const monthlyNetIncome = (monthlySurplusResult.surplus || 0) + existingLoanRepayments;
 
   // Proposed loan repayment
   const monthlyRepayment = calculateLoanPayment({
