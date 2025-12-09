@@ -7,15 +7,65 @@ import React from 'react';
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 
+// Global design constants (matches requested spec)
+const COLORS = {
+  primary: '#2c3e50',
+  success: '#27ae60',
+  warning: '#f39c12',
+  danger: '#e74c3c',
+  info: '#3498db',
+  purple: '#9b59b6',
+  teal: '#1abc9c',
+  orange: '#e67e22',
+  gray: '#95a5a6',
+  lightGray: '#ecf0f1',
+  white: '#ffffff',
+  text: '#333333',
+  textLight: '#777777',
+};
+
+const TYPOGRAPHY = {
+  pageTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.text },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.primary },
+  subsectionTitle: { fontSize: 14, fontWeight: 'semibold', color: '#34495e' },
+  bodyText: { fontSize: 11, lineHeight: 1.6, color: '#555' },
+  captionText: { fontSize: 9, color: '#777' },
+  highlightNumber: { fontSize: 28, fontWeight: 'bold', color: COLORS.primary },
+};
+
+const SPACING = {
+  pageMargin: 50,
+  headerHeight: 70,
+  sectionGap: 35,
+  subsectionGap: 20,
+  elementGap: 12,
+  cardPadding: 20,
+  chartPadding: 25,
+};
+
+const CHART_CONFIG = {
+  minHeight: 250,
+  minWidth: 500,
+  padding: { top: 30, right: 30, bottom: 50, left: 60 },
+  lineWidth: 2.5,
+  pointRadius: 4,
+  gridColor: '#e0e0e0',
+  gridWidth: 1,
+  axisColor: '#333',
+  axisFontSize: 9,
+  legendFontSize: 10,
+  titleFontSize: 12,
+};
+
 // Premium Professional PDF Styles
 const styles = StyleSheet.create({
   page: {
-    padding: 50,
-    paddingTop: 90,
+    padding: SPACING.pageMargin,
+    paddingTop: SPACING.headerHeight + 20,
     paddingBottom: 70,
     fontSize: 11,
     fontFamily: 'Helvetica',
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.white,
   },
   header: {
     position: 'absolute',
@@ -25,12 +75,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 2,
     borderBottomStyle: 'solid',
-    borderBottomColor: '#2c3e50',
+    borderBottomColor: COLORS.primary,
   },
   companyName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: COLORS.text,
     marginBottom: 4,
   },
   reportDate: {
@@ -44,19 +94,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   pageTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: TYPOGRAPHY.pageTitle.fontSize,
+    fontWeight: TYPOGRAPHY.pageTitle.fontWeight as any,
     marginBottom: 30,
-    color: '#1a1a1a',
+    color: TYPOGRAPHY.pageTitle.color,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: TYPOGRAPHY.sectionTitle.fontSize,
+    fontWeight: TYPOGRAPHY.sectionTitle.fontWeight as any,
     marginBottom: 15,
-    color: '#2c3e50',
+    color: TYPOGRAPHY.sectionTitle.color,
     borderBottomWidth: 2,
     borderBottomStyle: 'solid',
-    borderBottomColor: '#3498db',
+    borderBottomColor: COLORS.info,
     paddingBottom: 8,
   },
   subsectionTitle: {
@@ -77,7 +127,7 @@ const styles = StyleSheet.create({
   comparisonBox: {
     width: '48%',
     padding: 20,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.lightGray,
     borderRadius: 6,
     borderWidth: 1,
     borderStyle: 'solid',
@@ -109,7 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 5,
     borderLeftStyle: 'solid',
-    borderLeftColor: '#27ae60',
+    borderLeftColor: COLORS.success,
     marginBottom: 25,
     alignItems: 'center',
   },
@@ -136,7 +186,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 5,
     borderLeftStyle: 'solid',
-    borderLeftColor: '#2196f3',
+    borderLeftColor: COLORS.info,
   },
   propertyValue: {
     fontSize: 32,
@@ -214,21 +264,22 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginVertical: 20,
-    padding: 10,
+    padding: SPACING.chartPadding,
   },
   chart: {
-    width: 515,
-    maxHeight: 300,
+    width: CHART_CONFIG.minWidth,
+    height: CHART_CONFIG.minHeight,
+    maxHeight: 600,
     alignSelf: 'center',
   },
   explanation: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.lightGray,
     padding: 18,
     borderRadius: 6,
     marginTop: 15,
     borderLeftWidth: 4,
     borderLeftStyle: 'solid',
-    borderLeftColor: '#3498db',
+    borderLeftColor: COLORS.info,
   },
   explanationTitle: {
     fontSize: 12,
@@ -248,7 +299,7 @@ const styles = StyleSheet.create({
     marginVertical: 15,
     borderLeftWidth: 5,
     borderLeftStyle: 'solid',
-    borderLeftColor: '#4caf50',
+    borderLeftColor: COLORS.success,
   },
   warningBox: {
     backgroundColor: '#fff3e0',
@@ -257,7 +308,7 @@ const styles = StyleSheet.create({
     marginVertical: 15,
     borderLeftWidth: 5,
     borderLeftStyle: 'solid',
-    borderLeftColor: '#ff9800',
+    borderLeftColor: COLORS.warning,
   },
   taxSummaryGrid: {
     flexDirection: 'row',
@@ -295,7 +346,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#2c3e50',
+    backgroundColor: COLORS.primary,
     padding: 12,
     borderRadius: 6,
     marginBottom: 5,
@@ -692,7 +743,8 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
       <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientFullName={clientFullName} />
         
-        <Text style={styles.pageTitle}>Executive Summary</Text>
+        <View wrap={false} style={{ flex: 1 }}>
+          <Text style={styles.pageTitle}>Executive Summary</Text>
         
         {/* Net Worth Comparison */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 }} wrap={false}>
@@ -763,13 +815,14 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </Text>
         </View>
 
+        </View>
         <ReportFooter reportDate={reportDate} />
       </Page>
 
       {/* PAGE 2: Investment Property & Cash Flow */}
       <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientFullName={clientFullName} />
-        
+        <View wrap={false} style={{ flex: 1 }}>
         {/* Investment Property Potential */}
         <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Investment Property Potential</Text>
@@ -845,14 +898,13 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
             </Text>
           </View>
         </View>
-
         <ReportFooter reportDate={reportDate} />
       </Page>
 
       {/* PAGE 3: Detailed Financial Position */}
       <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientFullName={clientFullName} />
-        
+        <View wrap={false} style={{ flex: 1 }}>
         <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Detailed Financial Position</Text>
           
@@ -890,14 +942,15 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </View>
         </View>
 
+        </View>
         <ReportFooter reportDate={reportDate} />
       </Page>
 
       {/* PAGE 4: Detailed Retirement Projection */}
       <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientFullName={clientFullName} />
-        
-        <Text style={styles.sectionTitle}>Detailed Retirement Projection</Text>
+        <View wrap={false} style={{ flex: 1 }}>
+          <Text style={styles.sectionTitle}>Detailed Retirement Projection</Text>
 
         <View style={styles.metricGrid} wrap={false}>
           <View style={styles.metricBox}>
@@ -948,14 +1001,15 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </Text>
         </View>
 
+        </View>
         <ReportFooter reportDate={reportDate} />
       </Page>
 
       {/* PAGE 5: Tax Optimization Analysis */}
       <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientFullName={clientFullName} />
-        
-        <Text style={styles.sectionTitle}>Tax Optimization Analysis</Text>
+        <View wrap={false} style={{ flex: 1 }}>
+          <Text style={styles.sectionTitle}>Tax Optimization Analysis</Text>
 
         {/* Tax Summary */}
         <View style={styles.taxSummaryGrid} wrap={false}>
@@ -1049,6 +1103,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </View>
         )}
 
+        </View>
         <ReportFooter reportDate={reportDate} />
       </Page>
 
@@ -1056,10 +1111,10 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
       {recommendations.length > 0 && (
         <Page size="A4" style={styles.page}>
           <ReportHeader reportDate={reportDate} clientFullName={clientFullName} />
-          
-          <Text style={styles.sectionTitle}>Recommendations & Action Items</Text>
+          <View wrap={false} style={{ flex: 1 }}>
+            <Text style={styles.sectionTitle}>Recommendations & Action Items</Text>
 
-          {recommendations.map((rec, index) => {
+              {recommendations.map((rec, index) => {
             const expanded = expandRecommendation(rec, index);
             const priorityStyle = expanded.priority === 'HIGH' 
               ? styles.recPriorityHigh 
@@ -1118,6 +1173,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
             );
           })}
 
+            </View>
           <ReportFooter reportDate={reportDate} />
         </Page>
       )}
