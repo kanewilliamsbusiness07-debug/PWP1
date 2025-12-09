@@ -74,6 +74,7 @@ interface FinancialSummary {
 export default function SummaryPage() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [targetRentPerWeek, setTargetRentPerWeek] = useState<number | string>('');
+  const [propertyExpensesPerMonth, setPropertyExpensesPerMonth] = useState<number | string>('');
   const [lastGeneratedPdfId, setLastGeneratedPdfId] = useState<string | null>(null);
   const [isLoadingClient, setIsLoadingClient] = useState(false);
   const summaryContentRef = useRef<HTMLDivElement>(null);
@@ -1737,14 +1738,15 @@ export default function SummaryPage() {
 
             let finalService = baseline;
             const rentPerWeek = typeof targetRentPerWeek === 'string' ? (targetRentPerWeek === '' ? 0 : Number(targetRentPerWeek)) : (targetRentPerWeek || 0);
-            
-            // If user entered a rent amount, use it to override the monthly rental income in the result
-            if (rentPerWeek > 0) {
-              const monthlyRentFromInput = rentPerWeek * 4.33; // 52 weeks/year ÷ 12 months
-              // Override the calculated service with the actual rent entered
+            const expensesPerMonth = typeof propertyExpensesPerMonth === 'string' ? (propertyExpensesPerMonth === '' ? 0 : Number(propertyExpensesPerMonth)) : (propertyExpensesPerMonth || 0);
+
+            // If user entered a rent amount or expenses, override the monthly rental income and expenses in the result
+            if (rentPerWeek > 0 || expensesPerMonth > 0) {
+              const monthlyRentFromInput = rentPerWeek > 0 ? rentPerWeek * 4.33 : baseline.monthlyRentalIncome; // 52 weeks/year ÷ 12 months
               finalService = {
                 ...baseline,
-                monthlyRentalIncome: monthlyRentFromInput
+                monthlyRentalIncome: monthlyRentFromInput,
+                totalMonthlyExpenses: expensesPerMonth > 0 ? expensesPerMonth : baseline.totalMonthlyExpenses
               };
             }
 
@@ -1754,6 +1756,8 @@ export default function SummaryPage() {
                 monthlyIncome={summary.monthlyIncome}
                 targetRentPerWeek={targetRentPerWeek}
                 onRentChange={(value) => setTargetRentPerWeek(value)}
+                propertyExpensesPerMonth={propertyExpensesPerMonth}
+                onPropertyExpensesChange={(value) => setPropertyExpensesPerMonth(value)}
               />
             );
           })()}
@@ -1897,7 +1901,7 @@ export default function SummaryPage() {
         {/* Layout: Recommendations & Actions on left, Financial Snapshot on right */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8 pt-6 border-t">
           {/* Left column: Sidebar - Financial Snapshot, Report Actions, Key Recommendations */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             {/* Financial Snapshot (moved to sidebar top) */}
             <Card>
               <CardHeader>

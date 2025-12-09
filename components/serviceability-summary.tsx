@@ -10,12 +10,18 @@ interface ServiceabilitySummaryProps {
   monthlyIncome: number;
   targetRentPerWeek?: number | string;
   onRentChange?: (value: number | string) => void;
+  propertyExpensesPerMonth?: number | string;
+  onPropertyExpensesChange?: (value: number | string) => void;
 }
 
-export function ServiceabilitySummary({ serviceability, monthlyIncome, targetRentPerWeek, onRentChange }: ServiceabilitySummaryProps) {
+export function ServiceabilitySummary({ serviceability, monthlyIncome, targetRentPerWeek, onRentChange, propertyExpensesPerMonth, onPropertyExpensesChange }: ServiceabilitySummaryProps) {
   const isViable = serviceability.isViable && serviceability.maxPropertyValue > 0;
-  const netCashFlow = serviceability.monthlyRentalIncome - serviceability.maxMonthlyPayment - serviceability.totalMonthlyExpenses;
+  // Per requested logic: loan payment + expenses - rental income
+  const netLiability = serviceability.maxMonthlyPayment + serviceability.totalMonthlyExpenses - serviceability.monthlyRentalIncome;
+  // Display value should represent rental - (loan + expenses) so positive indicates surplus
+  const displayCashFlow = serviceability.monthlyRentalIncome - (serviceability.maxMonthlyPayment + serviceability.totalMonthlyExpenses);
   const rentPerWeek = typeof targetRentPerWeek === 'string' ? (targetRentPerWeek === '' ? 0 : Number(targetRentPerWeek)) : (targetRentPerWeek || 0);
+  const expensesPerMonth = typeof propertyExpensesPerMonth === 'string' ? (propertyExpensesPerMonth === '' ? 0 : Number(propertyExpensesPerMonth)) : (propertyExpensesPerMonth || 0);
 
   return (
     <Card>
@@ -29,10 +35,10 @@ export function ServiceabilitySummary({ serviceability, monthlyIncome, targetRen
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Rent input section */}
+        {/* Rent & Expenses input section */}
         {onRentChange && (
           <div className="mb-6 pb-4 border-b">
-            <div className="flex items-end gap-3">
+            <div className="flex flex-col sm:flex-row items-end gap-3">
               <div className="flex-1">
                 <label className="block text-sm text-muted-foreground font-medium mb-2">Target Rent (per week)</label>
                 <Input
@@ -46,9 +52,24 @@ export function ServiceabilitySummary({ serviceability, monthlyIncome, targetRen
                   }}
                 />
               </div>
+
+              <div className="w-40">
+                <label className="block text-sm text-muted-foreground font-medium mb-2">Property Expenses (per month)</label>
+                <Input
+                  type="number"
+                  placeholder="200"
+                  className="h-8 text-sm"
+                  value={propertyExpensesPerMonth}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    onPropertyExpensesChange && onPropertyExpensesChange(v === '' ? '' : Number(parseFloat(v)));
+                  }}
+                />
+              </div>
+
               <div className="text-right">
-                <div className="text-xs text-muted-foreground mb-1">Monthly Equivalent</div>
-                <div className="text-sm font-semibold">${rentPerWeek ? (rentPerWeek * 4).toLocaleString() : '—'}</div>
+                <div className="text-xs text-muted-foreground mb-1">Monthly Rent Equivalent</div>
+                <div className="text-sm font-semibold">${rentPerWeek ? (rentPerWeek * 4.33).toLocaleString(undefined, {maximumFractionDigits:2}) : '—'}</div>
               </div>
             </div>
           </div>
@@ -134,9 +155,9 @@ export function ServiceabilitySummary({ serviceability, monthlyIncome, targetRen
                   <span className="font-medium text-foreground">{formatCurrency(serviceability.monthlyRentalIncome)}</span>
                 </div>
                 <div className="flex justify-between text-sm font-semibold border-t border-border pt-2">
-                  <span className={netCashFlow >= 0 ? "text-green-600" : "text-red-600"}>Net Cash Flow</span>
-                  <span className={netCashFlow >= 0 ? "text-green-600" : "text-red-600"}>
-                    {formatCurrency(netCashFlow)}
+                  <span className={displayCashFlow >= 0 ? "text-green-600" : "text-red-600"}>Net Cash Flow</span>
+                  <span className={displayCashFlow >= 0 ? "text-green-600" : "text-red-600"}>
+                    {formatCurrency(displayCashFlow)}
                   </span>
                 </div>
               </div>
