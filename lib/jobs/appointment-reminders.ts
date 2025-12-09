@@ -6,7 +6,8 @@
 
 import prisma from '@/lib/prisma';
 import { sendEmail } from '@/lib/email/email-service';
-import { format } from 'date-fns';
+import * as formatModule from 'date-fns/format';
+const format: (date: Date | number, fmt: string) => string = (formatModule as any).default ?? (formatModule as any);
 
 /**
  * Send appointment reminders for upcoming appointments
