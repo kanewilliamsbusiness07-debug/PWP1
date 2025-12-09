@@ -898,6 +898,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
             </Text>
           </View>
         </View>
+        </View>
         <ReportFooter reportDate={reportDate} />
       </Page>
 
