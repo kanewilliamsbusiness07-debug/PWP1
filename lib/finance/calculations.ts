@@ -403,10 +403,14 @@ export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
   }, DEFAULT_TAX_RULES);
 
   const annualTax = taxResult.totalTax;
-  const monthlyTax = annualTax / 12;
+  // HECS/HELP repayment is reported separately on the tax result but is
+  // also included in `totalTax`. To avoid double-counting we split the
+  // HECS component out and compute the monthly income tax excluding HECS.
+  const hecsAnnual = Number(taxResult.hecsRepayment || 0);
+  const incomeTaxExcludingHecsAnnual = Math.max(0, annualTax - hecsAnnual);
+  const monthlyTax = incomeTaxExcludingHecsAnnual / 12;
 
-  // HECS repayment already included in taxResult.hecsRepayment, but expose separately for clarity
-  const monthlyHECS = (taxResult.hecsRepayment || 0) / 12;
+  const monthlyHECS = hecsAnnual / 12;
 
   // Property expenses only for investment properties (annual -> monthly)
   let monthlyPropertyExpenses = 0;
