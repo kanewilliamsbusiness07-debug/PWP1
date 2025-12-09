@@ -561,12 +561,9 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
   // PAGE 1: EXECUTIVE SUMMARY
   // ========================================================================
 
-  // Debug: conditional rendering will log per-page when active
-  const renderOnly = process.env.RENDER_ONLY ? Number(process.env.RENDER_ONLY) : null;
   return (
     <Document>
-      {(!renderOnly || renderOnly === 1) && (
-        <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
         <View style={{ flex: 1 }}>
@@ -631,7 +628,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           <View style={styles.metricGrid}>
             <View style={styles.metricBox}>
               <Text style={styles.metricLabel}>Assets</Text>
-              <Text style={[styles.metricValue, { color: COLORS.success }]}>
+              <Text style={[styles.metricValue, { color: COLORS.success }]}> 
                 {formatCurrency(totalAssets)}
               </Text>
             </View>
@@ -676,11 +673,9 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
 
           <ReportFooter reportDate={reportDate} />
         </Page>
-      )}
 
       {/* Dedicated Charts Page (moved Pie chart here from Page 1) */}
-      {(!renderOnly || renderOnly === 2) && (console.log('PDFReport: Rendering Page 2 - Cash Flow & Composition'), (
-        <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
         <View style={{ flex: 1 }} wrap={false}>
           <Text style={styles.pageTitle}>Cash Flow & Composition</Text>
@@ -704,14 +699,12 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
         </View>
           <ReportFooter reportDate={reportDate} />
         </Page>
-      )}
 
       {/* ====================================================================== */}
       {/* PAGE 2: INVESTMENT PROPERTY & CASH FLOW */}
       {/* ====================================================================== */}
 
-      {(!renderOnly || renderOnly === 3) && (console.log('PDFReport: Rendering Page 3 - Investment Property'), (
-        <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
         <View style={{ flex: 1 }} wrap={false}>
@@ -779,14 +772,12 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
 
           <ReportFooter reportDate={reportDate} />
         </Page>
-      )}
 
       {/* ====================================================================== */}
       {/* PAGE 3: DETAILED FINANCIAL POSITION */}
       {/* ====================================================================== */}
 
-      {(!renderOnly || renderOnly === 4) && (console.log('PDFReport: Rendering Page 4 - Financial Position'), (
-        <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
         <View style={{ flex: 1 }} wrap={false}>
@@ -801,7 +792,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           </View>
 
           {/* Asset and Liability Summary */}
-          <View style={[styles.highlightBox, { marginVertical: 20 }]}>
+          <View style={[styles.highlightBox, { marginVertical: 20 }]}> 
             <Text style={styles.highlightTitle}>Asset and Liability Summary</Text>
 
             <View style={{ marginBottom: 12 }}>
@@ -860,7 +851,6 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
 
           <ReportFooter reportDate={reportDate} />
         </Page>
-      )}
 
       {/* ====================================================================== */}
       {/* PAGE 4: RETIREMENT PROJECTION */}
@@ -919,14 +909,12 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
 
           <ReportFooter reportDate={reportDate} />
         </Page>
-      )}
 
       {/* ====================================================================== */}
       {/* PAGE 5: TAX OPTIMIZATION */}
       {/* ====================================================================== */}
 
-      {(!renderOnly || renderOnly === 6) && (console.log('PDFReport: Rendering Page 6 - Tax Optimization'), (
-        <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
         <View style={{ flex: 1 }} wrap={false}>
@@ -1000,7 +988,6 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
 
           <ReportFooter reportDate={reportDate} />
         </Page>
-      )}
 
       {/* ====================================================================== */}
       {/* PAGE 6: RECOMMENDATIONS (if there are any) */}
