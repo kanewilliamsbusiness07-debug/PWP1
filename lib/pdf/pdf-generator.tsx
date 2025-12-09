@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer';
 import { LineChart } from './charts/LineChart';
 import { PieChart } from './charts/PieChart';
 import { StackedBarChart } from './charts/StackedBarChart';
@@ -52,6 +52,36 @@ const SPACING = {
   cardPadding: 16,
   chartPadding: 20,
 };
+
+// Register fonts if available (best-effort). Place TTF files in `public/fonts/`.
+// Use runtime checks so this file can be imported on the client without pulling in Node-only modules.
+if (typeof window === 'undefined') {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const base = path.resolve(process.cwd(), 'public', 'fonts');
+    const reg = path.join(base, 'Inter-Regular.ttf');
+    const bold = path.join(base, 'Inter-Bold.ttf');
+    if (fs.existsSync(reg)) {
+      Font.register({ family: 'Inter', fonts: [ { src: reg, fontWeight: 'normal' } as any, (fs.existsSync(bold) ? { src: bold, fontWeight: 'bold' } as any : null) ].filter(Boolean) });
+      // Alias Helvetica to Inter for consistent metrics
+      Font.register({ family: 'Helvetica', src: reg } as any);
+    }
+  } catch (e) {
+    // Non-fatal - server may not have fonts
+    // eslint-disable-next-line no-console
+    console.warn('Server font registration skipped or failed:', e && e.message ? e.message : e);
+  }
+} else {
+  // Client-side: register publicly served fonts if present
+  try {
+    // This will be resolved by @react-pdf when rendering in browser
+    Font.register({ family: 'Inter', fonts: [ { src: '/fonts/Inter-Regular.ttf', fontWeight: 'normal' } as any, { src: '/fonts/Inter-Bold.ttf', fontWeight: 'bold' } as any ] });
+    Font.register({ family: 'Helvetica', src: '/fonts/Inter-Regular.ttf' } as any);
+  } catch (e) {
+    // ignore
+  }
+}
 
 const CHART_CONFIG = {
   minHeight: 250,
@@ -521,7 +551,7 @@ const ReportFooter = ({ reportDate }: { reportDate: string }) => (
 // MAIN PDF REPORT
 // ============================================================================
 
-export function PDFReport({ summary, clientData }: PDFReportProps) {
+export function PDFReport({ summary, clientData, chartImages = [] }: PDFReportProps) {
   // Sanitize all inputs
   const safeSummary: PDFSummary = summary || {};
   const safeClient: PDFClientData = clientData || {};
@@ -556,6 +586,16 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
 
   const reportDate = format(new Date(), 'MMMM dd, yyyy');
   const clientFullName = `${safeString(safeClient.firstName)} ${safeString(safeClient.lastName)}`.trim() || clientName;
+
+  // Helper to get pre-rendered chart image by type
+  const getChartImage = (typeCandidates: string[] = []) => {
+    if (!Array.isArray(chartImages)) return null;
+    for (const t of typeCandidates) {
+      const found = chartImages.find(ci => (ci && ci.type && String(ci.type).toLowerCase() === String(t).toLowerCase()));
+      if (found && found.dataUrl) return found.dataUrl;
+    }
+    return null;
+  };
 
   // ========================================================================
   // PAGE 1: EXECUTIVE SUMMARY
@@ -654,12 +694,17 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
 
           {/* Charts: Net Worth Trend + Cash Flow Donut */}
           <View style={styles.chartContainer} wrap={false}>
-            <LineChart data={[netWorth, projectedRetirementNetWorth]} width={400} height={140} color={COLORS.primary} />
+            {/* Prefer pre-rendered chart images (SVG/PNG) when provided, otherwise render inline vector chart */}
+            {getChartImage(['financialPosition', 'networth', 'retirement']) ? (
+              <Image src={getChartImage(['financialPosition', 'networth', 'retirement']) as string} style={styles.chartLarge} />
+            ) : (
+              <LineChart data={[netWorth, projectedRetirementNetWorth]} width={400} height={140} color={COLORS.primary} />
+            )}
           </View>
           {/* Pie chart moved to Page 2 to balance page content and avoid overflow */}
 
           {/* Summary Box */}
-          <View style={isRetirementDeficit ? styles.warningBox : styles.highlightBox}>
+          <View style={isRetirementDeficit ? styles.warningBox : styles.highlightBox} wrap={false}>
             <Text style={styles.highlightTitle}>
               {isRetirementDeficit ? 'Action Required' : 'On Track for Retirement'}
             </Text>
@@ -680,16 +725,20 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
         <View style={{ flex: 1 }} wrap={false}>
           <Text style={styles.pageTitle}>Cash Flow & Composition</Text>
           <View style={styles.chartContainer} wrap={false}>
-            <PieChart
-              data={[
-                { label: 'Employment', value: monthlyIncome, color: COLORS.info },
-                { label: 'Expenses', value: monthlyExpenses, color: COLORS.danger },
-                { label: 'Surplus', value: monthlyCashFlow, color: COLORS.success },
-              ]}
-              width={280}
-              height={160}
-              innerRadius={60}
-            />
+            {getChartImage(['income', 'cashflow', 'detailedCashFlow']) ? (
+              <Image src={getChartImage(['income', 'cashflow', 'detailedCashFlow']) as string} style={{ width: 280, height: 160 }} />
+            ) : (
+              <PieChart
+                data={[
+                  { label: 'Employment', value: monthlyIncome, color: COLORS.info },
+                  { label: 'Expenses', value: monthlyExpenses, color: COLORS.danger },
+                  { label: 'Surplus', value: monthlyCashFlow, color: COLORS.success },
+                ]}
+                width={280}
+                height={160}
+                innerRadius={60}
+              />
+            )}
           </View>
 
           <View style={{ marginTop: 8 }} wrap={false}>
@@ -711,7 +760,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           <Text style={styles.pageTitle}>Investment Property Potential</Text>
 
           {/* Service Capacity */}
-          <View style={isViable ? styles.highlightBox : styles.warningBox}>
+          <View style={isViable ? styles.highlightBox : styles.warningBox} wrap={false}>
             <Text style={styles.highlightTitle}>
               {isViable ? 'Investment Capacity Available' : 'Limited Investment Potential'}
             </Text>
@@ -742,6 +791,23 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
             <View style={{ marginTop: 8 }} wrap={false}>
               <GaugeChart value={isViable ? Math.min(1, surplusIncome / Math.max(1, monthlyIncome || 1)) : 0} width={260} height={100} color={isViable ? COLORS.success : COLORS.warning} />
             </View>
+            {/* Property cards (if provided) - prevent page breaks within individual cards */}
+            {Array.isArray(safeSummary.properties) && safeSummary.properties.length > 0 && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.subsectionTitle}>Property Portfolio</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                  {safeSummary.properties.map((prop: any, idx: number) => (
+                    <View key={idx} style={styles.propertyBox} wrap={false}>
+                      <Text style={styles.propertyLabel}>{safeString(prop.address || prop.name || `Property ${idx + 1}`)}</Text>
+                      <Text style={styles.propertyValue}>{formatCurrency(safeNumber(prop.currentValue || prop.value || 0))}</Text>
+                      <Text style={styles.bodyText}>Equity: {formatCurrency(safeNumber((prop.currentValue || prop.value || 0) - (prop.loanAmount || prop.loan || 0)))}</Text>
+                      <Text style={styles.bodyText}>Rent: {formatCurrency(safeNumber((prop.weeklyRent || prop.weekly || 0) * 4))} / month</Text>
+                      <Text style={styles.captionText}>Expenses: {formatCurrency(safeNumber(prop.annualExpenses || prop.expenses || 0))}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
             {/* StackedBarChart moved to Page 3 to balance content */}
           </View>
 
@@ -757,7 +823,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
             </View>
 
             {/* Analysis */}
-            <View style={monthlyCashFlow >= 0 ? styles.highlightBox : styles.warningBox}>
+            <View style={monthlyCashFlow >= 0 ? styles.highlightBox : styles.warningBox} wrap={false}>
               <Text style={styles.highlightTitle}>
                 {monthlyCashFlow >= 0 ? 'Positive Cash Flow' : 'Negative Cash Flow'}
               </Text>
@@ -792,7 +858,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           </View>
 
           {/* Asset and Liability Summary */}
-          <View style={[styles.highlightBox, { marginVertical: 20 }]}> 
+          <View style={[styles.highlightBox, { marginVertical: 20 }]} wrap={false}> 
             <Text style={styles.highlightTitle}>Asset and Liability Summary</Text>
 
             <View style={{ marginBottom: 12 }}>
@@ -823,7 +889,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           </View>
 
           {/* Financial Ratios */}
-          <View style={[styles.highlightBox, { marginVertical: 20 }]}>
+          <View style={[styles.highlightBox, { marginVertical: 20 }]} wrap={false}>
             <Text style={styles.highlightTitle}>Financial Ratios & Analysis</Text>
 
             <View style={{ marginBottom: 12 }}>
@@ -894,7 +960,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           </View>
 
           {/* Summary */}
-          <View style={isRetirementDeficit ? styles.warningBox : styles.highlightBox}>
+          <View style={isRetirementDeficit ? styles.warningBox : styles.highlightBox} wrap={false}>
             <Text style={styles.highlightTitle}>
               {isRetirementDeficit ? 'Retirement Planning Alert' : 'Retirement on Track'}
             </Text>
