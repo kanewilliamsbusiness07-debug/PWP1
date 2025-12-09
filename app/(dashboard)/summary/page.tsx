@@ -1708,83 +1708,31 @@ export default function SummaryPage() {
                 </div>
               </div>
 
-              {/* Cash Flow Calculation */}
+              {/* Monthly Cash Flow (concise) */}
               <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">2. Monthly Cash Flow Calculation</h4>
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
-                  <p className="font-medium">Formula: Monthly Cash Flow = Monthly Income - Monthly Expenses</p>
-                  <div className="space-y-1 pl-4">
-                    <p><strong>Annual Income Breakdown:</strong></p>
-                    <p>• Employment Income: ${((financialStore.grossIncome || financialStore.employmentIncome || activeClient?.annualIncome || activeClient?.grossSalary || 0)).toLocaleString()}</p>
-                    <p>• Rental Income: ${((financialStore.rentalIncome || activeClient?.rentalIncome || 0)).toLocaleString()}</p>
-                    <p>• Investment Income: ${((financialStore.investmentIncome || activeClient?.dividends || 0)).toLocaleString()}</p>
-                    <p>• Other Income: ${((financialStore.otherIncome || activeClient?.otherIncome || 0)).toLocaleString()}</p>
-                    <p className="pt-2"><strong>Total Annual Income = ${((financialStore.grossIncome || financialStore.employmentIncome || activeClient?.annualIncome || activeClient?.grossSalary || 0) + (financialStore.rentalIncome || activeClient?.rentalIncome || 0) + (financialStore.investmentIncome || activeClient?.dividends || 0) + (financialStore.otherIncome || activeClient?.otherIncome || 0)).toLocaleString()}</strong></p>
-                    <p><strong>Monthly Income = ${((financialStore.grossIncome || financialStore.employmentIncome || activeClient?.annualIncome || activeClient?.grossSalary || 0) + (financialStore.rentalIncome || activeClient?.rentalIncome || 0) + (financialStore.investmentIncome || activeClient?.dividends || 0) + (financialStore.otherIncome || activeClient?.otherIncome || 0)).toLocaleString()} ÷ 12 = ${summary.monthlyIncome.toLocaleString()}</strong></p>
-                  </div>
-                  <div className="space-y-1 pl-4 pt-2">
-                    <p><strong>Annual Expenses Breakdown:</strong></p>
-                    <p>• Work-Related Expenses: ${((financialStore.workRelatedExpenses || activeClient?.workRelatedExpenses || 0)).toLocaleString()}</p>
-                    <p>• Investment Expenses: ${((financialStore.investmentExpenses || activeClient?.investmentExpenses || 0)).toLocaleString()}</p>
-                    <p>• Rental Expenses: ${((financialStore.rentalExpenses || activeClient?.rentalExpenses || 0)).toLocaleString()}</p>
-                    <p>• Vehicle Expenses: ${((activeClient?.vehicleExpenses || 0)).toLocaleString()}</p>
-                    <p>• Home Office Expenses: ${((activeClient?.homeOfficeExpenses || 0)).toLocaleString()}</p>
-                    <p className="pt-2"><strong>Total Annual Expenses = ${((financialStore.workRelatedExpenses || activeClient?.workRelatedExpenses || 0) + (financialStore.investmentExpenses || activeClient?.investmentExpenses || 0) + (financialStore.rentalExpenses || activeClient?.rentalExpenses || 0) + (activeClient?.vehicleExpenses || 0) + (activeClient?.homeOfficeExpenses || 0)).toLocaleString()}</strong></p>
-                    <p><strong>Monthly Expenses = ${((financialStore.workRelatedExpenses || activeClient?.workRelatedExpenses || 0) + (financialStore.investmentExpenses || activeClient?.investmentExpenses || 0) + (financialStore.rentalExpenses || activeClient?.rentalExpenses || 0) + (activeClient?.vehicleExpenses || 0) + (activeClient?.homeOfficeExpenses || 0)).toLocaleString()} ÷ 12 = ${summary.monthlyExpenses.toLocaleString()}</strong></p>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <p><strong>Monthly Cash Flow = ${summary.monthlyIncome.toLocaleString()} - ${summary.monthlyExpenses.toLocaleString()} = ${summary.monthlyCashFlow.toLocaleString()}</strong></p>
-                    <p className="pt-1">Savings Rate = (${summary.monthlyCashFlow.toLocaleString()} ÷ ${summary.monthlyIncome.toLocaleString()}) × 100 = {summary.monthlyIncome > 0 ? ((summary.monthlyCashFlow / summary.monthlyIncome) * 100).toFixed(2) : 0}%</p>
-                  </div>
+                <h4 className="font-semibold text-foreground">2. Monthly Cash Flow</h4>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="font-medium">Monthly Cash Flow: <strong>${summary.monthlyCashFlow.toLocaleString()}</strong></p>
+                  <p className="text-sm text-muted-foreground">Savings Rate: {summary.monthlyIncome > 0 ? ((summary.monthlyCashFlow / summary.monthlyIncome) * 100).toFixed(1) : '0'}%</p>
                 </div>
               </div>
 
-              {/* Retirement Projection Calculation */}
+              {/* Retirement Projection (concise) */}
               <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">3. Retirement Projection Calculation</h4>
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
-                  <p className="font-medium">Formula: FV = PV × (1 + r)^t</p>
-                  <p className="text-xs text-muted-foreground">Where: FV = Future Value, PV = Present Value, r = growth rate, t = years</p>
-                  <div className="space-y-1 pl-4">
-                    <p><strong>Current Age:</strong> {activeClient?.currentAge || 35} years</p>
-                    <p><strong>Retirement Age:</strong> {activeClient?.retirementAge || 65} years</p>
-                    <p><strong>Years to Retirement:</strong> {summary.yearsToRetirement} years</p>
-                    <p className="pt-2"><strong>Current Superannuation Balance:</strong> ${((activeClient?.superFundValue || activeClient?.currentSuper || financialStore.superBalance || 0)).toLocaleString()}</p>
-                    <p><strong>Assumed Growth Rate:</strong> 7% per annum (compounded annually)</p>
-                    <p className="pt-2"><strong>Projected Retirement Lump Sum Calculation:</strong></p>
-                    <p>Projected Super = ${((activeClient?.superFundValue || activeClient?.currentSuper || financialStore.superBalance || 0)).toLocaleString()} × (1 + 0.07)^{summary.yearsToRetirement}</p>
-                    <p>Projected Super = ${((activeClient?.superFundValue || activeClient?.currentSuper || financialStore.superBalance || 0)).toLocaleString()} × {Math.pow(1.07, summary.yearsToRetirement).toFixed(4)}</p>
-                    <p className="pt-1"><strong>Projected Retirement Lump Sum = ${summary.projectedRetirementLumpSum.toLocaleString()}</strong></p>
-                    <p className="pt-2"><strong>Retirement Income Requirement:</strong></p>
-                    <p>Required Income = 70% of Current Monthly Income = 0.70 × ${summary.monthlyIncome.toLocaleString()} = ${(summary.monthlyIncome * 0.7).toLocaleString()}/month</p>
-                    <p>Required Annual Income = ${(summary.monthlyIncome * 0.7 * 12).toLocaleString()}</p>
-                    <p className="pt-1"><strong>Retirement Deficit/Surplus:</strong></p>
-                    <p>Available Income = ${summary.retirementDeficitSurplus.toLocaleString()}/month</p>
-                    <p className={summary.isRetirementDeficit ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
-                      Status: {summary.isRetirementDeficit ? 'DEFICIT' : 'SURPLUS'}
-                    </p>
-                  </div>
+                <h4 className="font-semibold text-foreground">3. Retirement Projection</h4>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="font-medium">Projected Retirement Balance: <strong>${summary.projectedRetirementLumpSum.toLocaleString()}</strong></p>
+                  <p className="text-sm text-muted-foreground">Years to Retirement: {summary.yearsToRetirement}</p>
+                  <p className={summary.isRetirementDeficit ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>Status: {summary.isRetirementDeficit ? 'DEFICIT' : 'SURPLUS'}</p>
                 </div>
               </div>
 
-              {/* Tax Calculation */}
+              {/* Tax Summary (concise) */}
               <div className="space-y-3">
-                <h4 className="font-semibold text-foreground">4. Tax Calculation</h4>
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
-                  <p className="font-medium">Formula: Taxable Income = Gross Income - Deductions</p>
-                  <div className="space-y-1 pl-4">
-                    <p><strong>Taxable Income Calculation:</strong></p>
-                    <p>Gross Annual Income = ${((financialStore.grossIncome || financialStore.employmentIncome || activeClient?.annualIncome || activeClient?.grossSalary || 0) + (financialStore.rentalIncome || activeClient?.rentalIncome || 0) + (financialStore.investmentIncome || activeClient?.dividends || 0) + (financialStore.otherIncome || activeClient?.otherIncome || 0)).toLocaleString()}</p>
-                    <p>Total Deductions = ${((financialStore.workRelatedExpenses || activeClient?.workRelatedExpenses || 0) + (financialStore.investmentExpenses || activeClient?.investmentExpenses || 0) + (financialStore.rentalExpenses || activeClient?.rentalExpenses || 0) + (activeClient?.vehicleExpenses || 0) + (activeClient?.homeOfficeExpenses || 0)).toLocaleString()}</p>
-                    <p className="pt-1"><strong>Taxable Income = ${((financialStore.grossIncome || financialStore.employmentIncome || activeClient?.annualIncome || activeClient?.grossSalary || 0) + (financialStore.rentalIncome || activeClient?.rentalIncome || 0) + (financialStore.investmentIncome || activeClient?.dividends || 0) + (financialStore.otherIncome || activeClient?.otherIncome || 0) - ((financialStore.workRelatedExpenses || activeClient?.workRelatedExpenses || 0) + (financialStore.investmentExpenses || activeClient?.investmentExpenses || 0) + (financialStore.rentalExpenses || activeClient?.rentalExpenses || 0) + (activeClient?.vehicleExpenses || 0) + (activeClient?.homeOfficeExpenses || 0))).toLocaleString()}</strong></p>
-                    <p className="pt-2"><strong>Current Tax Calculation (Simplified):</strong></p>
-                    <p>Tax Rate Assumption: 30% (marginal rate)</p>
-                    <p>Current Tax = ${((financialStore.grossIncome || financialStore.employmentIncome || activeClient?.annualIncome || activeClient?.grossSalary || 0) + (financialStore.rentalIncome || activeClient?.rentalIncome || 0) + (financialStore.investmentIncome || activeClient?.dividends || 0) + (financialStore.otherIncome || activeClient?.otherIncome || 0) - ((financialStore.workRelatedExpenses || activeClient?.workRelatedExpenses || 0) + (financialStore.investmentExpenses || activeClient?.investmentExpenses || 0) + (financialStore.rentalExpenses || activeClient?.rentalExpenses || 0) + (activeClient?.vehicleExpenses || 0) + (activeClient?.homeOfficeExpenses || 0))).toLocaleString()} × 0.30 = ${summary.currentTax.toLocaleString()}</p>
-                    <p className="pt-2"><strong>Optimized Tax Calculation:</strong></p>
-                    <p>Optimized Tax Rate: 25% (with strategies applied)</p>
-                    <p>Optimized Tax = ${((financialStore.grossIncome || financialStore.employmentIncome || activeClient?.annualIncome || activeClient?.grossSalary || 0) + (financialStore.rentalIncome || activeClient?.rentalIncome || 0) + (financialStore.investmentIncome || activeClient?.dividends || 0) + (financialStore.otherIncome || activeClient?.otherIncome || 0) - ((financialStore.workRelatedExpenses || activeClient?.workRelatedExpenses || 0) + (financialStore.investmentExpenses || activeClient?.investmentExpenses || 0) + (financialStore.rentalExpenses || activeClient?.rentalExpenses || 0) + (activeClient?.vehicleExpenses || 0) + (activeClient?.homeOfficeExpenses || 0))).toLocaleString()} × 0.25 = ${summary.optimizedTax.toLocaleString()}</p>
-                    <p className="pt-2 border-t"><strong>Potential Tax Savings = ${summary.currentTax.toLocaleString()} - ${summary.optimizedTax.toLocaleString()} = ${summary.taxSavings.toLocaleString()}</strong></p>
-                  </div>
+                <h4 className="font-semibold text-foreground">4. Tax Summary</h4>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="font-medium">Current Tax (estimated): <strong>${summary.currentTax.toLocaleString()}</strong></p>
+                  <p className="text-sm text-muted-foreground">Potential Tax Savings: <strong>${summary.taxSavings.toLocaleString()}</strong></p>
                 </div>
               </div>
 
