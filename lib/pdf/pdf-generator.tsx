@@ -59,9 +59,8 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   section: {
-    marginBottom: 25,
-    minHeight: 0,
-    paddingBottom: 10,
+    marginBottom: 20,
+    paddingBottom: 8,
   },
   sectionTitle: {
     fontSize: 18,
@@ -106,8 +105,8 @@ const styles = StyleSheet.create({
   },
   chart: {
     width: 515, // Fit within A4 page width (595 - 40*2 padding = 515)
-    maxHeight: 650, // Prevent charts from being too tall
-    marginBottom: 15,
+    maxHeight: 400, // Reduced to prevent page overflow
+    marginBottom: 10,
     alignSelf: 'center',
     maxWidth: 515,
   },
@@ -227,6 +226,7 @@ interface PDFSummary {
   totalPropertyDebt?: number;
   propertyEquity?: number;
   recommendations?: string[];
+  taxStrategies?: Array<{ strategy: string; savings: number }>;
   // Retirement projections
   projectedRetirementNetWorth?: number;
   projectedRetirementMonthlyCashFlow?: number;
@@ -352,6 +352,12 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
   const totalPropertyDebt = safeNumber(safeSummary.totalPropertyDebt, 0);
   const propertyEquity = safeNumber(safeSummary.propertyEquity, 0);
   const recommendations = safeArray(safeSummary.recommendations, []);
+  const taxStrategies = Array.isArray(safeSummary.taxStrategies) 
+    ? safeSummary.taxStrategies.map((s: any) => ({
+        strategy: safeString(s?.strategy || ''),
+        savings: safeNumber(s?.savings, 0)
+      }))
+    : [];
 
   // Get chart images by type
   const getChartByType = (type: string): string | null => {
@@ -387,7 +393,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
 
   return (
     <Document>
-      <Page size="A4" style={styles.page} wrap break>
+      <Page size="A4" style={styles.page} wrap>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
@@ -443,12 +449,12 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
           </View>
 
           {/* Retirement Surplus */}
-          <View style={{ marginBottom: 15, padding: 12, backgroundColor: projectedRetirementSurplus >= 0 ? '#e8f5e9' : '#ffebee', borderRadius: 5 }}>
-            <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Projected Retirement Surplus</Text>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: projectedRetirementSurplus >= 0 ? '#27ae60' : '#e74c3c' }}>
+          <View style={{ marginBottom: 15, padding: 15, backgroundColor: projectedRetirementSurplus >= 0 ? '#e8f5e9' : '#ffebee', borderRadius: 5 }}>
+            <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 8 }}>Projected Retirement Surplus</Text>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: projectedRetirementSurplus >= 0 ? '#27ae60' : '#e74c3c', marginBottom: 10 }}>
               {formatCurrency(projectedRetirementSurplus)}
             </Text>
-            <Text style={{ fontSize: 9, color: '#7f8c8d', marginTop: 4 }}>
+            <Text style={{ fontSize: 9, color: '#7f8c8d', lineHeight: 1.4 }}>
               {projectedRetirementSurplus >= 0 
                 ? 'You are on track for a comfortable retirement'
                 : 'Action required to meet retirement goals'}
@@ -468,7 +474,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
         </View>
 
         {/* Income Analysis */}
-        <View style={styles.section}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Income Analysis</Text>
           {incomeChart && (
             <View style={styles.chartContainer}>
@@ -479,7 +485,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
               />
             </View>
           )}
-          <View style={styles.explanation}>
+          <View style={styles.explanation} wrap={false}>
             <Text style={styles.explanationTitle}>Understanding Your Income</Text>
             <Text style={styles.explanationText}>
               Your total annual income is {formatCurrency(monthlyIncome * 12)}, 
@@ -492,7 +498,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
         </View>
 
         {/* Expense Breakdown */}
-        <View style={styles.section}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Expense Breakdown</Text>
           {expenseChart && (
             <View style={styles.chartContainer}>
@@ -503,7 +509,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
               />
             </View>
           )}
-          <View style={styles.explanation}>
+          <View style={styles.explanation} wrap={false}>
             <Text style={styles.explanationTitle}>Understanding Your Expenses</Text>
             <Text style={styles.explanationText}>
               Your monthly expenses total {formatCurrency(monthlyExpenses)}, 
@@ -523,7 +529,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
             <View style={styles.chartContainer}>
               <Image 
                 src={financialPositionChart} 
-                style={[styles.chart, { width: 520, height: 433 }]}
+                style={[styles.chart, { maxHeight: 420 }]}
                 cache={false}
               />
             </View>
@@ -536,7 +542,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
               />
             </View>
           ) : null}
-          <View style={styles.explanation}>
+          <View style={styles.explanation} wrap={false}>
             <Text style={styles.explanationTitle}>Understanding Your Financial Position</Text>
             <Text style={styles.explanationText}>
               Your total assets of {formatCurrency(totalAssets)} are offset by 
@@ -600,7 +606,7 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
             <View style={styles.chartContainer}>
               <Image 
                 src={detailedCashFlowChart} 
-                style={[styles.chart, { maxHeight: 500 }]}
+                style={[styles.chart, { maxHeight: 400 }]}
                 cache={false}
               />
             </View>
@@ -646,27 +652,27 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
               />
             </View>
           ) : null}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 15 }}>
-            <View style={{ alignItems: 'center', flex: 1 }}>
-              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Years to Retirement</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 15, paddingHorizontal: 10 }}>
+            <View style={{ alignItems: 'center', flex: 1, paddingHorizontal: 5 }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 6 }}>Years to Retirement</Text>
               <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2196f3' }}>
                 {yearsToRetirement}
               </Text>
             </View>
-            <View style={{ alignItems: 'center', flex: 1 }}>
-              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Projected Lump Sum</Text>
-              <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#4caf50' }}>
+            <View style={{ alignItems: 'center', flex: 1, paddingHorizontal: 5 }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 6 }}>Projected Lump Sum</Text>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#4caf50' }}>
                 {formatCurrency(projectedRetirementLumpSum)}
               </Text>
             </View>
-            <View style={{ alignItems: 'center', flex: 1 }}>
-              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Monthly Surplus</Text>
-              <Text style={{ fontSize: 16, fontWeight: 'bold', color: projectedRetirementSurplus >= 0 ? '#4caf50' : '#e74c3c' }}>
+            <View style={{ alignItems: 'center', flex: 1, paddingHorizontal: 5 }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 6 }}>Monthly Surplus</Text>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: projectedRetirementSurplus >= 0 ? '#4caf50' : '#e74c3c' }}>
                 {formatCurrency(projectedRetirementSurplus)}
               </Text>
             </View>
           </View>
-          <View style={isRetirementDeficit ? styles.warningBox : styles.highlightBox}>
+          <View style={[isRetirementDeficit ? styles.warningBox : styles.highlightBox, { marginTop: 15 }]} wrap={false}>
             <Text style={styles.explanationTitle}>
               {isRetirementDeficit ? 'Retirement Planning Alert' : 'Retirement On Track'}
             </Text>
@@ -686,35 +692,125 @@ export function PDFReport({ summary, chartImages, clientData }: PDFReportProps) 
             <View style={styles.chartContainer}>
               <Image 
                 src={taxOptimizationChart} 
-                style={[styles.chart, { maxHeight: 450 }]}
+                style={[styles.chart, { maxHeight: 350 }]}
                 cache={false}
               />
             </View>
           ) : null}
-          <View style={taxSavings > 0 ? styles.highlightBox : styles.recommendationBox}>
-            <Text style={styles.explanationTitle}>
-              {taxSavings > 0 ? 'Tax Optimization Opportunity' : 'Tax Assessment'}
-            </Text>
-            <Text style={styles.explanationText}>
-              {taxSavings > 0
-                ? `Current annual tax: ${formatCurrency(currentTax)} | Optimized annual tax: ${formatCurrency(optimizedTax)} | Potential annual savings: ${formatCurrency(taxSavings)}`
-                : `Your current annual tax is ${formatCurrency(currentTax)}. Consider exploring tax optimization strategies such as additional deductions, negative gearing opportunities, or superannuation contributions.`
-              }
-            </Text>
+          
+          {/* Tax Comparison */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, padding: 12, backgroundColor: '#f8f9fa', borderRadius: 5 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Current Annual Tax</Text>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#e74c3c' }}>
+                {formatCurrency(currentTax)}
+              </Text>
+            </View>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Optimized Annual Tax</Text>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#27ae60' }}>
+                {formatCurrency(optimizedTax)}
+              </Text>
+            </View>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <Text style={{ fontSize: 10, color: '#7f8c8d', marginBottom: 4 }}>Potential Savings</Text>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#ff9800' }}>
+                {formatCurrency(taxSavings)}
+              </Text>
+            </View>
           </View>
+
+          {/* Detailed Tax Strategies */}
+          {taxStrategies.length > 0 && (
+            <View style={{ marginTop: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#2c3e50', marginBottom: 10 }}>
+                Recommended Tax Optimization Strategies:
+              </Text>
+              {taxStrategies.map((strategy, index) => (
+                <View key={index} style={{ 
+                  flexDirection: 'row', 
+                  justifyContent: 'space-between', 
+                  padding: 10, 
+                  backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8f9fa',
+                  marginBottom: 5,
+                  borderRadius: 4,
+                  borderLeftWidth: 3,
+                  borderLeftColor: '#3498db'
+                }}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={{ fontSize: 10, color: '#2c3e50', lineHeight: 1.4 }}>
+                      {index + 1}. {strategy.strategy}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', minWidth: 100 }}>
+                    <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#27ae60' }}>
+                      {formatCurrency(strategy.savings)}/yr
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+          
+          {taxSavings > 0 && (
+            <View style={styles.highlightBox}>
+              <Text style={styles.explanationTitle}>Total Potential Tax Savings</Text>
+              <Text style={styles.explanationText}>
+                By implementing the recommended strategies above, you could potentially save {formatCurrency(taxSavings)} annually in tax. 
+                This represents a {currentTax > 0 ? ((taxSavings / currentTax) * 100).toFixed(1) : 0}% reduction in your annual tax liability.
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Recommendations & Action Items */}
         {recommendations.length > 0 && (
-          <View style={styles.section}>
+          <View style={styles.section} wrap={false}>
             <Text style={styles.sectionTitle}>Recommendations & Action Items</Text>
             {recommendations.map((rec, index) => (
-              <View key={index} style={styles.recommendationBox}>
-                <Text style={styles.explanationText}>
-                  {index + 1}. {rec}
+              <View key={index} style={[styles.recommendationBox, { marginBottom: 12, padding: 14 }]} wrap={false}>
+                <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+                  <View style={{ 
+                    width: 24, 
+                    height: 24, 
+                    borderRadius: 12, 
+                    backgroundColor: '#2196f3', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    marginRight: 10
+                  }}>
+                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#ffffff' }}>
+                      {index + 1}
+                    </Text>
+                  </View>
+                  <Text style={{ 
+                    fontSize: 11, 
+                    fontWeight: 'bold', 
+                    color: '#2c3e50',
+                    flex: 1,
+                    paddingTop: 4
+                  }}>
+                    Action Item {index + 1}
+                  </Text>
+                </View>
+                <Text style={{ 
+                  fontSize: 10, 
+                  color: '#555', 
+                  lineHeight: 1.6,
+                  paddingLeft: 34
+                }}>
+                  {rec}
                 </Text>
               </View>
             ))}
+            <View style={[styles.highlightBox, { marginTop: 15 }]}>
+              <Text style={styles.explanationTitle}>Next Steps</Text>
+              <Text style={styles.explanationText}>
+                Review these recommendations with your financial advisor to develop a customized action plan. 
+                Prioritize strategies that align with your financial goals and risk tolerance. 
+                Regular reviews every 6-12 months will help ensure you stay on track.
+              </Text>
+            </View>
           </View>
         )}
 
