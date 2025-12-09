@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 
 async function run() {
-  const sampleSummary = {
+  const SAMPLE_PDF_SUMMARY_01 = {
     clientName: 'Jane Doe',
     totalAssets: 1200000,
     totalLiabilities: 400000,
@@ -24,7 +24,7 @@ async function run() {
     recommendations: ['Increase super contributions', 'Reduce discretionary spending', 'Consider low-cost index funds']
   };
 
-  const doc = <PDFReport summary={sampleSummary} clientData={{ firstName: 'Jane', lastName: 'Doe' }} />;
+  const doc = <PDFReport summary={SAMPLE_PDF_SUMMARY_01} clientData={{ firstName: 'Jane', lastName: 'Doe' }} />;
   const asPdf = pdf(doc);
   const outPath = path.join(__dirname, '..', 'tmp', `sample-report.pdf`);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
