@@ -10,7 +10,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { FileText, Download, Mail, Printer, Share2, TrendingUp, TrendingDown, DollarSign, Calculator, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle } from 'lucide-react';
+import { FileText, Download, Printer, Share2, TrendingUp, TrendingDown, DollarSign, Calculator, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle } from 'lucide-react';
 import React from 'react';
 import { pdf } from '@react-pdf/renderer';
 import {
@@ -39,14 +39,6 @@ import { ServiceabilitySummary } from '@/components/serviceability-summary';
 import { calculateInvestmentSurplus, calculatePropertyServiceability } from '@/lib/finance/serviceability';
 import { formatCurrency } from '@/lib/utils/format';
 
-const emailSchema = z.object({
-  recipientEmail: z.string().email('Valid email is required'),
-  subject: z.string().min(1, 'Subject is required'),
-  message: z.string().optional()
-});
-
-type EmailData = z.infer<typeof emailSchema>;
-
 interface FinancialSummary {
   clientName: string;
   totalAssets: number;
@@ -71,7 +63,6 @@ interface FinancialSummary {
 
 export default function SummaryPage() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [lastGeneratedPdfId, setLastGeneratedPdfId] = useState<string | null>(null);
   const [isLoadingClient, setIsLoadingClient] = useState(false);
   const summaryContentRef = useRef<HTMLDivElement>(null);
@@ -79,26 +70,10 @@ export default function SummaryPage() {
   const { user } = useAuth();
   const financialStore = useFinancialStore();
 
-  // Get active client for email pre-fill
+  // Get active client
   const activeClientForEmail = financialStore.activeClient 
     ? financialStore[`client${financialStore.activeClient}` as keyof typeof financialStore] as any
     : null;
-
-  const emailForm = useForm<EmailData>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: {
-      recipientEmail: activeClientForEmail?.email || '',
-      subject: 'Your Financial Planning Report - Perpetual Wealth Partners',
-      message: 'Please find attached your comprehensive financial planning report. If you have any questions, please don\'t hesitate to contact us.'
-    }
-  });
-
-  // Update email when client changes
-  useEffect(() => {
-    if (activeClientForEmail?.email) {
-      emailForm.setValue('recipientEmail', activeClientForEmail.email);
-    }
-  }, [activeClientForEmail?.email, emailForm]);
 
   // Try to load client from URL if not in store
   useEffect(() => {
@@ -144,33 +119,69 @@ export default function SummaryPage() {
       ? `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Client'
       : 'No Client Selected';
 
-    // Calculate assets
-    const homeValue = client?.homeValue || 0;
-    const investment1Value = client?.investment1Value || 0;
-    const investment2Value = client?.investment2Value || 0;
-    const investment3Value = client?.investment3Value || 0;
-    const investment4Value = client?.investment4Value || 0;
-    const vehicleValue = client?.vehicleValue || 0;
-    const savingsValue = client?.savingsValue || client?.currentSavings || financialStore.cashSavings || 0;
-    const homeContentsValue = client?.homeContentsValue || 0;
-    const superFundValue = client?.superFundValue || client?.currentSuper || financialStore.superBalance || 0;
-    const sharesValue = client?.sharesTotalValue || client?.currentShares || financialStore.investments || 0;
+    // Calculate assets - prioritize Financial Position page data, fallback to legacy fields
+    let totalAssets = 0;
+    let totalPropertyValue = 0;
     
-    const totalAssets = homeValue + investment1Value + investment2Value + investment3Value + investment4Value +
-      vehicleValue + savingsValue + homeContentsValue + superFundValue + sharesValue;
+    if (client?.assets && Array.isArray(client.assets) && client.assets.length > 0) {
+      // Use Financial Position assets
+      client.assets.forEach((asset: any) => {
+        const value = asset.currentValue || 0;
+        totalAssets += value;
+        if (asset.type === 'property') {
+          totalPropertyValue += value;
+        }
+      });
+    } else {
+      // Fallback to legacy asset fields
+      const homeValue = client?.homeValue || 0;
+      const investment1Value = client?.investment1Value || 0;
+      const investment2Value = client?.investment2Value || 0;
+      const investment3Value = client?.investment3Value || 0;
+      const investment4Value = client?.investment4Value || 0;
+      const vehicleValue = client?.vehicleValue || 0;
+      const savingsValue = client?.savingsValue || client?.currentSavings || financialStore.cashSavings || 0;
+      const homeContentsValue = client?.homeContentsValue || 0;
+      const superFundValue = client?.superFundValue || client?.currentSuper || financialStore.superBalance || 0;
+      const sharesValue = client?.sharesTotalValue || client?.currentShares || financialStore.investments || 0;
+      
+      totalAssets = homeValue + investment1Value + investment2Value + investment3Value + investment4Value +
+        vehicleValue + savingsValue + homeContentsValue + superFundValue + sharesValue;
+      totalPropertyValue = homeValue + investment1Value + investment2Value + investment3Value + investment4Value;
+    }
 
-    // Calculate liabilities
-    const homeBalance = client?.homeBalance || 0;
-    const investment1Balance = client?.investment1Balance || 0;
-    const investment2Balance = client?.investment2Balance || 0;
-    const investment3Balance = client?.investment3Balance || 0;
-    const investment4Balance = client?.investment4Balance || 0;
-    const creditCardBalance = client?.creditCardBalance || 0;
-    const personalLoanBalance = client?.personalLoanBalance || 0;
-    const hecsBalance = client?.hecsBalance || client?.helpDebt || 0;
+    // Calculate liabilities - prioritize Financial Position page data, fallback to legacy fields
+    let totalLiabilities = 0;
+    let totalPropertyDebt = 0;
+    let hecsBalance = 0;
     
-    const totalLiabilities = homeBalance + investment1Balance + investment2Balance + investment3Balance + 
-      investment4Balance + creditCardBalance + personalLoanBalance + hecsBalance;
+    if (client?.liabilities && Array.isArray(client.liabilities) && client.liabilities.length > 0) {
+      // Use Financial Position liabilities
+      client.liabilities.forEach((liability: any) => {
+        const balance = liability.balance || 0;
+        totalLiabilities += balance;
+        if (liability.type === 'mortgage') {
+          totalPropertyDebt += balance;
+        }
+        if (liability.type === 'hecs') {
+          hecsBalance = balance;
+        }
+      });
+    } else {
+      // Fallback to legacy liability fields
+      const homeBalance = client?.homeBalance || 0;
+      const investment1Balance = client?.investment1Balance || 0;
+      const investment2Balance = client?.investment2Balance || 0;
+      const investment3Balance = client?.investment3Balance || 0;
+      const investment4Balance = client?.investment4Balance || 0;
+      const creditCardBalance = client?.creditCardBalance || 0;
+      const personalLoanBalance = client?.personalLoanBalance || 0;
+      hecsBalance = client?.hecsBalance || client?.helpDebt || 0;
+      
+      totalLiabilities = homeBalance + investment1Balance + investment2Balance + investment3Balance + 
+        investment4Balance + creditCardBalance + personalLoanBalance + hecsBalance;
+      totalPropertyDebt = homeBalance + investment1Balance + investment2Balance + investment3Balance + investment4Balance;
+    }
 
     const netWorth = totalAssets - totalLiabilities;
 
@@ -182,28 +193,89 @@ export default function SummaryPage() {
     const totalAnnualIncome = annualIncome + rentalIncome + investmentIncome + otherIncome;
     const monthlyIncome = totalAnnualIncome / 12;
 
-    // Calculate expenses (annual, convert to monthly)
+    // Get monthly expenses from client data (living expenses only)
+    const monthlyExpenses = client?.monthlyExpenses || 0;
+
+    // Calculate tax separately (annual, convert to monthly)
+    // Tax is calculated on taxable income (income minus deductions)
     const workExpenses = financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0;
     const investmentExpenses = financialStore.investmentExpenses || client?.investmentExpenses || 0;
     const rentalExpenses = financialStore.rentalExpenses || client?.rentalExpenses || 0;
     const vehicleExpenses = client?.vehicleExpenses || 0;
     const homeOfficeExpenses = client?.homeOfficeExpenses || 0;
-    const totalAnnualExpenses = workExpenses + investmentExpenses + rentalExpenses + vehicleExpenses + homeOfficeExpenses;
-    const monthlyExpenses = totalAnnualExpenses / 12;
+    const totalDeductions = workExpenses + investmentExpenses + rentalExpenses + vehicleExpenses + homeOfficeExpenses;
+    const taxableIncome = Math.max(0, totalAnnualIncome - totalDeductions);
+    // Simplified tax calculation (30% marginal rate)
+    const annualTax = Math.max(0, taxableIncome * 0.30);
+    const monthlyTax = annualTax / 12;
 
-    const monthlyCashFlow = monthlyIncome - monthlyExpenses;
+    // Calculate HECS repayment separately (annual, convert to monthly)
+    // HECS repayment is typically 1-10% of income above threshold ($51,550 in 2024-25)
+    const hecsThreshold = 51550;
+    const hecsRepayableIncome = Math.max(0, annualIncome - hecsThreshold);
+    const annualHECSRepayment = hecsBalance > 0 && hecsRepayableIncome > 0 ? hecsRepayableIncome * 0.05 : 0; // 5% rate
+    const monthlyHECSRepayment = annualHECSRepayment / 12;
+
+    // Calculate property expenses separately (from investment properties)
+    const propertyExpenses = (rentalExpenses || 0) / 12; // Property expenses already in annual form
+
+    // Total monthly deductions = living expenses + tax + HECS + property expenses
+    const totalMonthlyDeductions = monthlyExpenses + monthlyTax + monthlyHECSRepayment + propertyExpenses;
+
+    // Net cash flow = income - all deductions
+    const monthlyCashFlow = monthlyIncome - totalMonthlyDeductions;
 
     // Property calculations
-    const investmentProperties = [investment1Value, investment2Value, investment3Value, investment4Value]
-      .filter(v => v > 0).length;
-    const totalPropertyValue = homeValue + investment1Value + investment2Value + investment3Value + investment4Value;
-    const totalPropertyDebt = homeBalance + investment1Balance + investment2Balance + investment3Balance + investment4Balance;
+    // Count investment properties from assets array or legacy fields
+    let investmentProperties = 0;
+    if (client?.assets && Array.isArray(client.assets)) {
+      investmentProperties = client.assets.filter((asset: any) => asset.type === 'property').length;
+    } else {
+      // Fallback to legacy fields
+      const investment1Value = client?.investment1Value || 0;
+      const investment2Value = client?.investment2Value || 0;
+      const investment3Value = client?.investment3Value || 0;
+      const investment4Value = client?.investment4Value || 0;
+      investmentProperties = [investment1Value, investment2Value, investment3Value, investment4Value]
+        .filter(v => v > 0).length;
+    }
+    
+    if (!totalPropertyValue) {
+      // Calculate from legacy fields if not already set
+      const homeValue = client?.homeValue || 0;
+      const investment1Value = client?.investment1Value || 0;
+      const investment2Value = client?.investment2Value || 0;
+      const investment3Value = client?.investment3Value || 0;
+      const investment4Value = client?.investment4Value || 0;
+      totalPropertyValue = homeValue + investment1Value + investment2Value + investment3Value + investment4Value;
+    }
+    
+    if (!totalPropertyDebt) {
+      // Calculate from legacy fields if not already set
+      const homeBalance = client?.homeBalance || 0;
+      const investment1Balance = client?.investment1Balance || 0;
+      const investment2Balance = client?.investment2Balance || 0;
+      const investment3Balance = client?.investment3Balance || 0;
+      const investment4Balance = client?.investment4Balance || 0;
+      totalPropertyDebt = homeBalance + investment1Balance + investment2Balance + investment3Balance + investment4Balance;
+    }
+    
     const propertyEquity = totalPropertyValue - totalPropertyDebt;
 
     // Retirement calculations (simplified)
     const currentAge = client?.currentAge || 35;
     const retirementAge = client?.retirementAge || 65;
     const yearsToRetirement = Math.max(0, retirementAge - currentAge);
+    
+    // Get superannuation value from assets or legacy field
+    let superFundValue = 0;
+    if (client?.assets && Array.isArray(client.assets)) {
+      const superAsset = client.assets.find((asset: any) => asset.type === 'super');
+      superFundValue = superAsset?.currentValue || 0;
+    } else {
+      superFundValue = client?.superFundValue || client?.currentSuper || financialStore.superBalance || 0;
+    }
+    
     const projectedRetirementLumpSum = superFundValue * Math.pow(1.07, yearsToRetirement); // 7% growth assumption
     const retirementDeficitSurplus = monthlyCashFlow; // Simplified
     const isRetirementDeficit = retirementDeficitSurplus < 0;
@@ -291,7 +363,7 @@ export default function SummaryPage() {
     return dataUrl;
   };
 
-  const generatePDF = async (attachToEmail = false): Promise<string | null> => {
+  const generatePDF = async (): Promise<string | null> => {
     setIsGeneratingPDF(true);
     
     try {
@@ -1166,9 +1238,8 @@ export default function SummaryPage() {
       // Generate filename
       const fileName = `Financial_Report_${summaryData.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       
-      if (attachToEmail) {
-        // Save to server if client ID exists
-        if (clientId) {
+      // Save to server if client ID exists
+      if (clientId) {
           const formData = new FormData();
           formData.append('file', pdfBlob, fileName);
           formData.append('clientId', clientId);
@@ -1305,140 +1376,6 @@ export default function SummaryPage() {
     }
   };
 
-  const sendEmail = async (data: EmailData) => {
-    setIsSendingEmail(true);
-    
-    try {
-      // Get client email from active client or form
-      const clientEmail = data.recipientEmail;
-      const activeClient = financialStore.activeClient 
-        ? financialStore[`client${financialStore.activeClient}` as keyof typeof financialStore] as any
-        : null;
-      
-      const finalClientEmail = clientEmail || activeClient?.email;
-
-      if (!finalClientEmail) {
-        toast({
-          title: 'Error',
-          description: 'Client email is required. Please enter a client email address or ensure the selected client has an email.',
-          variant: 'destructive'
-        });
-        setIsSendingEmail(false);
-        return;
-      }
-
-      // Ensure client is saved before sending email
-      let clientId = activeClient?.id;
-      if (!clientId && activeClient) {
-        // Try to save the client first
-        try {
-          const saveResponse = await fetch('/api/clients', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              firstName: activeClient.firstName || 'Client',
-              lastName: activeClient.lastName || '',
-              email: finalClientEmail,
-              ...activeClient
-            })
-          });
-          
-          if (saveResponse.ok) {
-            const savedClient = await saveResponse.json();
-            clientId = savedClient.id;
-            // Update store with saved client ID
-            financialStore.setClientData(financialStore.activeClient || 'A', { ...activeClient, id: clientId } as any);
-          } else {
-            toast({
-              title: 'Error',
-              description: 'Please save the client first before sending email. Go to Client Information page and click Save.',
-              variant: 'destructive'
-            });
-            setIsSendingEmail(false);
-            return;
-          }
-        } catch (error) {
-          console.error('Error saving client:', error);
-          toast({
-            title: 'Error',
-            description: 'Could not save client. Please save the client first before sending email.',
-            variant: 'destructive'
-          });
-          setIsSendingEmail(false);
-          return;
-        }
-      }
-      
-      if (!clientId) {
-        toast({
-          title: 'Error',
-          description: 'Please select and save a client before sending email. Go to Client Information page to create or load a client.',
-          variant: 'destructive'
-        });
-        setIsSendingEmail(false);
-        return;
-      }
-
-      if (!user?.email) {
-        toast({
-          title: 'Error',
-          description: 'Account email not found. Please ensure you are logged in with a valid email.',
-          variant: 'destructive'
-        });
-        setIsSendingEmail(false);
-        return;
-      }
-
-      // Generate PDF first and attach it
-      let pdfId = lastGeneratedPdfId;
-      if (!pdfId) {
-        // Generate new PDF if one doesn't exist
-        pdfId = await generatePDF(true);
-        if (!pdfId) {
-          toast({
-            title: 'Warning',
-            description: 'PDF generation failed, sending email without attachment',
-            variant: 'destructive'
-          });
-        }
-      }
-
-      // Send email via API with PDF attachment
-      const response = await fetch('/api/email/send-summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientEmail: finalClientEmail,
-          clientId: clientId,
-          clientName: summary.clientName,
-          subject: data.subject,
-          message: data.message,
-          summaryData: summary,
-          pdfId: pdfId || undefined
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to send email');
-      }
-
-      toast({
-        title: 'Email Sent',
-        description: `Report${pdfId ? ' with PDF' : ''} has been sent to ${finalClientEmail} and ${user.email}`
-      });
-      emailForm.reset();
-    } catch (error) {
-      console.error('Error sending email:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to send email',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsSendingEmail(false);
-    }
-  };
 
   const printReport = () => {
     window.print();
@@ -1770,20 +1707,9 @@ export default function SummaryPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
 
-          {/* Detailed Calculations & Formulas */}
-          <Card className="border-2 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-foreground flex items-center">
-                <Calculator className="h-5 w-5 mr-2" />
-                Detailed Calculations & Formulas
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Complete mathematical breakdown of all financial calculations
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Net Worth Calculation */}
+        {/* Recommendations & Actions */}
               <div className="space-y-3">
                 <h4 className="font-semibold text-foreground">1. Net Worth Calculation</h4>
                 <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
@@ -1994,9 +1920,6 @@ export default function SummaryPage() {
                     <p className="pt-2 text-xs text-muted-foreground">Note: These assumptions are estimates. Actual rates and returns may vary. Consult with a qualified financial advisor for personalized advice.</p>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Recommendations & Actions */}
@@ -2023,88 +1946,6 @@ export default function SummaryPage() {
             </CardContent>
           </Card>
 
-          {/* Email Report */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-foreground flex items-center">
-                <Mail className="h-5 w-5 mr-2" />
-                Email Report
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Send this report to your email or share with others
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...emailForm}>
-                <form onSubmit={emailForm.handleSubmit(sendEmail)} className="space-y-4">
-                  <FormField
-                    control={emailForm.control}
-                    name="recipientEmail"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Client Email</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            placeholder="client@example.com"
-                            {...field}
-                            value={field.value || (financialStore.activeClient ? (financialStore[`client${financialStore.activeClient}` as keyof typeof financialStore] as any)?.email : '') || ''}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                        <p className="text-xs text-muted-foreground">
-                          Email will be sent to both the client email and your account email ({user?.email || 'N/A'})
-                        </p>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={emailForm.control}
-                    name="subject"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Subject</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={emailForm.control}
-                    name="message"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Message (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            rows={3}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button 
-                    type="submit"
-                    disabled={isSendingEmail}
-                    className="w-full bg-yellow-500 text-white hover:bg-yellow-600"
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    {isSendingEmail ? 'Sending...' : 'Send Report'}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
           {/* Report Actions */}
           <Card>
             <CardHeader>
@@ -2112,7 +1953,7 @@ export default function SummaryPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <Button 
-                onClick={() => generatePDF(false)}
+                onClick={() => generatePDF()}
                 disabled={isGeneratingPDF}
                 className="w-full bg-blue-500 text-white hover:bg-blue-600"
               >
