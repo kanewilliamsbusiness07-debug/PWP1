@@ -373,7 +373,7 @@ export default function SummaryPage() {
     return dataUrl;
   };
 
-  const generatePDF = async (): Promise<string | null> => {
+  const generatePDF = async (saveToServer: boolean = true): Promise<string | null> => {
     setIsGeneratingPDF(true);
     
     try {
@@ -1248,8 +1248,8 @@ export default function SummaryPage() {
       // Generate filename
       const fileName = `Financial_Report_${summaryData.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       
-      // Save to server if client ID exists
-      if (clientId) {
+        // Save to server if client ID exists AND caller requested saving
+        if (clientId && saveToServer) {
           const formData = new FormData();
           formData.append('file', pdfBlob, fileName);
           formData.append('clientId', clientId);
