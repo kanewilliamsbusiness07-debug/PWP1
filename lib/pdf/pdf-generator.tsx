@@ -210,16 +210,6 @@ const styles = StyleSheet.create({
     color: '#7f8c8d',
     textAlign: 'center',
   },
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 6,
-  },
-  metricLabel: {
-    fontSize: 9,
-    color: '#7f8c8d',
-    textAlign: 'center',
-  },
   chartContainer: {
     width: '100%',
     alignItems: 'center',
