@@ -55,6 +55,8 @@ interface FinancialSummary {
   monthlyExpenses: number;
   monthlyCashFlow: number;
   projectedRetirementLumpSum: number;
+  projectedRetirementMonthlyCashFlow: number;
+  projectedRetirementSurplus: number;
   retirementDeficitSurplus: number;
   isRetirementDeficit: boolean;
   yearsToRetirement: number;
@@ -266,11 +268,20 @@ export default function SummaryPage() {
     }
     
     // Compute projected retirement lump sum using canonical projection function
+    // Calculate savings value from assets or legacy fields
+    let savingsValue = 0;
+    if (client?.assets && Array.isArray(client.assets)) {
+      const savingsAsset = client.assets.find((asset: any) => asset.type === 'savings');
+      savingsValue = savingsAsset?.currentValue || 0;
+    } else {
+      savingsValue = client?.savingsValue || client?.currentSavings || financialStore.cashSavings || 0;
+    }
+
     const currentAssetsForRetirement = {
-      super: safeSuperFundValue,
-      shares: safeSharesValue,
+      super: superFundValue,
+      shares: sharesValue,
       properties: propertyEquity,
-      savings: safeSavingsValue,
+      savings: savingsValue,
     };
 
     const projectedRetirementLumpSum = calculateRetirementLumpSum(
