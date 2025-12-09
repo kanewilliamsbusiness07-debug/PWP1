@@ -6,6 +6,11 @@
 
 import React from 'react';
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import { LineChart } from './charts/LineChart';
+import { PieChart } from './charts/PieChart';
+import { StackedBarChart } from './charts/StackedBarChart';
+import { WaterfallChart } from './charts/WaterfallChart';
+import { GaugeChart } from './charts/GaugeChart';
 import * as formatModule from 'date-fns/format';
 const format: (date: Date | number, fmt: string) => string = (formatModule as any).default ?? (formatModule as any);
 
@@ -39,13 +44,13 @@ const TYPOGRAPHY = {
 };
 
 const SPACING = {
-  pageMargin: 50,
-  headerHeight: 70,
-  sectionGap: 35,
-  subsectionGap: 20,
-  elementGap: 12,
-  cardPadding: 20,
-  chartPadding: 25,
+  pageMargin: 40,
+  headerHeight: 60,
+  sectionGap: 28,
+  subsectionGap: 18,
+  elementGap: 10,
+  cardPadding: 16,
+  chartPadding: 20,
 };
 
 const CHART_CONFIG = {
@@ -66,8 +71,8 @@ const styles = StyleSheet.create({
   // Page layout
   page: {
     padding: SPACING.pageMargin,
-    paddingTop: SPACING.headerHeight + 20,
-    paddingBottom: 70,
+    paddingTop: SPACING.headerHeight + 10,
+    paddingBottom: 50,
     fontSize: 11,
     fontFamily: 'Helvetica',
     backgroundColor: COLORS.white,
@@ -76,7 +81,7 @@ const styles = StyleSheet.create({
   // Header
   header: {
     position: 'absolute',
-    top: 30,
+    top: 20,
     left: SPACING.pageMargin,
     right: SPACING.pageMargin,
     paddingBottom: 12,
@@ -98,7 +103,7 @@ const styles = StyleSheet.create({
   // Footer
   footer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 15,
     left: SPACING.pageMargin,
     right: SPACING.pageMargin,
     paddingTop: 10,
@@ -243,8 +248,8 @@ const styles = StyleSheet.create({
   // Chart container
   chartContainer: {
     alignItems: 'center',
-    marginVertical: 25,
-    paddingVertical: 15,
+    marginVertical: 12,
+    paddingVertical: 8,
   },
   chart: {
     width: CHART_CONFIG.minWidth,
@@ -252,7 +257,7 @@ const styles = StyleSheet.create({
   },
   chartLarge: {
     width: 520,
-    height: 300,
+    height: 240,
   },
 
   // Section container (prevents page breaks)
@@ -556,9 +561,12 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
   // PAGE 1: EXECUTIVE SUMMARY
   // ========================================================================
 
+  // Debug: conditional rendering will log per-page when active
+  const renderOnly = process.env.RENDER_ONLY ? Number(process.env.RENDER_ONLY) : null;
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      {(!renderOnly || renderOnly === 1) && (
+        <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
         <View style={{ flex: 1 }}>
@@ -647,6 +655,12 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
             </View>
           </View>
 
+          {/* Charts: Net Worth Trend + Cash Flow Donut */}
+          <View style={styles.chartContainer} wrap={false}>
+            <LineChart data={[netWorth, projectedRetirementNetWorth]} width={400} height={140} color={COLORS.primary} />
+          </View>
+          {/* Pie chart moved to Page 2 to balance page content and avoid overflow */}
+
           {/* Summary Box */}
           <View style={isRetirementDeficit ? styles.warningBox : styles.highlightBox}>
             <Text style={styles.highlightTitle}>
@@ -660,17 +674,47 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           </View>
         </View>
 
-        <ReportFooter reportDate={reportDate} />
-      </Page>
+          <ReportFooter reportDate={reportDate} />
+        </Page>
+      )}
+
+      {/* Dedicated Charts Page (moved Pie chart here from Page 1) */}
+      {(!renderOnly || renderOnly === 2) && (console.log('PDFReport: Rendering Page 2 - Cash Flow & Composition'), (
+        <Page size="A4" style={styles.page}>
+        <ReportHeader reportDate={reportDate} clientName={clientFullName} />
+        <View style={{ flex: 1 }} wrap={false}>
+          <Text style={styles.pageTitle}>Cash Flow & Composition</Text>
+          <View style={styles.chartContainer} wrap={false}>
+            <PieChart
+              data={[
+                { label: 'Employment', value: monthlyIncome, color: COLORS.info },
+                { label: 'Expenses', value: monthlyExpenses, color: COLORS.danger },
+                { label: 'Surplus', value: monthlyCashFlow, color: COLORS.success },
+              ]}
+              width={280}
+              height={160}
+              innerRadius={60}
+            />
+          </View>
+
+          <View style={{ marginTop: 8 }} wrap={false}>
+            <Text style={styles.subsectionTitle}>Monthly Cash Flow Breakdown</Text>
+            <Text style={styles.bodyText}>Savings Rate: {monthlyIncome > 0 ? ((monthlyCashFlow / monthlyIncome) * 100).toFixed(1) : 0}%</Text>
+          </View>
+        </View>
+          <ReportFooter reportDate={reportDate} />
+        </Page>
+      )}
 
       {/* ====================================================================== */}
       {/* PAGE 2: INVESTMENT PROPERTY & CASH FLOW */}
       {/* ====================================================================== */}
 
-      <Page size="A4" style={styles.page}>
+      {(!renderOnly || renderOnly === 3) && (console.log('PDFReport: Rendering Page 3 - Investment Property'), (
+        <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1 }} wrap={false}>
           <Text style={styles.pageTitle}>Investment Property Potential</Text>
 
           {/* Service Capacity */}
@@ -701,6 +745,11 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
                 ? `You have ${formatCurrency(surplusIncome)} available to service investment property. This represents strong capacity for wealth building through real estate.`
                 : `After ensuring 70% of your current income in retirement, there is limited surplus available for investment property. Focus on maximizing current income and reducing expenses.`}
             </Text>
+            {/* Visuals: Gauge and capacity stacked bar */}
+            <View style={{ marginTop: 8 }} wrap={false}>
+              <GaugeChart value={isViable ? Math.min(1, surplusIncome / Math.max(1, monthlyIncome || 1)) : 0} width={260} height={100} color={isViable ? COLORS.success : COLORS.warning} />
+            </View>
+            {/* StackedBarChart moved to Page 3 to balance content */}
           </View>
 
           {/* Cash Flow Breakdown */}
@@ -728,17 +777,19 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           </View>
         </View>
 
-        <ReportFooter reportDate={reportDate} />
-      </Page>
+          <ReportFooter reportDate={reportDate} />
+        </Page>
+      )}
 
       {/* ====================================================================== */}
       {/* PAGE 3: DETAILED FINANCIAL POSITION */}
       {/* ====================================================================== */}
 
-      <Page size="A4" style={styles.page}>
+      {(!renderOnly || renderOnly === 4) && (console.log('PDFReport: Rendering Page 4 - Financial Position'), (
+        <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1 }} wrap={false}>
           <Text style={styles.pageTitle}>Detailed Financial Position</Text>
 
           <View style={{ marginBottom: 20 }}>
@@ -764,6 +815,20 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
                 <Text style={{ fontWeight: 'bold' }}>Total Liabilities:</Text> {formatCurrency(totalLiabilities)}
               </Text>
             </View>
+          </View>
+
+          {/* Moved: Stacked bar showing income composition for cashflow - placed on Page 3 to balance content */}
+          <View style={{ marginTop: 12 }} wrap={false}>
+            <Text style={styles.subsectionTitle}>Cash Flow Composition</Text>
+            <StackedBarChart
+              data={[
+                { label: 'Employment', value: monthlyIncome, color: COLORS.info },
+                { label: 'Rental', value: monthlyRentalIncome, color: COLORS.purple },
+                { label: 'Surplus', value: monthlyCashFlow, color: COLORS.success },
+              ]}
+              width={440}
+              height={50}
+            />
           </View>
 
           {/* Financial Ratios */}
@@ -793,17 +858,19 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           </View>
         </View>
 
-        <ReportFooter reportDate={reportDate} />
-      </Page>
+          <ReportFooter reportDate={reportDate} />
+        </Page>
+      )}
 
       {/* ====================================================================== */}
       {/* PAGE 4: RETIREMENT PROJECTION */}
       {/* ====================================================================== */}
 
-      <Page size="A4" style={styles.page}>
+      {(!renderOnly || renderOnly === 5) && (console.log('PDFReport: Rendering Page 5 - Retirement Projection'), (
+        <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1 }} wrap={false}>
           <Text style={styles.pageTitle}>Detailed Retirement Projection</Text>
 
           {/* Key Metrics */}
@@ -850,17 +917,19 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           </View>
         </View>
 
-        <ReportFooter reportDate={reportDate} />
-      </Page>
+          <ReportFooter reportDate={reportDate} />
+        </Page>
+      )}
 
       {/* ====================================================================== */}
       {/* PAGE 5: TAX OPTIMIZATION */}
       {/* ====================================================================== */}
 
-      <Page size="A4" style={styles.page}>
+      {(!renderOnly || renderOnly === 6) && (console.log('PDFReport: Rendering Page 6 - Tax Optimization'), (
+        <Page size="A4" style={styles.page}>
         <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1 }} wrap={false}>
           <Text style={styles.pageTitle}>Tax Optimization Analysis</Text>
 
           {/* Tax Boxes */}
@@ -929,8 +998,9 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
           )}
         </View>
 
-        <ReportFooter reportDate={reportDate} />
-      </Page>
+          <ReportFooter reportDate={reportDate} />
+        </Page>
+      )}
 
       {/* ====================================================================== */}
       {/* PAGE 6: RECOMMENDATIONS (if there are any) */}
@@ -940,7 +1010,7 @@ export function PDFReport({ summary, clientData }: PDFReportProps) {
         <Page size="A4" style={styles.page}>
           <ReportHeader reportDate={reportDate} clientName={clientFullName} />
 
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1 }} wrap={false}>
             <Text style={styles.pageTitle}>Recommendations & Action Items</Text>
 
             {recommendations.map((rec, idx) => (
