@@ -1877,31 +1877,41 @@ export default function SummaryPage() {
 
         {/* Layout: Recommendations & Actions on left, Financial Snapshot on right */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8 pt-6 border-t">
-          {/* Left column: Recommendations & Actions */}
+          {/* Left column: Sidebar - Financial Snapshot, Report Actions, Key Recommendations */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Key Recommendations */}
+            {/* Financial Snapshot (moved to sidebar top) */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-foreground">Key Recommendations</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Actions to improve your financial position
-                </CardDescription>
+                <CardTitle className="text-foreground">Financial Snapshot</CardTitle>
+                <CardDescription className="text-muted-foreground">Quick view of key financial metrics</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {summary.recommendations.map((recommendation, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
-                        {index + 1}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{recommendation}</p>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Net Worth</p>
+                    <p className="text-xl font-bold text-foreground">${summary.netWorth.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Monthly Surplus</p>
+                    <p className={`text-xl font-bold ${summary.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ${summary.monthlyCashFlow.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Retirement Status</p>
+                    <p className={`text-lg font-bold ${summary.isRetirementDeficit ? 'text-red-600' : 'text-green-600'}`}>
+                      {summary.isRetirementDeficit ? 'Action Required' : 'On Track'}
+                    </p>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Potential Tax Savings</p>
+                    <p className="text-xl font-bold text-emerald-600">${summary.taxSavings.toLocaleString()}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Report Actions */}
+            {/* Report Actions (middle) */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-foreground">Report Actions</CardTitle>
@@ -1936,43 +1946,25 @@ export default function SummaryPage() {
               </CardContent>
             </Card>
 
-            {/* Report Info */}
+            {/* Key Recommendations (bottom) */}
             <Card>
-              <CardContent className="p-4">
-                <div className="text-center text-sm text-muted-foreground">
-                  <p className="font-medium mb-1">Perpetual Wealth Partners</p>
-                  <p>Professional Financial Planning</p>
-                  <p className="mt-2">Report generated on {new Date().toLocaleDateString()}</p>
+              <CardHeader>
+                <CardTitle className="text-foreground">Key Recommendations</CardTitle>
+                <CardDescription className="text-muted-foreground">Actions to improve your financial position</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {summary.recommendations.map((recommendation, index) => (
+                    <div key={index} className="flex items-start space-x-3">
+                      <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
+                        {index + 1}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{recommendation}</p>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Right column: Financial Snapshot */}
-          <div className="lg:col-span-2">
-            <h3 className="text-lg font-bold mb-4 text-foreground">Financial Snapshot</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">Net Worth</p>
-                <p className="text-2xl font-bold text-foreground">${summary.netWorth.toLocaleString()}</p>
-              </div>
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">Monthly Surplus</p>
-                <p className={`text-2xl font-bold ${summary.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ${summary.monthlyCashFlow.toLocaleString()}
-                </p>
-              </div>
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">Retirement Status</p>
-                <p className={`text-2xl font-bold ${summary.isRetirementDeficit ? 'text-red-600' : 'text-green-600'}`}>
-                  {summary.isRetirementDeficit ? 'Action Required' : 'On Track'}
-                </p>
-              </div>
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">Potential Tax Savings</p>
-                <p className="text-2xl font-bold text-emerald-600">${summary.taxSavings.toLocaleString()}</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
