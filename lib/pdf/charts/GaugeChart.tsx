@@ -30,7 +30,7 @@ export const GaugeChart: React.FC<GaugeChartProps> = ({ value = 0, width = 320, 
         {/* value arc */}
         <Path d={arc} stroke={color} strokeWidth={12} fill="none" strokeLinecap="round" />
         {/* center label */}
-        <SvgText x={cx} y={cy - radius / 2} fontSize={14} fill="#333" textAnchor="middle">
+        <SvgText style={{ fontSize: 14, fill: '#333', textAlign: 'center' }} x={cx} y={cy - radius / 2}>
           {(value * 100).toFixed(0)}%
         </SvgText>
       </G>
