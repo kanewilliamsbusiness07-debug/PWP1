@@ -280,10 +280,10 @@ export default function SummaryPage() {
     const retirementDeficitSurplus = monthlyCashFlow; // Simplified
     const isRetirementDeficit = retirementDeficitSurplus < 0;
 
-    // Tax calculations (simplified - would need actual tax calculation)
-    const taxableIncome = totalAnnualIncome - totalAnnualExpenses;
-    const currentTax = Math.max(0, taxableIncome * 0.30); // Simplified 30% rate
-    const optimizedTax = Math.max(0, taxableIncome * 0.25); // Simplified optimization
+    // Tax calculations (already calculated above, reuse those values)
+    // taxableIncome was already calculated at line 207
+    const currentTax = annualTax; // Already calculated above
+    const optimizedTax = Math.max(0, taxableIncome * 0.25); // Simplified optimization (25% vs 30%)
     const taxSavings = currentTax - optimizedTax;
 
     // Generate recommendations
