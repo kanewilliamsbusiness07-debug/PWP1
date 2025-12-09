@@ -44,6 +44,7 @@ import {
   calculateRetirementDeficitSurplus,
   DEFAULT_ASSUMPTIONS
 } from '@/lib/finance/calculations';
+import { calculateTax, calculateTaxOptimization } from '@/lib/tax/tax-engine';
 import { formatCurrency } from '@/lib/utils/format';
 
 interface FinancialSummary {
@@ -301,11 +302,40 @@ export default function SummaryPage() {
     const retirementDeficitSurplus = retirementDeficitObj.monthlyAmount;
     const isRetirementDeficit = retirementDeficitObj.isDeficit;
 
-    // Tax calculations - derive from canonical monthly values
+    // Tax calculations - use canonical tax engine for consistency
     const totalAnnualIncome = (surplusResult.income.total || 0) * 12;
-    const currentTax = (monthlyTax || 0) * 12;
-    const optimizedTax = Math.max(0, currentTax * (25 / 30)); // simplified optimized estimate
-    const taxSavings = currentTax - optimizedTax;
+
+    // Build tax input expected by tax engine
+    const taxInput = {
+      grossIncome: totalAnnualIncome,
+      deductions: [
+        { category: 'work-related', amount: Number(financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0), description: 'Work related expenses' },
+        { category: 'investment', amount: Number(financialStore.investmentExpenses || client?.investmentExpenses || 0), description: 'Investment expenses' },
+        { category: 'rental', amount: Number(client?.rentalExpenses || 0), description: 'Rental expenses' },
+        { category: 'charitable', amount: Number(client?.charityDonations || 0), description: 'Charity donations' }
+      ],
+      negativeGearingLoss: Math.max(0, (client?.rentalExpenses || 0) - ((surplusResult.income.rental || 0) * 12)),
+      capitalGains: Number(client?.capitalGains || 0),
+      frankedDividends: Number(client?.frankedDividends || 0),
+      hecsBalance: Number(client?.hecsBalance || client?.helpDebt || 0),
+      medicareExemption: false
+    };
+
+    const taxResult = calculateTax(taxInput as any);
+    const currentTax = taxResult.totalTax;
+
+    // Use tax optimization engine to produce an 'optimized' tax scenario.
+    // For summary we apply any explicit super contributions recorded in the client
+    // as a simple optimization (matches logic used in Tax Optimization page).
+    const optimizationStrategies = {
+      additionalDeductions: 0,
+      negativeGearingOpportunity: 0,
+      superContributions: Number(client?.superContributions || 0)
+    };
+
+    const optimizationResult = calculateTaxOptimization(taxInput as any, optimizationStrategies);
+    const optimizedTax = optimizationResult.optimizedTax.totalTax;
+    const taxSavings = Math.max(0, currentTax - optimizedTax);
 
     // Recalculate a few legacy-derived values used for recommendations
     const workExpenses = financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0;
