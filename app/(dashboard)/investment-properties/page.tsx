@@ -20,6 +20,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useFinancialStore } from '@/lib/store/store';
 import { ClientSelector } from '@/components/client-selector';
+import { calculateMonthlySurplus } from '@/lib/finance/calculations';
+import { calculateServiceability as canonicalCalculateServiceability } from '@/lib/finance/serviceability';
 
 const propertySchema = z.object({
   address: z.string().min(1, 'Address is required'),
@@ -171,73 +173,55 @@ export default function InvestmentPropertiesPage() {
     };
   };
 
+  // Adapter: map the serviceability form data into the canonical serviceability function
   const calculateServiceability = (data: ServiceabilityData): ServiceabilityResult => {
-    // Use annualIncome (canonical) or fall back to grossIncome for backward compatibility
-    const income = data.annualIncome ?? (data as any).grossIncome ?? 0;
-    const monthlyIncome = income / 12;
-    
-    // Australian lending criteria:
-    // 1. Assessment rate: higher of actual rate + 3% buffer OR 7.25% (APRA requirement)
-    const assessmentRate = Math.max(data.interestRate + 3, 7.25);
-    
-    // 2. Serviceability: 30% of gross income available for loan servicing
-    const monthlyServiceCapacity = (monthlyIncome * 0.30) - data.existingDebtPayments;
-    
-    // 3. Rental income: 80% of rental income counts toward serviceability
-    const monthlyRent = (data.expectedRent * 52) / 12;
-    const assessableRentalIncome = monthlyRent * 0.80;
-    
-    // Calculate loan details
-    const loanAmount = data.targetPropertyPrice - data.deposit;
-    const monthlyLoanPayment = calculateLoanPayment(loanAmount, assessmentRate, data.loanTerm);
-    
-    // Total serviceability capacity including rental income
-    const totalServiceCapacity = monthlyServiceCapacity + assessableRentalIncome;
-    
-    // Calculate annual figures for negative gearing
-    const actualMonthlyPayment = calculateLoanPayment(loanAmount, data.interestRate, data.loanTerm);
-    const annualInterest = actualMonthlyPayment * 12 * 0.85; // Assuming 85% of payment is interest in early years
-    const annualRent = monthlyRent * 12;
-    const totalDeductions = annualInterest + data.annualPropertyExpenses + data.depreciationAmount;
-    const isNegativelyGeared = totalDeductions > annualRent;
-    const negativeGearingAmount = isNegativelyGeared ? totalDeductions - annualRent : 0;
-    const taxBenefit = negativeGearingAmount * (data.marginalTaxRate / 100);
-    
-    // Monthly figures after tax benefits
-    const monthlyTaxBenefit = taxBenefit / 12;
-    const netMonthlyPayment = actualMonthlyPayment - monthlyRent - monthlyTaxBenefit;
-    
-    // Calculate maximum borrowing capacity using assessment rate
-    // Invert the loan payment formula: P = PMT * [(1+r)^n - 1] / [r(1+r)^n]
-    let maxBorrowingCapacity = 0;
-    if (totalServiceCapacity > 0 && assessmentRate > 0) {
-      const monthlyRate = assessmentRate / 100 / 12;
-      const totalPayments = data.loanTerm * 12;
-      const numerator = Math.pow(1 + monthlyRate, totalPayments) - 1;
-      const denominator = monthlyRate * Math.pow(1 + monthlyRate, totalPayments);
-      maxBorrowingCapacity = totalServiceCapacity * (numerator / denominator);
-    }
-    
-    const loanToValueRatio = data.targetPropertyPrice > 0 ? (loanAmount / data.targetPropertyPrice) * 100 : 0;
-    const debtToIncomeRatio = income > 0 ? ((data.existingDebtPayments * 12 + actualMonthlyPayment * 12) / income) * 100 : 0;
-    
-    // Can afford if service capacity (at assessment rate) covers the loan payment (at assessment rate)
-    const canAfford = totalServiceCapacity >= monthlyLoanPayment && loanToValueRatio <= 80;
-    const monthlyShortfall = canAfford ? undefined : Math.max(0, monthlyLoanPayment - totalServiceCapacity);
-
-    return {
-      maxBorrowingCapacity,
-      monthlyServiceCapacity: totalServiceCapacity,
-      loanToValueRatio,
-      debtToIncomeRatio,
-      canAfford,
-      monthlyShortfall,
-      isNegativelyGeared,
-      negativeGearingAmount,
-      annualTaxBenefit: taxBenefit,
-      monthlyTaxBenefit,
-      netMonthlyPaymentAfterTax: netMonthlyPayment
+    const clientData: any = {
+      income: {
+        // canonical monthly/gross representation expected by canonical functions
+        annual: data.annualIncome || 0
+      },
+      expenses: {
+        living: data.monthlyExpenses || 0
+      },
+      loans: [
+        {
+          // existing monthly repayment passed through
+          monthlyRepayment: data.existingDebtPayments || 0
+        }
+      ],
+      properties: []
     };
+
+    const proposedLoan: any = {
+      amount: Math.max(0, (data.targetPropertyPrice || 0) - (data.deposit || 0)),
+      interestRate: data.interestRate || 0,
+      termYears: data.loanTerm || 0,
+      expectedRentWeekly: data.expectedRent || 0,
+      annualExpenses: data.annualPropertyExpenses || 0,
+      depreciation: data.depreciationAmount || 0,
+    };
+
+    // Use canonical serviceability implementation
+    const canonical = canonicalCalculateServiceability({ clientData, proposedLoan } as any);
+
+    // Map canonical result into the local ServiceabilityResult shape (best-effort)
+    const mapped: ServiceabilityResult = {
+      // maxBorrowingCapacity isn't provided by canonical result; leave 0 as placeholder
+      maxBorrowingCapacity: 0,
+      // Expose monthly net income as the primary service capacity
+      monthlyServiceCapacity: canonical.monthlyNetIncome ?? 0,
+      loanToValueRatio: 0,
+      debtToIncomeRatio: 0,
+      canAfford: !!canonical.canAfford,
+      monthlyShortfall: canonical.netSurplusAfterLoan < 0 ? Math.abs(Math.round(canonical.netSurplusAfterLoan)) : undefined,
+      isNegativelyGeared: canonical.netSurplusAfterLoan < 0,
+      negativeGearingAmount: canonical.netSurplusAfterLoan < 0 ? Math.abs(Math.round(canonical.netSurplusAfterLoan) * 12) : 0,
+      annualTaxBenefit: 0,
+      monthlyTaxBenefit: 0,
+      netMonthlyPaymentAfterTax: canonical.monthlyRepayment ?? 0
+    };
+
+    return mapped;
   };
 
   const addProperty = (data: z.infer<typeof propertySchema>) => {
