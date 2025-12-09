@@ -19,7 +19,8 @@ import {
   PropertyExpenses,
   DEFAULT_ASSUMPTIONS
 } from './calculations';
-import { calculateInvestmentSurplus, calculatePropertyServiceability } from './serviceability';
+import { calculateInvestmentSurplus, calculatePropertyServiceability, calculateServiceability } from './serviceability';
+import { calculateMonthlySurplus } from './calculations';
 
 describe('Financial Calculations', () => {
   describe('calculateLoanPayment', () => {
@@ -333,6 +334,65 @@ describe('Financial Calculations', () => {
       // Required retirement income = 70% of 8000 = 5600, monthly passive 1000 -> not viable
       expect(svc.isViable).toBe(false);
       expect(svc.maxPropertyValue).toBe(0);
+    });
+  });
+
+  describe('calculateMonthlySurplus / Monthly Cash Flow', () => {
+    test('calculates monthly surplus as income minus expenses including tax and loans', () => {
+      const clientData = {
+        income: { employment: 105000, rental: 12000, investment: 0, other: 0 },
+        financials: { monthlyExpenses: 3000 },
+        liabilities: { homeLoan: { monthlyRepayment: 2000 }, hecsDebt: { currentBalance: 0 } },
+        assets: { properties: [] }
+      };
+
+      const result = calculateMonthlySurplus(clientData);
+
+      // Expected monthly income = 105000/12 + 12000/12 = 8750 + 1000 = 9750
+      expect(result.income.total).toBeCloseTo(9750, 2);
+
+      // Tax calculation uses DEFAULT_TAX_RULES; ensure totalExpenses > 0
+      expect(result.expenses.total).toBeGreaterThan(0);
+
+      // Net cash flow equals income - expenses
+      expect(result.surplus).toBeCloseTo(result.income.total - result.expenses.total, 2);
+    });
+
+    test('handles zero income gracefully', () => {
+      const clientData = { income: {}, financials: { monthlyExpenses: 1000 }, liabilities: {} };
+      const result = calculateMonthlySurplus(clientData);
+      expect(result.income.total).toBe(0);
+      expect(result.surplus).toBeLessThanOrEqual(0);
+    });
+  });
+
+  describe('Serviceability calculator (canonical)', () => {
+    test('serviceability test case from spec', () => {
+      const clientData = {
+        income: { employment: 105000, rental: 0, investment: 0, other: 0 },
+        financials: { monthlyExpenses: 3000 },
+        liabilities: { homeLoan: { monthlyRepayment: 2000 } }
+      };
+
+      const proposedLoan = {
+        amount: 500000,
+        interestRate: 0.06,
+        termYears: 30
+      };
+
+      const result = calculateServiceability({ clientData, proposedLoan });
+
+      // Expected monthly repayment for $500k at 6% over 30 years: ~2998
+      expect(result.monthlyRepayment).toBeCloseTo(2998, -2);
+
+      // Net income should be gross income / 12 - tax
+      const expectedMonthlyIncome = 105000 / 12;
+      // We don't assert exact tax here, ensure monthlyNetIncome is close to expectedMonthlyIncome minus some tax
+      expect(result.monthlyNetIncome).toBeLessThanOrEqual(expectedMonthlyIncome);
+
+      // Serviceability ratio check: (existing + proposed)/monthlyNetIncome * 100
+      const expectedRatio = (2000 + result.monthlyRepayment) / result.monthlyNetIncome * 100;
+      expect(Math.abs(result.serviceabilityRatio - expectedRatio)).toBeLessThan(1);
     });
   });
 
