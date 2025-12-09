@@ -1270,65 +1270,24 @@ export default function SummaryPage() {
             return null;
           }
         } else {
+          // Download PDF if client not saved
+          const url = URL.createObjectURL(pdfBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
           toast({
             title: 'PDF Generated',
-            description: 'PDF generated but not saved (client not saved)',
+            description: 'PDF generated and downloaded (client not saved)',
             variant: 'default'
           });
+          
           return null;
         }
-      } else {
-        // Download PDF
-        const url = URL.createObjectURL(pdfBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        // Also save to server if client ID exists
-        if (clientId) {
-          const formData = new FormData();
-          formData.append('file', pdfBlob, fileName);
-          formData.append('clientId', clientId);
-          formData.append('fileName', fileName);
-
-          const response = await fetch('/api/pdf-exports', {
-            method: 'POST',
-            body: formData
-          });
-
-          if (response.ok) {
-            const savedPdf = await response.json();
-            setLastGeneratedPdfId(savedPdf.id);
-            
-            // Dispatch event to refresh Account Centre
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('pdf-generated', { detail: savedPdf }));
-            }
-            
-            toast({
-              title: 'PDF Generated',
-              description: 'Your professional financial planning report has been generated, downloaded, and saved'
-            });
-          } else {
-            toast({
-              title: 'PDF Generated',
-              description: 'Your financial planning report has been generated and downloaded (not saved to server)',
-              variant: 'default'
-            });
-          }
-        } else {
-          toast({
-            title: 'PDF Generated',
-            description: 'Your professional financial planning report has been generated and downloaded'
-          });
-        }
-
-        return null;
-      }
     } catch (error) {
       console.error('Error generating PDF:', error);
       
