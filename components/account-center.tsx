@@ -7,7 +7,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import format from 'date-fns/format';
+import * as formatModule from 'date-fns/format';
+const format: (date: Date | number, fmt: string) => string = (formatModule as any).default ?? (formatModule as any);
 import { Calendar as CalendarIcon, Mail, FileText, Trash2, Search, Plus, Eye, Download, Clock, X, Edit, CheckCircle, XCircle, Send, FileDown } from 'lucide-react';
 import {
   Sheet,
