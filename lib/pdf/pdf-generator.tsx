@@ -99,25 +99,24 @@ const CHART_CONFIG = {
 // ============================================================================
 
 const styles = StyleSheet.create({
-  // Page layout
+  // Page layout - NO PADDING TOP since header is in normal flow now
   page: {
     padding: SPACING.pageMargin,
-    paddingTop: SPACING.headerHeight + 10,
-    paddingBottom: 50,
+    paddingBottom: 60,
     fontSize: 11,
     fontFamily: 'Helvetica',
     backgroundColor: COLORS.white,
+    display: 'flex',
+    flexDirection: 'column',
   },
 
-  // Header
+  // Header - NORMAL FLOW (no absolute positioning to prevent overlaps)
   header: {
-    position: 'absolute',
-    top: 20,
-    left: SPACING.pageMargin,
-    right: SPACING.pageMargin,
+    marginBottom: SPACING.sectionGap,
     paddingBottom: 12,
     borderBottomWidth: 2,
     borderBottomColor: COLORS.primary,
+    width: '100%',
   },
   headerCompany: {
     fontSize: 18,
@@ -131,21 +130,22 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Footer
+  // Footer - FIXED POSITION for page bottom
   footer: {
     position: 'absolute',
-    bottom: 15,
+    bottom: 20,
     left: SPACING.pageMargin,
     right: SPACING.pageMargin,
-    paddingTop: 10,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
+    width: `calc(100% - ${SPACING.pageMargin * 2}px)`,
   },
   footerText: {
     textAlign: 'center',
     fontSize: 9,
     color: '#999',
-    paddingTop: 10,
+    paddingTop: 6,
   },
 
   // Titles
@@ -183,33 +183,39 @@ const styles = StyleSheet.create({
     color: TYPOGRAPHY.captionText.color,
   },
 
-  // Comparison boxes (Page 1)
+  // Comparison boxes (Page 1) - BETTER SPACING
   comparisonGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
-    gap: 20,
+    alignItems: 'center',
+    marginBottom: 28,
+    gap: 12,
+    width: '100%',
   },
   comparisonBox: {
     flex: 1,
-    padding: SPACING.cardPadding,
+    padding: 18,
     backgroundColor: COLORS.lightGray,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+    minHeight: 90,
+    justifyContent: 'center',
   },
   comparisonLabel: {
     fontSize: 10,
     color: '#666',
-    marginBottom: 12,
+    marginBottom: 10,
     textAlign: 'center',
+    lineHeight: 1.3,
   },
   comparisonValue: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.primary,
-    marginBottom: 12,
+    marginBottom: 0,
     textAlign: 'center',
+    lineHeight: 1.2,
   },
   valuePositive: {
     color: COLORS.success,
@@ -218,43 +224,53 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
   },
 
-  // Metric boxes (Page 1, 4)
+  // Metric boxes (Page 1, 4) - CONSISTENT SIZING
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 30,
-    gap: 15,
+    marginBottom: 28,
+    gap: 12,
+    width: '100%',
   },
   metricBox: {
-    width: '23%',
-    padding: 15,
+    width: '22%',
+    paddingHorizontal: 12,
+    paddingVertical: 14,
     backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#e0e0e0',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 80,
   },
   metricLabel: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#7f8c8d',
     marginBottom: 8,
     textAlign: 'center',
+    lineHeight: 1.3,
+    maxWidth: '100%',
   },
   metricValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.primary,
+    textAlign: 'center',
+    lineHeight: 1.2,
   },
 
-  // Highlight boxes
+  // Highlight boxes - IMPROVED SPACING
   highlightBox: {
     padding: 20,
     backgroundColor: '#e8f5e9',
     borderRadius: 8,
     borderLeftWidth: 5,
     borderLeftColor: COLORS.success,
-    marginVertical: 20,
+    marginVertical: 16,
+    marginHorizontal: 0,
+    flexDirection: 'column',
   },
   warningBox: {
     padding: 20,
@@ -262,33 +278,40 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 5,
     borderLeftColor: COLORS.warning,
-    marginVertical: 20,
+    marginVertical: 16,
+    marginHorizontal: 0,
+    flexDirection: 'column',
   },
   highlightTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 'bold',
     color: COLORS.primary,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   highlightText: {
     fontSize: 10,
     lineHeight: 1.6,
     color: '#333',
+    marginBottom: 0,
   },
 
-  // Chart container
+  // Chart container - RESPONSIVE WIDTH
   chartContainer: {
     alignItems: 'center',
-    marginVertical: 12,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    marginVertical: 20,
+    paddingVertical: 12,
+    width: '100%',
   },
   chart: {
-    width: CHART_CONFIG.minWidth,
+    width: '90%',
     height: CHART_CONFIG.minHeight,
+    maxWidth: CHART_CONFIG.minWidth,
   },
   chartLarge: {
-    width: 520,
+    width: '95%',
     height: 240,
+    maxWidth: 520,
   },
 
   // Section container (prevents page breaks)
@@ -299,89 +322,102 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sectionGap,
   },
 
-  // Property/service boxes
+  // Property/service boxes - IMPROVED LAYOUT
   propertyBox: {
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     backgroundColor: '#e3f2fd',
-    borderRadius: 8,
-    borderLeftWidth: 5,
+    borderRadius: 6,
+    borderLeftWidth: 4,
     borderLeftColor: COLORS.info,
-    marginVertical: 15,
+    marginVertical: 12,
+    marginHorizontal: 8,
+    flex: '0 0 calc(50% - 16px)',
   },
   propertyValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#2196f3',
-    marginBottom: 8,
-  },
-  propertyLabel: {
-    fontSize: 10,
-    color: '#7f8c8d',
     marginBottom: 6,
   },
+  propertyLabel: {
+    fontSize: 9,
+    color: '#7f8c8d',
+    marginBottom: 6,
+    lineHeight: 1.3,
+  },
 
-  // Tax boxes
+  // Tax boxes - CONSISTENT SIZING
   taxGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 30,
-    gap: 15,
+    marginBottom: 28,
+    gap: 12,
+    width: '100%',
   },
   taxBox: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
     backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#e0e0e0',
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
   },
   taxBoxSavings: {
     backgroundColor: '#fff3e0',
     borderColor: '#ff9800',
   },
   taxLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#666',
-    marginBottom: 12,
+    marginBottom: 10,
     textAlign: 'center',
+    lineHeight: 1.3,
   },
   taxValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.primary,
     textAlign: 'center',
+    lineHeight: 1.2,
+    marginBottom: 0,
   },
   taxValueSavings: {
     color: COLORS.orange,
-    fontSize: 28,
+    fontSize: 26,
   },
 
-  // Recommendation cards
+  // Recommendation cards - CLEANER SPACING
   recommendationCard: {
-    padding: SPACING.cardPadding,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    borderLeftWidth: 5,
+    borderRadius: 6,
+    borderLeftWidth: 4,
     borderLeftColor: COLORS.info,
-    marginBottom: 25,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
   recNumber: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     color: COLORS.info,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   recPriority: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#fff',
-    padding: '4 8',
-    marginBottom: 12,
-    width: 70,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 10,
+    width: 65,
     textAlign: 'center',
-    borderRadius: 4,
+    borderRadius: 3,
   },
   recPriorityHigh: {
     backgroundColor: COLORS.danger,
@@ -393,63 +429,70 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1c40f',
   },
   recContent: {
-    marginBottom: 10,
+    marginBottom: 8,
   },
   recLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 'bold',
     color: COLORS.primary,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   recText: {
-    fontSize: 10,
-    lineHeight: 1.5,
+    fontSize: 9,
+    lineHeight: 1.4,
     color: '#333',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   timelineBar: {
-    height: 8,
+    height: 6,
     backgroundColor: '#ecf0f1',
-    borderRadius: 4,
-    marginTop: 8,
+    borderRadius: 3,
+    marginTop: 6,
     overflow: 'hidden',
   },
   timelineFill: {
     height: '100%',
     backgroundColor: COLORS.info,
-    borderRadius: 4,
+    borderRadius: 3,
   },
   recImpact: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.warning,
-    letterSpacing: 2,
-    marginTop: 8,
+    letterSpacing: 1,
+    marginTop: 6,
   },
 
-  // Service capacity section
+  // Service capacity section - CONSISTENT SIZING
   serviceBoxGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 15,
-    gap: 15,
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 12,
+    width: '100%',
   },
   serviceMetric: {
     flex: 1,
     alignItems: 'center',
-    padding: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    borderRadius: 6,
+    minHeight: 70,
+    justifyContent: 'center',
   },
   serviceValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.info,
     marginBottom: 4,
+    textAlign: 'center',
+    lineHeight: 1.2,
   },
   serviceLabel: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#666',
     textAlign: 'center',
+    lineHeight: 1.3,
   },
 });
 
