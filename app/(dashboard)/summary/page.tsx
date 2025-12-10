@@ -125,6 +125,7 @@ export default function SummaryPage() {
     : null;
 
   // Calculate totals from store and client data
+  const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const calculateSummary = (): FinancialSummary => {
     const client = activeClient;
     const clientName = client 
@@ -539,7 +540,25 @@ export default function SummaryPage() {
     };
   };
 
-  const summary = calculateSummary();
+  useEffect(() => {
+    setSummary(calculateSummary());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    financialStore.activeClient,
+    financialStore.clientA,
+    financialStore.clientB,
+    financialStore.grossIncome,
+    financialStore.superBalance,
+    financialStore.cashSavings,
+    financialStore.investments,
+    financialStore.rentalIncome,
+    financialStore.workRelatedExpenses,
+    financialStore.investmentExpenses,
+    financialStore.rentalExpenses,
+    financialStore.frankedDividends,
+    financialStore.capitalGains,
+    financialStore.totalDebt
+  ]);
 
   // Helper function to validate chart images
   const validateChartImage = (dataUrl: string | undefined): string | undefined => {
@@ -1621,7 +1640,7 @@ export default function SummaryPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Financial Planning Summary</h1>
-          <p className="text-muted-foreground">Comprehensive overview and export options for {summary.clientName}</p>
+          <p className="text-muted-foreground">Comprehensive overview and export options for {summary?.clientName || ''}</p>
         </div>        <div className="flex gap-2">
           <Button variant="outline" onClick={shareReport}>
             <Share2 className="h-4 w-4 mr-2" />

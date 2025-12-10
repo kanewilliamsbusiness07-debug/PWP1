@@ -236,15 +236,13 @@ export default function InvestmentPropertiesPage() {
     toast({ title: 'Property removed', description: 'Property has been removed from your portfolio' });
   };
 
-  const runServiceabilityTest = () => {
+  // Auto-calculate serviceability when form data changes
+  useEffect(() => {
     const data = serviceabilityForm.getValues();
     const result = calculateServiceability(data);
     setServiceabilityResult(result);
-    toast({ 
-      title: 'Serviceability calculated', 
-      description: result.canAfford ? 'Property appears affordable' : 'Property may not be serviceable'
-    });
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceabilityForm.watch()]);
 
   // Calculate portfolio totals
   const portfolioTotals = properties.reduce((totals, property) => {

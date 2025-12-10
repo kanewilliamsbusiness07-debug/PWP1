@@ -64,6 +64,31 @@ export default function ProjectionsPage() {
   const [results, setResults] = useState<ProjectionResults | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const { toast } = useToast();
+
+  // Auto-calculate projections when form data changes
+  useEffect(() => {
+    // Only run if all required fields are present and valid
+    const projectionData = projectionForm.getValues();
+    const assumptions = assumptionsForm.getValues();
+    if (
+      projectionData.currentAge > 0 &&
+      projectionData.retirementAge > projectionData.currentAge &&
+      projectionData.annualIncome >= 0 &&
+      projectionData.currentSuper >= 0 &&
+      projectionData.currentSavings >= 0 &&
+      projectionData.currentShares >= 0 &&
+      projectionData.propertyEquity >= 0 &&
+      projectionData.monthlyDebtPayments >= 0 &&
+      projectionData.monthlyRentalIncome >= 0 &&
+      projectionData.monthlyExpenses >= 0
+    ) {
+      calculateProjections();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    projectionForm.watch(),
+    assumptionsForm.watch()
+  ]);
   
   // Subscribe to specific store values to ensure re-renders
   const activeClient = useFinancialStore((state) => state.activeClient);
@@ -369,14 +394,7 @@ export default function ProjectionsPage() {
           <h1 className="text-3xl font-bold text-foreground">Financial Projections</h1>
           <p className="text-muted-foreground">Plan your retirement and analyze future financial position</p>
         </div>
-        <Button 
-          onClick={calculateProjections}
-          disabled={isCalculating}
-          className="bg-yellow-500 text-white hover:bg-yellow-600"
-        >
-          <Calculator className="h-4 w-4 mr-2" />
-          {isCalculating ? 'Calculating...' : 'Calculate Projections'}
-        </Button>
+        {/* Button removed for auto-calc */}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
