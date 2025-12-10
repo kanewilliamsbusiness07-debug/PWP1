@@ -658,6 +658,95 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     name: 'properties',
   });
 
+  // Watch fields needed for projections auto-calculation
+  const watchedDob = form.watch('dob');
+  const watchedAssets = form.watch('assets');
+  const watchedProperties = form.watch('properties');
+  const watchedLiabilities = form.watch('liabilities');
+
+  // Auto-calculate projections fields from other form data
+  useEffect(() => {
+    // Calculate current age from DOB
+    if (watchedDob) {
+      const birthDate = new Date(watchedDob);
+      if (!isNaN(birthDate.getTime())) {
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        if (age >= 0 && age !== form.getValues('currentAge')) {
+          form.setValue('currentAge', age);
+        }
+      }
+    }
+
+    // Calculate current savings from assets with type 'savings'
+    if (watchedAssets && Array.isArray(watchedAssets)) {
+      const totalSavings = watchedAssets
+        .filter((asset: any) => asset.type === 'savings')
+        .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+      if (totalSavings !== form.getValues('currentSavings')) {
+        form.setValue('currentSavings', totalSavings);
+      }
+    }
+
+    // Calculate current shares from assets with type 'shares'
+    if (watchedAssets && Array.isArray(watchedAssets)) {
+      const totalShares = watchedAssets
+        .filter((asset: any) => asset.type === 'shares')
+        .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+      if (totalShares !== form.getValues('currentShares')) {
+        form.setValue('currentShares', totalShares);
+      }
+    }
+
+    // Calculate current super from assets with type 'super'
+    if (watchedAssets && Array.isArray(watchedAssets)) {
+      const totalSuper = watchedAssets
+        .filter((asset: any) => asset.type === 'super')
+        .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+      if (totalSuper !== form.getValues('currentSuper')) {
+        form.setValue('currentSuper', totalSuper);
+      }
+    }
+
+    // Calculate property equity from investment properties (currentValue - loanAmount)
+    if (watchedProperties && Array.isArray(watchedProperties)) {
+      const totalEquity = watchedProperties
+        .reduce((sum: number, property: any) => {
+          const value = parseFloat(property.currentValue) || 0;
+          const loan = parseFloat(property.loanAmount) || 0;
+          return sum + (value - loan);
+        }, 0);
+      if (totalEquity !== form.getValues('propertyEquity')) {
+        form.setValue('propertyEquity', totalEquity);
+      }
+    }
+
+    // Calculate monthly rental income from investment properties (weeklyRent * 52 / 12)
+    if (watchedProperties && Array.isArray(watchedProperties)) {
+      const totalMonthlyRent = watchedProperties
+        .reduce((sum: number, property: any) => {
+          const weeklyRent = parseFloat(property.weeklyRent) || 0;
+          return sum + (weeklyRent * 52 / 12);
+        }, 0);
+      if (Math.abs(totalMonthlyRent - (form.getValues('monthlyRentalIncome') || 0)) > 0.01) {
+        form.setValue('monthlyRentalIncome', Math.round(totalMonthlyRent * 100) / 100);
+      }
+    }
+
+    // Calculate monthly debt payments from liabilities
+    if (watchedLiabilities && Array.isArray(watchedLiabilities)) {
+      const totalDebtPayments = watchedLiabilities
+        .reduce((sum: number, liability: any) => sum + (parseFloat(liability.monthlyPayment) || 0), 0);
+      if (totalDebtPayments !== form.getValues('monthlyDebtPayments')) {
+        form.setValue('monthlyDebtPayments', totalDebtPayments);
+      }
+    }
+  }, [watchedDob, watchedAssets, watchedProperties, watchedLiabilities, form]);
+
   return (
     <Card>
       <CardHeader>
