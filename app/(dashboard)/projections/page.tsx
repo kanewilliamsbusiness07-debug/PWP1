@@ -382,6 +382,8 @@ export default function ProjectionsPage() {
     }, 1500);
     // --- End: User-specified Financial Projection Logic ---
 
+  };
+
   const projectionData = projectionForm.watch();
   const progressToRetirement = projectionData.retirementAge > projectionData.currentAge 
     ? ((projectionData.retirementAge - projectionData.currentAge) / (projectionData.retirementAge - 25)) * 100
