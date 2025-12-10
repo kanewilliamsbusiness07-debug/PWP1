@@ -1458,9 +1458,10 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                     </div>
                   </div>
 
-                  <div>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold">Assets</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold">Assets</h3>
                       <Button
                         type="button"
                         variant="outline"
