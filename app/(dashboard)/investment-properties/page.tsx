@@ -244,6 +244,17 @@ export default function InvestmentPropertiesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceabilityForm.watch()]);
 
+  // Manual trigger (kept for UI button) - mirrors auto-calc behavior
+  const runServiceabilityTest = () => {
+    const data = serviceabilityForm.getValues();
+    const result = calculateServiceability(data);
+    setServiceabilityResult(result);
+    toast({
+      title: 'Serviceability calculated',
+      description: result.canAfford ? 'Property appears affordable' : 'Property may not be serviceable'
+    });
+  };
+
   // Calculate portfolio totals
   const portfolioTotals = properties.reduce((totals, property) => {
     const analysis = analyzeProperty(property);
