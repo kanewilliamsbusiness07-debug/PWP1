@@ -745,7 +745,58 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         form.setValue('monthlyDebtPayments', totalDebtPayments);
       }
     }
-  }, [watchedDob, watchedAssets, watchedProperties, watchedLiabilities, form]);
+
+    // Auto-create investment properties from property assets matched with mortgage liabilities
+    if (watchedAssets && watchedLiabilities && Array.isArray(watchedAssets) && Array.isArray(watchedLiabilities)) {
+      const propertyAssets = watchedAssets.filter((asset: any) => asset.type === 'property' && asset.name && asset.currentValue > 0);
+      const mortgageLiabilities = watchedLiabilities.filter((liability: any) => liability.type === 'mortgage' && liability.name);
+      
+      // Get current properties to avoid duplicates
+      const currentProperties = form.getValues('properties') || [];
+      
+      // For each property asset, try to find a matching mortgage and create an investment property
+      propertyAssets.forEach((propertyAsset: any) => {
+        const assetName = (propertyAsset.name || '').toLowerCase().trim();
+        
+        // Check if an investment property already exists for this asset (by matching address/name)
+        const existingProperty = currentProperties.find((prop: any) => 
+          (prop.address || '').toLowerCase().trim() === assetName ||
+          (prop.linkedAssetId === propertyAsset.id)
+        );
+        
+        if (!existingProperty && assetName) {
+          // Try to find a matching mortgage by name similarity
+          const matchingMortgage = mortgageLiabilities.find((mortgage: any) => {
+            const mortgageName = (mortgage.name || '').toLowerCase().trim();
+            // Match if names are similar or if both contain common property identifiers
+            return mortgageName === assetName || 
+                   mortgageName.includes(assetName) || 
+                   assetName.includes(mortgageName) ||
+                   (assetName.length > 3 && mortgageName.length > 3 && 
+                    (assetName.split(' ').some((word: string) => word.length > 3 && mortgageName.includes(word)) ||
+                     mortgageName.split(' ').some((word: string) => word.length > 3 && assetName.includes(word))));
+          });
+          
+          // Create investment property from asset + mortgage data
+          const newProperty = {
+            id: `property-auto-${propertyAsset.id}`,
+            linkedAssetId: propertyAsset.id,
+            address: propertyAsset.name || '',
+            purchasePrice: Number(propertyAsset.currentValue) || 0,
+            currentValue: Number(propertyAsset.currentValue) || 0,
+            loanAmount: matchingMortgage ? (Number(matchingMortgage.balance) || 0) : 0,
+            interestRate: matchingMortgage ? (Number(matchingMortgage.interestRate) || 0) : 0,
+            loanTerm: 30,
+            weeklyRent: 0,
+            annualExpenses: 0,
+          };
+          
+          // Append the new property
+          appendProperty(newProperty);
+        }
+      });
+    }
+  }, [watchedDob, watchedAssets, watchedProperties, watchedLiabilities, form, appendProperty]);
 
   return (
     <Card>
