@@ -1426,9 +1426,6 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                           <FormItem>
                             <FormLabel>
                               Total Monthly Expenses
-                              <span className="ml-2 text-xs text-muted-foreground" title="Your total monthly living expenses including rent/mortgage payments, groceries, utilities, transport, insurance, entertainment, etc. Do NOT include: taxes (already calculated), property investment expenses, or HECS debt repayments (handled separately).">
-                                Γä╣∩╕Å
-                              </span>
                             </FormLabel>
                             <FormControl>
                               <Input
