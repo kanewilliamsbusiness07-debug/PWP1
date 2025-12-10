@@ -286,6 +286,16 @@ export default function FinancialPositionPage() {
   };
 
   useSyncFields(incomeForm);
+  // Auto-save income details when form changes
+  useEffect(() => {
+    if (store?.updateField) {
+      const data = incomeForm.getValues();
+      Object.entries(data).forEach(([key, value]) => {
+        store.updateField(key as any, Number(value));
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomeForm.watch()]);
 
   const handleAddAsset = () => {
     const newAsset: Asset = {

@@ -590,11 +590,14 @@ export default function TaxOptimizationPage() {
     }
   };
 
-  const handleCalculate = () => {
+  // Auto-calculate tax optimization when form data changes
+  useEffect(() => {
     const data = taxForm.getValues();
-    const result = calculateTax(data);
-    setCurrentTax(result);
-  };
+    if (data.annualIncome >= 0) {
+      calculateOptimizations();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taxForm.watch()]);
 
   return (
     <div className="p-6 space-y-6 bg-background min-h-screen">
