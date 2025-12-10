@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
@@ -1427,7 +1427,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>
                               Total Monthly Expenses
                               <span className="ml-2 text-xs text-muted-foreground" title="Your total monthly living expenses including rent/mortgage payments, groceries, utilities, transport, insurance, entertainment, etc. Do NOT include: taxes (already calculated), property investment expenses, or HECS debt repayments (handled separately).">
-                                ℹ️
+                                Γä╣∩╕Å
                               </span>
                             </FormLabel>
                             <FormControl>
@@ -1458,247 +1458,251 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                     </div>
                   </div>
 
+                  {/* Assets and Liabilities Side by Side */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Assets Column - Left */}
                     <div>
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-semibold">Assets</h3>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => appendAsset({ id: `asset-${Date.now()}`, name: '', currentValue: 0, type: 'other' })}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Asset
-                      </Button>
-                    </div>
-                    <div className="space-y-4">
-                      {assetFields.map((field, index) => (
-                        <Card key={field.id}>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-4">
-                              <h4 className="font-medium">Asset {index + 1}</h4>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeAsset(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <FormField
-                                control={form.control}
-                                name={`assets.${index}.name`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Name</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Asset name" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`assets.${index}.currentValue`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Value</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9.]*"
-                                        placeholder="0"
-                                        {...field}
-                                        value={field.value ?? ''}
-                                        onChange={(e) => {
-                                          const value = e.target.value.replace(/[^0-9.]/g, '');
-                                          field.onChange(parseFloat(value) || 0);
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`assets.${index}.type`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Type</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => appendAsset({ id: `asset-${Date.now()}`, name: '', currentValue: 0, type: 'other' })}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Asset
+                        </Button>
+                      </div>
+                      <div className="space-y-4">
+                        {assetFields.map((field, index) => (
+                          <Card key={field.id}>
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start mb-4">
+                                <h4 className="font-medium">Asset {index + 1}</h4>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeAsset(index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="grid grid-cols-1 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name={`assets.${index}.name`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Name</FormLabel>
                                       <FormControl>
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Select type" />
-                                        </SelectTrigger>
+                                        <Input placeholder="Asset name" {...field} />
                                       </FormControl>
-                                      <SelectContent>
-                                        <SelectItem value="property">Property</SelectItem>
-                                        <SelectItem value="vehicle">Vehicle</SelectItem>
-                                        <SelectItem value="savings">Savings</SelectItem>
-                                        <SelectItem value="shares">Shares</SelectItem>
-                                        <SelectItem value="super">Super</SelectItem>
-                                        <SelectItem value="other">Other</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`assets.${index}.currentValue`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Value</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          type="text"
+                                          inputMode="numeric"
+                                          pattern="[0-9.]*"
+                                          placeholder="0"
+                                          {...field}
+                                          value={field.value ?? ''}
+                                          onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9.]/g, '');
+                                            field.onChange(parseFloat(value) || 0);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`assets.${index}.type`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Type</FormLabel>
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Select type" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="property">Property</SelectItem>
+                                          <SelectItem value="vehicle">Vehicle</SelectItem>
+                                          <SelectItem value="savings">Savings</SelectItem>
+                                          <SelectItem value="shares">Shares</SelectItem>
+                                          <SelectItem value="super">Super</SelectItem>
+                                          <SelectItem value="other">Other</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold">Liabilities</h3>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, type: 'other' })}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Liability
-                      </Button>
-                    </div>
-                    <div className="space-y-4">
-                      {liabilityFields.map((field, index) => (
-                        <Card key={field.id}>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-4">
-                              <h4 className="font-medium">Liability {index + 1}</h4>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeLiability(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name={`liabilities.${index}.name`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Name</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Liability name" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`liabilities.${index}.type`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Type</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
+                    {/* Liabilities Column - Right */}
+                    <div>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold">Liabilities</h3>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, type: 'other' })}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Liability
+                        </Button>
+                      </div>
+                      <div className="space-y-4">
+                        {liabilityFields.map((field, index) => (
+                          <Card key={field.id}>
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start mb-4">
+                                <h4 className="font-medium">Liability {index + 1}</h4>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeLiability(index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="grid grid-cols-1 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name={`liabilities.${index}.name`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Name</FormLabel>
                                       <FormControl>
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Select type" />
-                                        </SelectTrigger>
+                                        <Input placeholder="Liability name" {...field} />
                                       </FormControl>
-                                      <SelectContent>
-                                        <SelectItem value="mortgage">Mortgage</SelectItem>
-                                        <SelectItem value="personal-loan">Personal Loan</SelectItem>
-                                        <SelectItem value="credit-card">Credit Card</SelectItem>
-                                        <SelectItem value="hecs">HECS/HELP</SelectItem>
-                                        <SelectItem value="other">Other</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`liabilities.${index}.balance`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Balance</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9.]*"
-                                        placeholder="0"
-                                        {...field}
-                                        value={field.value ?? ''}
-                                        onChange={(e) => {
-                                          const value = e.target.value.replace(/[^0-9.]/g, '');
-                                          field.onChange(parseFloat(value) || 0);
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`liabilities.${index}.monthlyPayment`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Monthly Payment</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9.]*"
-                                        placeholder="0"
-                                        {...field}
-                                        value={field.value ?? ''}
-                                        onChange={(e) => {
-                                          const value = e.target.value.replace(/[^0-9.]/g, '');
-                                          field.onChange(parseFloat(value) || 0);
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`liabilities.${index}.interestRate`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Interest Rate (%)</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9.]*"
-                                        placeholder="0"
-                                        {...field}
-                                        value={field.value ?? ''}
-                                        onChange={(e) => {
-                                          const value = e.target.value.replace(/[^0-9.]/g, '');
-                                          field.onChange(parseFloat(value) || 0);
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`liabilities.${index}.type`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Type</FormLabel>
+                                      <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Select type" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="mortgage">Mortgage</SelectItem>
+                                          <SelectItem value="personal-loan">Personal Loan</SelectItem>
+                                          <SelectItem value="credit-card">Credit Card</SelectItem>
+                                          <SelectItem value="hecs">HECS/HELP</SelectItem>
+                                          <SelectItem value="other">Other</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`liabilities.${index}.balance`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Balance</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          type="text"
+                                          inputMode="numeric"
+                                          pattern="[0-9.]*"
+                                          placeholder="0"
+                                          {...field}
+                                          value={field.value ?? ''}
+                                          onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9.]/g, '');
+                                            field.onChange(parseFloat(value) || 0);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`liabilities.${index}.monthlyPayment`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Monthly Payment</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          type="text"
+                                          inputMode="numeric"
+                                          pattern="[0-9.]*"
+                                          placeholder="0"
+                                          {...field}
+                                          value={field.value ?? ''}
+                                          onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9.]/g, '');
+                                            field.onChange(parseFloat(value) || 0);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`liabilities.${index}.interestRate`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Interest Rate (%)</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          type="text"
+                                          inputMode="numeric"
+                                          pattern="[0-9.]*"
+                                          placeholder="0"
+                                          {...field}
+                                          value={field.value ?? ''}
+                                          onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9.]/g, '');
+                                            field.onChange(parseFloat(value) || 0);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2899,3 +2903,4 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     </Card>
   );
 }
+
