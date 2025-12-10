@@ -125,7 +125,31 @@ export default function SummaryPage() {
     : null;
 
   // Calculate totals from store and client data
-  const [summary, setSummary] = useState<FinancialSummary | null>(null);
+  const defaultSummary: FinancialSummary = {
+    clientName: '',
+    totalAssets: 0,
+    totalLiabilities: 0,
+    netWorth: 0,
+    monthlyIncome: 0,
+    monthlyExpenses: 0,
+    monthlyCashFlow: 0,
+    projectedRetirementLumpSum: 0,
+    projectedRetirementMonthlyCashFlow: 0,
+    projectedRetirementSurplus: 0,
+    retirementDeficitSurplus: 0,
+    isRetirementDeficit: false,
+    yearsToRetirement: 0,
+    currentTax: 0,
+    optimizedTax: 0,
+    taxSavings: 0,
+    investmentProperties: 0,
+    totalPropertyValue: 0,
+    totalPropertyDebt: 0,
+    propertyEquity: 0,
+    recommendations: []
+  };
+
+  const [summary, setSummary] = useState<FinancialSummary>(defaultSummary);
   const calculateSummary = (): FinancialSummary => {
     const client = activeClient;
     const clientName = client 
@@ -1577,7 +1601,7 @@ export default function SummaryPage() {
       try {
         await navigator.share({
           title: 'Financial Planning Report',
-          text: `Financial planning report for ${summary.clientName}`,
+          text: `Financial planning report for ${summary?.clientName ?? ''}`,
           url: window.location.href
         });
       } catch (error) {

@@ -66,29 +66,7 @@ export default function ProjectionsPage() {
   const { toast } = useToast();
 
   // Auto-calculate projections when form data changes
-  useEffect(() => {
-    // Only run if all required fields are present and valid
-    const projectionData = projectionForm.getValues();
-    const assumptions = assumptionsForm.getValues();
-    if (
-      projectionData.currentAge > 0 &&
-      projectionData.retirementAge > projectionData.currentAge &&
-      projectionData.annualIncome >= 0 &&
-      projectionData.currentSuper >= 0 &&
-      projectionData.currentSavings >= 0 &&
-      projectionData.currentShares >= 0 &&
-      projectionData.propertyEquity >= 0 &&
-      projectionData.monthlyDebtPayments >= 0 &&
-      projectionData.monthlyRentalIncome >= 0 &&
-      projectionData.monthlyExpenses >= 0
-    ) {
-      calculateProjections();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    projectionForm.watch(),
-    assumptionsForm.watch()
-  ]);
+  
   
   // Subscribe to specific store values to ensure re-renders
   const activeClient = useFinancialStore((state) => state.activeClient);
@@ -229,6 +207,31 @@ export default function ProjectionsPage() {
     assumptionsForm
   ]);
 
+  // Auto-calculate projections when form data changes (forms are declared above)
+  useEffect(() => {
+    try {
+      const projectionData = projectionForm.getValues();
+      const assumptions = assumptionsForm.getValues();
+      if (
+        projectionData.currentAge > 0 &&
+        projectionData.retirementAge > projectionData.currentAge &&
+        projectionData.annualIncome >= 0 &&
+        projectionData.currentSuper >= 0 &&
+        projectionData.currentSavings >= 0 &&
+        projectionData.currentShares >= 0 &&
+        projectionData.propertyEquity >= 0 &&
+        projectionData.monthlyDebtPayments >= 0 &&
+        projectionData.monthlyRentalIncome >= 0 &&
+        projectionData.monthlyExpenses >= 0
+      ) {
+        calculateProjections();
+      }
+    } catch (err) {
+      // safe-guard during initial render
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectionForm.watch(), assumptionsForm.watch()]);
+
   // Australian tax calculation functions
   const taxBrackets = [
     { min: 0, max: 18200, rate: 0, baseAmount: 0 },
@@ -264,123 +267,126 @@ export default function ProjectionsPage() {
   };
 
   const calculateProjections = () => {
-    // --- Begin: User-specified Financial Projection Logic ---
+    // --- Begin: Improved Full-Compounding Financial Projection Logic ---
     const projectionData = projectionForm.getValues();
     const assumptions = assumptionsForm.getValues();
     setIsCalculating(true);
-    setTimeout(() => {
-      // Step 1: Years Until Retirement
-      const yearsToRetirement = Math.max(0, projectionData.retirementAge - projectionData.currentAge);
-      if (yearsToRetirement <= 0) {
-        toast({
-          title: 'Invalid Input',
-          description: 'Retirement age must be greater than current age',
-          variant: 'destructive'
-        });
+
+    try {
+      const years = Math.max(0, projectionData.retirementAge - projectionData.currentAge);
+      if (years <= 0) {
+        toast({ title: 'Invalid Input', description: 'Retirement age must be greater than current age', variant: 'destructive' });
         setIsCalculating(false);
         return;
       }
 
-      // Step 2: Net Monthly Cash Flow
-      const netMonthlyCashFlow = projectionData.monthlyRentalIncome - projectionData.monthlyDebtPayments - projectionData.monthlyExpenses;
+      // Rates
+      const r_super = assumptions.superReturn / 100;
+      const r_shares = assumptions.shareReturn / 100;
+      const r_property = assumptions.propertyGrowthRate / 100;
+      const g_salary = assumptions.salaryGrowthRate / 100;
+      const g_rent = assumptions.rentGrowthRate / 100;
+      const inflation = assumptions.inflationRate / 100;
 
-      // Step 3: Annual Contributions
-      // Superannuation Guarantee Rate (default 11.5%)
+      // Super contributions (Super Guarantee)
       const superGuaranteeRate = 0.115;
-      let superContributions: number[] = [];
-      let savingsContributions: number[] = [];
-      let annualIncomeArr: number[] = [];
-      let superArr: number[] = [];
-      let savingsArr: number[] = [];
-      let sharesArr: number[] = [];
-      let propertyArr: number[] = [];
-      let rentArr: number[] = [];
-      let expensesArr: number[] = [];
+      const initialSuperContribution = projectionData.annualIncome * superGuaranteeRate;
 
-      // Initialize starting values
-      annualIncomeArr[0] = projectionData.annualIncome;
-      superArr[0] = projectionData.currentSuper;
-      savingsArr[0] = projectionData.currentSavings;
-      sharesArr[0] = projectionData.currentShares;
-      propertyArr[0] = projectionData.propertyEquity;
-      rentArr[0] = projectionData.monthlyRentalIncome;
-      expensesArr[0] = projectionData.monthlyExpenses;
+      // Helper: growing annuity term with edge-case when r === g
+      const growingAnnuity = (initial: number, r: number, g: number, n: number) => {
+        const eps = 1e-12;
+        if (Math.abs(r - g) < eps) {
+          // Limit: n * initial * (1 + r)^(n-1)
+          return initial * n * Math.pow(1 + r, n - 1);
+        }
+        return initial * ((Math.pow(1 + r, n) - Math.pow(1 + g, n)) / (r - g));
+      };
 
-      // Step 4: Project Asset Growth Over Time
-      for (let i = 1; i <= yearsToRetirement; i++) {
-        // Annual Income
-        annualIncomeArr[i] = annualIncomeArr[i - 1] * (1 + assumptions.salaryGrowthRate / 100);
-        // Super Contribution
-        superContributions[i] = annualIncomeArr[i] * superGuaranteeRate;
-        // Savings Contribution
-        savingsContributions[i] = netMonthlyCashFlow * 12;
-        // Super Balance
-        superArr[i] = superArr[i - 1] * (1 + assumptions.superReturn / 100) + superContributions[i] * Math.pow(1 + assumptions.superReturn / 100, 0.5);
-        // Savings Balance
-        savingsArr[i] = savingsArr[i - 1] * (1 + assumptions.superReturn / 100) + savingsContributions[i] * Math.pow(1 + assumptions.superReturn / 100, 0.5);
-        // Shares/Investments
-        sharesArr[i] = sharesArr[i - 1] * (1 + assumptions.shareReturn / 100);
-        // Property Equity
-        propertyArr[i] = propertyArr[i - 1] * (1 + assumptions.propertyGrowthRate / 100);
-        // Monthly Rental Income
-        rentArr[i] = rentArr[i - 1] * (1 + assumptions.rentGrowthRate / 100);
-        // Monthly Expenses
-        expensesArr[i] = expensesArr[i - 1] * (1 + assumptions.inflationRate / 100);
+      // 1) Superannuation with growing contributions (salary growth)
+      const futureSuperPrincipal = projectionData.currentSuper * Math.pow(1 + r_super, years);
+      const futureSuperContributions = growingAnnuity(initialSuperContribution, r_super, g_salary, years);
+      const futureSuper = futureSuperPrincipal + futureSuperContributions;
+
+      // 2) Shares/Investments (no additional contributions assumed)
+      const futureShares = projectionData.currentShares * Math.pow(1 + r_shares, years);
+
+      // 3) Property equity
+      const futureProperty = projectionData.propertyEquity * Math.pow(1 + r_property, years);
+
+      // 4) Savings with growing net cash flow (rent grows, expenses inflation)
+      const initialMonthlyNetCashflow = projectionData.monthlyRentalIncome - projectionData.monthlyDebtPayments - projectionData.monthlyExpenses;
+      const initialAnnualNetCashflow = initialMonthlyNetCashflow * 12;
+
+      // Effective growth for net cashflow: rent grows at g_rent, expenses at inflation -> simplified effective growth
+      const effectiveCashflowGrowth = g_rent - inflation;
+
+      // Use a conservative savings return; use super return as proxy for conservative cash returns
+      const r_savings = r_super;
+
+      const futureSavingsPrincipal = projectionData.currentSavings * Math.pow(1 + r_savings, years);
+      const futureSavingsContributions = (() => {
+        const eps = 1e-12;
+        if (Math.abs(r_savings - effectiveCashflowGrowth) < eps) {
+          return initialAnnualNetCashflow * years * Math.pow(1 + r_savings, years - 1);
+        }
+        return initialAnnualNetCashflow * ((Math.pow(1 + r_savings, years) - Math.pow(1 + effectiveCashflowGrowth, years)) / (r_savings - effectiveCashflowGrowth));
+      })();
+      const futureSavings = futureSavingsPrincipal + futureSavingsContributions;
+
+      // 5) Total projected lump sum
+      const projectedLumpSum = futureSuper + futureShares + futureProperty + futureSavings;
+
+      // 6) Annual passive income
+      const finalAnnualRentalIncome = projectionData.monthlyRentalIncome * Math.pow(1 + g_rent, years) * 12;
+      const investmentWithdrawal = projectedLumpSum * (assumptions.withdrawalRate / 100);
+      const annualPassiveIncome = investmentWithdrawal + finalAnnualRentalIncome;
+
+      // 7) Target income (70% of final salary)
+      const finalAnnualIncome = projectionData.annualIncome * Math.pow(1 + g_salary, years);
+      const targetRetirementIncome = finalAnnualIncome * 0.7;
+
+      // 8) Surplus / Deficit
+      const surplusOrDeficit = annualPassiveIncome - targetRetirementIncome;
+      const isDeficit = surplusOrDeficit < 0;
+      const monthlyDeficitSurplus = Math.abs(surplusOrDeficit) / 12;
+
+      // Savings depletion (simple estimate using finalSavings only)
+      let savingsDepletionYears: number | undefined = undefined;
+      if (isDeficit && futureSavings > 0) {
+        const annualDeficit = Math.abs(surplusOrDeficit);
+        if (annualDeficit > 0) {
+          savingsDepletionYears = futureSavings / annualDeficit;
+        }
       }
 
-      // Step 5: Calculate Retirement Position
-      const finalSuper = superArr[yearsToRetirement];
-      const finalSavings = savingsArr[yearsToRetirement];
-      const finalShares = sharesArr[yearsToRetirement];
-      const finalProperty = propertyArr[yearsToRetirement];
-      const projectedLumpSum = finalSuper + finalSavings + finalShares + finalProperty;
+      // Tax and after-tax income on final annual income
+      const taxCalc = calculateTax(finalAnnualIncome);
 
-      // Step 6: Calculate Annual Passive Income
-      const annualWithdrawal = projectedLumpSum * (assumptions.withdrawalRate / 100);
-      const annualRentalIncome = rentArr[yearsToRetirement] * 12;
-      const projectedPassiveIncome = annualWithdrawal + annualRentalIncome;
-
-      // Step 7: Calculate Retirement Income Target
-      const currentAnnualExpenses = projectionData.monthlyExpenses * 12;
-      const targetIncome70 = annualIncomeArr[yearsToRetirement] * 0.7;
-      const inflationAdjustedTarget = projectionData.annualIncome * 0.7 * Math.pow(1 + assumptions.inflationRate / 100, yearsToRetirement);
-      // Use whichever is more relevant (here, use 70% of final year income)
-      const requiredIncome = targetIncome70;
-
-      // Step 8: Calculate Surplus/Deficit
-      const retirementSurplusDeficit = projectedPassiveIncome - requiredIncome;
-      const isDeficit = retirementSurplusDeficit < 0;
-      const monthlyDeficitSurplus = Math.abs(retirementSurplusDeficit) / 12;
-      const percentOfTarget = (projectedPassiveIncome / requiredIncome) * 100;
-
-      // Step 9: Optional - Required Adjustments (not displayed, but can be added)
-      let savingsDepletionYears;
-      if (isDeficit && finalSavings > 0) {
-        const annualDeficit = requiredIncome - projectedPassiveIncome;
-        savingsDepletionYears = finalSavings / annualDeficit;
-      }
-
-      // Step 10: Output Results
       const calculatedResults: ProjectionResults = {
-        yearsToRetirement,
+        yearsToRetirement: years,
         projectedLumpSum,
-        projectedPassiveIncome,
-        requiredIncome,
+        projectedPassiveIncome: annualPassiveIncome,
+        requiredIncome: targetRetirementIncome,
         monthlyDeficitSurplus,
         isDeficit,
-        savingsDepletionYears: savingsDepletionYears,
-        monthlySavings: netMonthlyCashFlow,
-        afterTaxIncome: annualIncomeArr[yearsToRetirement],
-        totalTax: 0 // Not calculated in this logic
+        savingsDepletionYears,
+        monthlySavings: initialMonthlyNetCashflow,
+        afterTaxIncome: taxCalc.afterTaxIncome,
+        totalTax: taxCalc.totalTax
       };
-      setResults(calculatedResults);
+
+      // Small delay to keep UX consistent with earlier behaviour
+      setTimeout(() => {
+        setResults(calculatedResults);
+        setIsCalculating(false);
+        toast({ title: 'Projections calculated', description: `Your retirement projection has been updated` });
+      }, 300);
+    } catch (err) {
+      console.error('Projection calculation error', err);
+      toast({ title: 'Calculation Error', description: 'An error occurred while calculating projections', variant: 'destructive' });
       setIsCalculating(false);
-      toast({
-        title: 'Projections calculated',
-        description: `Your retirement projection has been updated`
-      });
-    }, 1500);
-    // --- End: User-specified Financial Projection Logic ---
+    }
+    // --- End: Improved Full-Compounding Financial Projection Logic ---
 
   };
 
