@@ -1005,13 +1005,6 @@ export default function ProjectionsPage() {
                         ${results.requiredIncome.toLocaleString()}
                       </span>
                     </div>
-                    
-                    <div className="flex justify-between items-center pt-2 border-t">
-                      <span className="text-muted-foreground">Monthly Savings:</span>
-                      <span className={`font-semibold ${results.monthlySavings >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
-                        ${results.monthlySavings.toLocaleString()}
-                      </span>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
