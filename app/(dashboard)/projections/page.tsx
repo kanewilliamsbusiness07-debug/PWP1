@@ -343,24 +343,30 @@ export default function ProjectionsPage() {
       const futureProperty = projectionData.propertyEquity * Math.pow(1 + r_property, years);
 
       // Step 5: Calculate Future Savings (COMPLEX - Net Cashflow Changes Each Year)
-      const initialMonthlyNetCashflow = projectionData.monthlyRentalIncome - projectionData.monthlyDebtPayments - projectionData.monthlyExpenses;
-      const initialAnnualNetCashflow = initialMonthlyNetCashflow * 12;
+      // NOTE: Monthly expenses here should only include discretionary/living expenses
+      // Debt payments are already captured in monthlyDebtPayments
+      // For savings accumulation, we consider: income available after expenses that can be saved
+      const initialMonthlyNetCashflow = projectionData.monthlyRentalIncome - projectionData.monthlyDebtPayments;
+      const initialAnnualNetCashflow = Math.max(0, initialMonthlyNetCashflow * 12); // Only positive cashflow contributes to savings
       
       // Part 1: Current savings grow with compound interest
       const futureSavingsFromGrowth = projectionData.currentSavings * Math.pow(1 + r_super, years);
       
       // Part 2: Net cashflow contribution (grows at effective rate)
+      // Only apply if there's positive cashflow to invest
       // Effective growth = rent growth - inflation (assuming rent and expenses are similar magnitude)
       const effectiveCashflowGrowth = g_rent - inflation;
       
       let futureSavingsFromCashflow = 0;
-      if (Math.abs(r_super - effectiveCashflowGrowth) < 0.0001) {
-        // Edge case: when r ≈ g
-        futureSavingsFromCashflow = initialAnnualNetCashflow * years * Math.pow(1 + r_super, years - 1);
-      } else {
-        futureSavingsFromCashflow = initialAnnualNetCashflow * 
-          ((Math.pow(1 + r_super, years) - Math.pow(1 + effectiveCashflowGrowth, years)) / 
-           (r_super - effectiveCashflowGrowth));
+      if (initialAnnualNetCashflow > 0) {
+        if (Math.abs(r_super - effectiveCashflowGrowth) < 0.0001) {
+          // Edge case: when r ≈ g
+          futureSavingsFromCashflow = initialAnnualNetCashflow * years * Math.pow(1 + r_super, years - 1);
+        } else {
+          futureSavingsFromCashflow = initialAnnualNetCashflow * 
+            ((Math.pow(1 + r_super, years) - Math.pow(1 + effectiveCashflowGrowth, years)) / 
+             (r_super - effectiveCashflowGrowth));
+        }
       }
       
       const futureSavings = futureSavingsFromGrowth + futureSavingsFromCashflow;
