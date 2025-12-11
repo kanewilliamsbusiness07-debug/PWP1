@@ -798,7 +798,7 @@ export default function FinancialPositionPage() {
                                   {...field}
                                   onChange={(e) => {
                                     const value = e.target.value.replace(/[^0-9.]/g, '');
-                                    field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                    field.onChange(value);
                                   }}
                                 />
                               </FormControl>
@@ -823,7 +823,7 @@ export default function FinancialPositionPage() {
                                   {...field}
                                   onChange={(e) => {
                                     const value = e.target.value.replace(/[^0-9.]/g, '');
-                                    field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                    field.onChange(value);
                                   }}
                                 />
                               </FormControl>
@@ -848,7 +848,7 @@ export default function FinancialPositionPage() {
                                   {...field}
                                   onChange={(e) => {
                                     const value = e.target.value.replace(/[^0-9.]/g, '');
-                                    field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                    field.onChange(value);
                                   }}
                                 />
                               </FormControl>
@@ -873,7 +873,7 @@ export default function FinancialPositionPage() {
                                   {...field}
                                   onChange={(e) => {
                                     const value = e.target.value.replace(/[^0-9.]/g, '');
-                                    field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                    field.onChange(value);
                                   }}
                                 />
                               </FormControl>

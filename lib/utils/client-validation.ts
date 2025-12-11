@@ -130,7 +130,7 @@ export const clientValidationSchema = z.object({
   suburb: z.string().max(100, 'Suburb is too long').optional().or(z.literal('')),
   state: z.enum(['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA']).optional(),
   postcode: z.string().max(4, 'Postcode must be 4 digits').optional().or(z.literal('')),
-  ownOrRent: z.enum(['OWN', 'RENT']).optional(),
+  ownOrRent: z.enum(['OWN', 'RENT', 'MORTGAGED']).optional(),
   
   // Financial Position - Income
   annualIncome: z.number().min(0, 'Annual income cannot be negative').max(10000000, 'Annual income is too high').optional(),
