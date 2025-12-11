@@ -207,30 +207,55 @@ export default function ProjectionsPage() {
     assumptionsForm
   ]);
 
+  // Watch form values outside useEffect to avoid infinite loops
+  const watchedProjectionData = projectionForm.watch();
+  const watchedAssumptionsData = assumptionsForm.watch();
+
   // Auto-calculate projections when form data changes (forms are declared above)
   useEffect(() => {
-    try {
-      const projectionData = projectionForm.getValues();
-      const assumptions = assumptionsForm.getValues();
-      if (
-        projectionData.currentAge > 0 &&
-        projectionData.retirementAge > projectionData.currentAge &&
-        projectionData.annualIncome >= 0 &&
-        projectionData.currentSuper >= 0 &&
-        projectionData.currentSavings >= 0 &&
-        projectionData.currentShares >= 0 &&
-        projectionData.propertyEquity >= 0 &&
-        projectionData.monthlyDebtPayments >= 0 &&
-        projectionData.monthlyRentalIncome >= 0 &&
-        projectionData.monthlyExpenses >= 0
-      ) {
-        calculateProjections();
+    // Debounce to prevent too frequent calculations
+    const timeoutId = setTimeout(() => {
+      try {
+        if (
+          watchedProjectionData.currentAge > 0 &&
+          watchedProjectionData.retirementAge > watchedProjectionData.currentAge &&
+          watchedProjectionData.annualIncome >= 0 &&
+          watchedProjectionData.currentSuper >= 0 &&
+          watchedProjectionData.currentSavings >= 0 &&
+          watchedProjectionData.currentShares >= 0 &&
+          watchedProjectionData.propertyEquity >= 0 &&
+          watchedProjectionData.monthlyDebtPayments >= 0 &&
+          watchedProjectionData.monthlyRentalIncome >= 0 &&
+          watchedProjectionData.monthlyExpenses >= 0
+        ) {
+          calculateProjections();
+        }
+      } catch (err) {
+        // safe-guard during initial render
       }
-    } catch (err) {
-      // safe-guard during initial render
-    }
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectionForm.watch(), assumptionsForm.watch()]);
+  }, [
+    watchedProjectionData.currentAge,
+    watchedProjectionData.retirementAge,
+    watchedProjectionData.annualIncome,
+    watchedProjectionData.currentSuper,
+    watchedProjectionData.currentSavings,
+    watchedProjectionData.currentShares,
+    watchedProjectionData.propertyEquity,
+    watchedProjectionData.monthlyDebtPayments,
+    watchedProjectionData.monthlyRentalIncome,
+    watchedProjectionData.monthlyExpenses,
+    watchedAssumptionsData.inflationRate,
+    watchedAssumptionsData.salaryGrowthRate,
+    watchedAssumptionsData.superReturn,
+    watchedAssumptionsData.shareReturn,
+    watchedAssumptionsData.propertyGrowthRate,
+    watchedAssumptionsData.withdrawalRate,
+    watchedAssumptionsData.rentGrowthRate
+  ]);
 
   // Australian tax calculation functions
   const taxBrackets = [
