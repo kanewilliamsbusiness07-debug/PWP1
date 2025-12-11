@@ -154,46 +154,65 @@ export default function ProjectionsPage() {
     projectionForm
   ]);
 
+  // Default assumptions based on Australian market norms
+  const DEFAULT_ASSUMPTIONS = {
+    inflationRate: 2.5,       // RBA target
+    salaryGrowthRate: 3.0,    // Typical salary growth
+    superReturn: 7.0,         // Long-term super return
+    shareReturn: 7.0,         // Long-term equity return
+    propertyGrowthRate: 4.0,  // Conservative property growth
+    withdrawalRate: 4.0,      // Safe withdrawal rate
+    rentGrowthRate: 3.0       // Rent typically tracks inflation + 0.5%
+  };
+
   const assumptionsForm = useForm<AssumptionsData>({
     resolver: zodResolver(assumptionsSchema),
     defaultValues: {
-      inflationRate: clientData?.inflationRate ?? 0,
-      salaryGrowthRate: clientData?.salaryGrowthRate ?? 0,
-      superReturn: clientData?.superReturn ?? 0,
-      shareReturn: clientData?.shareReturn ?? 0,
-      propertyGrowthRate: clientData?.propertyGrowthRate ?? 0,
-      withdrawalRate: clientData?.withdrawalRate ?? 0,
-      rentGrowthRate: clientData?.rentGrowthRate ?? 0
+      inflationRate: clientData?.inflationRate || DEFAULT_ASSUMPTIONS.inflationRate,
+      salaryGrowthRate: clientData?.salaryGrowthRate || DEFAULT_ASSUMPTIONS.salaryGrowthRate,
+      superReturn: clientData?.superReturn || DEFAULT_ASSUMPTIONS.superReturn,
+      shareReturn: clientData?.shareReturn || DEFAULT_ASSUMPTIONS.shareReturn,
+      propertyGrowthRate: clientData?.propertyGrowthRate || DEFAULT_ASSUMPTIONS.propertyGrowthRate,
+      withdrawalRate: clientData?.withdrawalRate || DEFAULT_ASSUMPTIONS.withdrawalRate,
+      rentGrowthRate: clientData?.rentGrowthRate || DEFAULT_ASSUMPTIONS.rentGrowthRate
     }
   });
 
   // Watch client data and update assumptions form when it changes (use setValue to avoid disrupting user input)
+  // Only override if client has explicitly set a value (non-zero), otherwise keep defaults
   useEffect(() => {
     if (!activeClient) return;
     
     const currentValues = assumptionsForm.getValues();
     
-    // Only update if values differ
-    if (Math.abs((currentValues.inflationRate || 0) - (clientData?.inflationRate ?? 0)) > 0.01) {
-      assumptionsForm.setValue('inflationRate', clientData?.inflationRate ?? 0, { shouldDirty: false });
+    // Only update if client has a non-zero value that differs from current
+    if (clientData?.inflationRate && clientData.inflationRate > 0 && 
+        Math.abs((currentValues.inflationRate || 0) - clientData.inflationRate) > 0.01) {
+      assumptionsForm.setValue('inflationRate', clientData.inflationRate, { shouldDirty: false });
     }
-    if (Math.abs((currentValues.salaryGrowthRate || 0) - (clientData?.salaryGrowthRate ?? 0)) > 0.01) {
-      assumptionsForm.setValue('salaryGrowthRate', clientData?.salaryGrowthRate ?? 0, { shouldDirty: false });
+    if (clientData?.salaryGrowthRate && clientData.salaryGrowthRate > 0 && 
+        Math.abs((currentValues.salaryGrowthRate || 0) - clientData.salaryGrowthRate) > 0.01) {
+      assumptionsForm.setValue('salaryGrowthRate', clientData.salaryGrowthRate, { shouldDirty: false });
     }
-    if (Math.abs((currentValues.superReturn || 0) - (clientData?.superReturn ?? 0)) > 0.01) {
-      assumptionsForm.setValue('superReturn', clientData?.superReturn ?? 0, { shouldDirty: false });
+    if (clientData?.superReturn && clientData.superReturn > 0 && 
+        Math.abs((currentValues.superReturn || 0) - clientData.superReturn) > 0.01) {
+      assumptionsForm.setValue('superReturn', clientData.superReturn, { shouldDirty: false });
     }
-    if (Math.abs((currentValues.shareReturn || 0) - (clientData?.shareReturn ?? 0)) > 0.01) {
-      assumptionsForm.setValue('shareReturn', clientData?.shareReturn ?? 0, { shouldDirty: false });
+    if (clientData?.shareReturn && clientData.shareReturn > 0 && 
+        Math.abs((currentValues.shareReturn || 0) - clientData.shareReturn) > 0.01) {
+      assumptionsForm.setValue('shareReturn', clientData.shareReturn, { shouldDirty: false });
     }
-    if (Math.abs((currentValues.propertyGrowthRate || 0) - (clientData?.propertyGrowthRate ?? 0)) > 0.01) {
-      assumptionsForm.setValue('propertyGrowthRate', clientData?.propertyGrowthRate ?? 0, { shouldDirty: false });
+    if (clientData?.propertyGrowthRate && clientData.propertyGrowthRate > 0 && 
+        Math.abs((currentValues.propertyGrowthRate || 0) - clientData.propertyGrowthRate) > 0.01) {
+      assumptionsForm.setValue('propertyGrowthRate', clientData.propertyGrowthRate, { shouldDirty: false });
     }
-    if (Math.abs((currentValues.withdrawalRate || 0) - (clientData?.withdrawalRate ?? 0)) > 0.01) {
-      assumptionsForm.setValue('withdrawalRate', clientData?.withdrawalRate ?? 0, { shouldDirty: false });
+    if (clientData?.withdrawalRate && clientData.withdrawalRate > 0 && 
+        Math.abs((currentValues.withdrawalRate || 0) - clientData.withdrawalRate) > 0.01) {
+      assumptionsForm.setValue('withdrawalRate', clientData.withdrawalRate, { shouldDirty: false });
     }
-    if (Math.abs((currentValues.rentGrowthRate || 0) - (clientData?.rentGrowthRate ?? 0)) > 0.01) {
-      assumptionsForm.setValue('rentGrowthRate', clientData?.rentGrowthRate ?? 0, { shouldDirty: false });
+    if (clientData?.rentGrowthRate && clientData.rentGrowthRate > 0 && 
+        Math.abs((currentValues.rentGrowthRate || 0) - clientData.rentGrowthRate) > 0.01) {
+      assumptionsForm.setValue('rentGrowthRate', clientData.rentGrowthRate, { shouldDirty: false });
     }
   }, [
     clientData?.inflationRate,
