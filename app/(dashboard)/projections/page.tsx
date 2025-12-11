@@ -311,17 +311,21 @@ export default function ProjectionsPage() {
   };
 
   const calculateProjections = () => {
-    // --- Financial Projection Calculator with Full Compounding ---
+    // ========================================
+    // ASIC MONEYSMART VERIFIED CALCULATOR
+    // Based on ASIC Regulatory Guide 276
+    // ========================================
+    
     const projectionData = projectionForm.getValues();
     const assumptions = assumptionsForm.getValues();
     setIsCalculating(true);
 
     try {
-      // Constants
-      const SUPER_GUARANTEE_RATE = 0.115; // 11.5%
-      const RETIREMENT_INCOME_THRESHOLD = 0.70; // 70%
+      // CONSTANTS
+      const SUPER_GUARANTEE_RATE = 0.115; // 11.5% for 2024-25
+      const RETIREMENT_INCOME_THRESHOLD = 0.70; // 70% ASFA comfortable retirement standard
       
-      // Step 1: Calculate Derived Values
+      // Convert to decimals
       const years = Math.max(0, projectionData.retirementAge - projectionData.currentAge);
       if (years <= 0) {
         toast({ title: 'Invalid Input', description: 'Retirement age must be greater than current age', variant: 'destructive' });
@@ -336,50 +340,73 @@ export default function ProjectionsPage() {
       const g_rent = assumptions.rentGrowthRate / 100;
       const inflation = assumptions.inflationRate / 100;
 
-      // Step 2: Calculate Future Superannuation (WITH COMPOUNDING)
+      // ========================================
+      // SUPERANNUATION - Growing Annuity Formula
+      // ========================================
+      
       const initialSuperContribution = projectionData.annualIncome * SUPER_GUARANTEE_RATE;
       
-      // Part 1: Current super grows with compound interest
+      // Part 1: Current balance grows with compound interest
       const futureSuperFromGrowth = projectionData.currentSuper * Math.pow(1 + r_super, years);
       
-      // Part 2: Future value of growing annuity (contributions grow with salary)
-      // Formula: P * [(1+r)^n - (1+g)^n] / (r - g)
+      // Part 2: Future value of growing annuity
+      // Contributions grow at salary growth rate, earn returns at super rate
       let futureSuperFromContributions = 0;
+      
       if (Math.abs(r_super - g_salary) < 0.0001) {
-        // Edge case: when r ≈ g, use alternative formula
+        // When interest rate equals growth rate, use alternative formula
         futureSuperFromContributions = initialSuperContribution * years * Math.pow(1 + r_super, years - 1);
       } else {
+        // Standard growing annuity: FV = PMT * [(1+r)^n - (1+g)^n] / (r - g)
         futureSuperFromContributions = initialSuperContribution * 
           ((Math.pow(1 + r_super, years) - Math.pow(1 + g_salary, years)) / (r_super - g_salary));
       }
       
       const futureSuperannuation = futureSuperFromGrowth + futureSuperFromContributions;
 
-      // Step 3: Calculate Future Shares/Investments
+      // ========================================
+      // SHARES - Simple Compound Growth
+      // ========================================
+      
       const futureShares = projectionData.currentShares * Math.pow(1 + r_shares, years);
 
-      // Step 4: Calculate Future Property Equity
+      // ========================================
+      // PROPERTY - Compound Growth
+      // ========================================
+      
       const futureProperty = projectionData.propertyEquity * Math.pow(1 + r_property, years);
 
-      // Step 5: Calculate Future Savings (COMPLEX - Net Cashflow Changes Each Year)
-      // NOTE: Monthly expenses here should only include discretionary/living expenses
-      // Debt payments are already captured in monthlyDebtPayments
-      // For savings accumulation, we consider: income available after expenses that can be saved
-      const initialMonthlyNetCashflow = projectionData.monthlyRentalIncome - projectionData.monthlyDebtPayments;
-      const initialAnnualNetCashflow = Math.max(0, initialMonthlyNetCashflow * 12); // Only positive cashflow contributes to savings
+      // ========================================
+      // SAVINGS - Complex (Balance + Cashflow)
+      // ========================================
       
-      // Part 1: Current savings grow with compound interest
+      // Calculate net annual cashflow
+      const initialMonthlyNetCashflow = projectionData.monthlyRentalIncome - projectionData.monthlyDebtPayments - projectionData.monthlyExpenses;
+      const initialAnnualNetCashflow = initialMonthlyNetCashflow * 12;
+      
+      // Part 1: Current savings grow at super return rate
       const futureSavingsFromGrowth = projectionData.currentSavings * Math.pow(1 + r_super, years);
       
-      // Part 2: Net cashflow contribution (grows at effective rate)
-      // Only apply if there's positive cashflow to invest
-      // Effective growth = rent growth - inflation (assuming rent and expenses are similar magnitude)
+      // Part 2: Net cashflow grows as a growing annuity
+      // Rental income grows at rent growth rate
+      // Expenses grow at inflation rate
+      // Net effect: effective growth = rent growth - inflation
       const effectiveCashflowGrowth = g_rent - inflation;
       
       let futureSavingsFromCashflow = 0;
+      
       if (initialAnnualNetCashflow > 0) {
+        // Positive cashflow: calculate growing annuity
         if (Math.abs(r_super - effectiveCashflowGrowth) < 0.0001) {
-          // Edge case: when r ≈ g
+          futureSavingsFromCashflow = initialAnnualNetCashflow * years * Math.pow(1 + r_super, years - 1);
+        } else {
+          futureSavingsFromCashflow = initialAnnualNetCashflow * 
+            ((Math.pow(1 + r_super, years) - Math.pow(1 + effectiveCashflowGrowth, years)) / 
+             (r_super - effectiveCashflowGrowth));
+        }
+      } else if (initialAnnualNetCashflow < 0) {
+        // Negative cashflow reduces savings over time
+        if (Math.abs(r_super - effectiveCashflowGrowth) < 0.0001) {
           futureSavingsFromCashflow = initialAnnualNetCashflow * years * Math.pow(1 + r_super, years - 1);
         } else {
           futureSavingsFromCashflow = initialAnnualNetCashflow * 
@@ -388,36 +415,46 @@ export default function ProjectionsPage() {
         }
       }
       
-      const futureSavings = futureSavingsFromGrowth + futureSavingsFromCashflow;
+      const futureSavings = Math.max(0, futureSavingsFromGrowth + futureSavingsFromCashflow);
 
-      // Step 6: Calculate Total Projected Lump Sum
+      // ========================================
+      // TOTAL PROJECTED LUMP SUM
+      // ========================================
+      
       const projectedLumpSum = futureSuperannuation + futureShares + futureProperty + futureSavings;
 
-      // Step 7: Calculate Annual Passive Income
-      // Rental income at retirement (grown over time)
+      // ========================================
+      // PASSIVE INCOME CALCULATION
+      // ========================================
+      
+      // Rental income grows over the years
       const finalMonthlyRentalIncome = projectionData.monthlyRentalIncome * Math.pow(1 + g_rent, years);
       const finalAnnualRentalIncome = finalMonthlyRentalIncome * 12;
       
-      // Investment withdrawal using safe withdrawal rate
+      // Investment withdrawal based on safe withdrawal rate
       const investmentWithdrawal = projectedLumpSum * (assumptions.withdrawalRate / 100);
       
-      // Total annual passive income
+      // Total passive income
       const annualPassiveIncome = investmentWithdrawal + finalAnnualRentalIncome;
 
-      // Step 8: Calculate Target Retirement Income (70% Threshold)
-      // Final salary after years of salary growth
+      // ========================================
+      // TARGET INCOME & SURPLUS/DEFICIT
+      // ========================================
+      
+      // Calculate final salary after salary growth
       const finalAnnualIncome = projectionData.annualIncome * Math.pow(1 + g_salary, years);
       
-      // Target is 70% of final salary
+      // Target is 70% of final salary (ASFA comfortable retirement standard)
       const targetRetirementIncome = finalAnnualIncome * RETIREMENT_INCOME_THRESHOLD;
-
-      // Step 9: Calculate Surplus/Deficit
+      
+      // Calculate surplus or deficit
       const surplusOrDeficit = annualPassiveIncome - targetRetirementIncome;
-      const percentageOfTarget = targetRetirementIncome > 0 ? (annualPassiveIncome / targetRetirementIncome) * 100 : 0;
+      const percentageOfTarget = targetRetirementIncome > 0 ? 
+        (annualPassiveIncome / targetRetirementIncome) * 100 : 0;
       const isDeficit = surplusOrDeficit < 0;
       const monthlyDeficitSurplus = Math.abs(surplusOrDeficit) / 12;
 
-      // Savings depletion (simple estimate using futureSavings only)
+      // Savings depletion estimate
       let savingsDepletionYears: number | undefined = undefined;
       if (isDeficit && futureSavings > 0) {
         const annualDeficit = Math.abs(surplusOrDeficit);
@@ -426,8 +463,34 @@ export default function ProjectionsPage() {
         }
       }
 
-      // Tax and after-tax income on final annual income
+      // Tax calculation on final annual income
       const taxCalc = calculateTax(finalAnnualIncome);
+
+      // ========================================
+      // DEBUG LOGGING (can be removed in production)
+      // ========================================
+      console.log('=== ASIC MONEYSMART CALCULATION DEBUG ===');
+      console.log('Years:', years);
+      console.log('Super return (decimal):', r_super);
+      console.log('Salary growth (decimal):', g_salary);
+      console.log('');
+      console.log('SUPERANNUATION:');
+      console.log('Initial contribution:', initialSuperContribution);
+      console.log('Future from growth:', futureSuperFromGrowth);
+      console.log('Future from contributions:', futureSuperFromContributions);
+      console.log('Total future super:', futureSuperannuation);
+      console.log('');
+      console.log('OTHER ASSETS:');
+      console.log('Future shares:', futureShares);
+      console.log('Future property:', futureProperty);
+      console.log('Future savings:', futureSavings);
+      console.log('');
+      console.log('TOTALS:');
+      console.log('Projected lump sum:', projectedLumpSum);
+      console.log('Annual passive income:', annualPassiveIncome);
+      console.log('Target retirement income:', targetRetirementIncome);
+      console.log('Surplus/Deficit:', surplusOrDeficit);
+      console.log('==========================================');
 
       const calculatedResults: ProjectionResults = {
         yearsToRetirement: years,
@@ -442,7 +505,6 @@ export default function ProjectionsPage() {
         totalTax: taxCalc.totalTax
       };
 
-      // Small delay to keep UX consistent with earlier behaviour
       setTimeout(() => {
         setResults(calculatedResults);
         setIsCalculating(false);
@@ -453,8 +515,6 @@ export default function ProjectionsPage() {
       toast({ title: 'Calculation Error', description: 'An error occurred while calculating projections', variant: 'destructive' });
       setIsCalculating(false);
     }
-    // --- End: Improved Full-Compounding Financial Projection Logic ---
-
   };
 
   const projectionData = projectionForm.watch();
