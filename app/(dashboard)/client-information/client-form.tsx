@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
@@ -171,7 +171,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       suburb: client?.suburb || '',
       state: (client?.state as 'ACT' | 'NSW' | 'NT' | 'QLD' | 'SA' | 'TAS' | 'VIC' | 'WA' | undefined) || undefined,
       postcode: client?.postcode || '',
-      ownOrRent: (client?.ownOrRent as 'OWN' | 'RENT' | undefined) || undefined,
+      ownOrRent: (client?.ownOrRent as 'OWN' | 'RENT' | 'MORTGAGED' | undefined) || undefined,
       // For new clients, always default to 0. For existing clients, use their value or 0.
       annualIncome: isNewClient ? 0 : (client?.grossSalary || client?.grossIncome || client?.annualIncome || 0),
       rentalIncome: client?.rentalIncome || 0,
@@ -408,7 +408,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         suburb: client.suburb || '',
         state: (client.state as 'ACT' | 'NSW' | 'NT' | 'QLD' | 'SA' | 'TAS' | 'VIC' | 'WA' | undefined) || undefined,
         postcode: client.postcode || '',
-        ownOrRent: (client.ownOrRent as 'OWN' | 'RENT' | undefined) || undefined,
+        ownOrRent: (client.ownOrRent as 'OWN' | 'RENT' | 'MORTGAGED' | undefined) || undefined,
         // For new clients, always default to 0. For existing clients, use their value or 0.
         annualIncome: isNewClient ? 0 : (client.grossSalary || client.grossIncome || client.annualIncome || 0),
         rentalIncome: client.rentalIncome || 0,
@@ -1352,6 +1352,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <SelectContent>
                               <SelectItem value="OWN">Own</SelectItem>
                               <SelectItem value="RENT">Rent</SelectItem>
+                              <SelectItem value="MORTGAGED">Mortgaged</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -1385,7 +1386,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -1416,7 +1417,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -1447,7 +1448,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -1478,7 +1479,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -1509,7 +1510,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -1540,7 +1541,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -1577,7 +1578,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 value={field.value ?? ''}
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
@@ -2149,7 +2150,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2179,7 +2180,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2209,7 +2210,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2239,7 +2240,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2269,7 +2270,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2299,7 +2300,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2335,7 +2336,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2365,7 +2366,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2395,7 +2396,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2425,7 +2426,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2455,7 +2456,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2485,7 +2486,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2515,7 +2516,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2556,7 +2557,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2586,7 +2587,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2622,7 +2623,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2652,7 +2653,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2682,7 +2683,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2712,7 +2713,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2742,7 +2743,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2772,7 +2773,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2802,7 +2803,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2832,7 +2833,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2862,7 +2863,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2892,7 +2893,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2922,7 +2923,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur
@@ -2952,7 +2953,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 onChange={(e) => {
                                   const value = e.target.value.replace(/[^0-9.]/g, '');
                                   // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value === '' ? undefined : (parseFloat(value) || 0));
+                                  field.onChange(value);
                                 }}
                                 onBlur={(e) => {
                                   // Ensure we have a number on blur

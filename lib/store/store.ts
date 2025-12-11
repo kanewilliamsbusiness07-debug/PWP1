@@ -63,7 +63,7 @@ interface ClientData {
   suburb?: string;
   state?: string;
   postcode?: string;
-  ownOrRent?: 'OWN' | 'RENT';
+  ownOrRent?: 'OWN' | 'RENT' | 'MORTGAGED';
   
   // Assets - Real Estate
   homePrice?: number;

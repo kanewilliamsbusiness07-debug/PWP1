@@ -6,7 +6,7 @@ interface ClientData {
   firstName: string;
   lastName: string;
   dateOfBirth?: Date;
-  ownOrRent?: 'OWN' | 'RENT';
+  ownOrRent?: 'OWN' | 'RENT' | 'MORTGAGED';
 }
 
 interface IncomeData {
