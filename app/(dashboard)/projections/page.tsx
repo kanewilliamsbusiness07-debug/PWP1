@@ -371,10 +371,38 @@ export default function ProjectionsPage() {
       const futureShares = projectionData.currentShares * Math.pow(1 + r_shares, years);
 
       // ========================================
-      // PROPERTY - Compound Growth
+      // PROPERTY - Proper Value Growth with Mortgage Paydown
       // ========================================
       
-      const futureProperty = projectionData.propertyEquity * Math.pow(1 + r_property, years);
+      // Get property details from client data if available
+      const properties = clientData?.properties || [];
+      let futureProperty = 0;
+      
+      if (properties.length > 0) {
+        // Calculate for each property: future value - remaining mortgage
+        futureProperty = properties.reduce((total: number, prop: any) => {
+          const currentValue = parseFloat(prop.currentValue) || 0;
+          const loanAmount = parseFloat(prop.loanAmount) || 0;
+          const loanTerm = parseFloat(prop.loanTerm) || 30; // Default 30 years
+          
+          // Property VALUE grows at property growth rate
+          const futureValue = currentValue * Math.pow(1 + r_property, years);
+          
+          // Calculate remaining mortgage after 'years' of payments
+          // Assuming loan is paid down linearly over loan term
+          const yearsRemaining = Math.max(0, loanTerm - years);
+          const remainingMortgage = loanAmount > 0 ? (loanAmount * yearsRemaining / loanTerm) : 0;
+          
+          // Future equity = future value - remaining mortgage
+          const futureEquity = Math.max(0, futureValue - remainingMortgage);
+          
+          return total + futureEquity;
+        }, 0);
+      } else {
+        // Fallback: if no property details, use the old method
+        // But note: this compounds equity directly which may understate growth
+        futureProperty = projectionData.propertyEquity * Math.pow(1 + r_property, years);
+      }
 
       // ========================================
       // SAVINGS - Complex (Balance + Cashflow)
@@ -473,6 +501,7 @@ export default function ProjectionsPage() {
       console.log('Years:', years);
       console.log('Super return (decimal):', r_super);
       console.log('Salary growth (decimal):', g_salary);
+      console.log('Property growth (decimal):', r_property);
       console.log('');
       console.log('SUPERANNUATION:');
       console.log('Initial contribution:', initialSuperContribution);
@@ -480,9 +509,13 @@ export default function ProjectionsPage() {
       console.log('Future from contributions:', futureSuperFromContributions);
       console.log('Total future super:', futureSuperannuation);
       console.log('');
+      console.log('PROPERTY:');
+      console.log('Number of properties:', properties.length);
+      console.log('Current equity (form):', projectionData.propertyEquity);
+      console.log('Future property equity:', futureProperty);
+      console.log('');
       console.log('OTHER ASSETS:');
       console.log('Future shares:', futureShares);
-      console.log('Future property:', futureProperty);
       console.log('Future savings:', futureSavings);
       console.log('');
       console.log('TOTALS:');
