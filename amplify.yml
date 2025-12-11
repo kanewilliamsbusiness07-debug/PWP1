@@ -7,7 +7,6 @@ frontend:
         # Use Node 20 for Next.js 15, Supabase, and Vite compatibility
         - nvm install 20
         - nvm use 20
-        - corepack enable
         # Install dependencies
         - npm ci
         # Generate Prisma Client (required before build)
