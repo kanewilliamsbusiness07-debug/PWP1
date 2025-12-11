@@ -441,13 +441,13 @@ export default function ProjectionsPage() {
       // TARGET INCOME & SURPLUS/DEFICIT
       // ========================================
       
-      // Calculate final salary after salary growth
+      // Calculate final salary after salary growth (for reference only)
       const finalAnnualIncome = projectionData.annualIncome * Math.pow(1 + g_salary, years);
       
-      // Target is 70% of final salary (ASFA comfortable retirement standard)
-      const targetRetirementIncome = finalAnnualIncome * RETIREMENT_INCOME_THRESHOLD;
+      // Target is 70% of CURRENT income (not final salary)
+      const targetRetirementIncome = projectionData.annualIncome * RETIREMENT_INCOME_THRESHOLD;
       
-      // Calculate surplus or deficit
+      // Calculate surplus or deficit: passive income at retirement vs 70% of current income
       const surplusOrDeficit = annualPassiveIncome - targetRetirementIncome;
       const percentageOfTarget = targetRetirementIncome > 0 ? 
         (annualPassiveIncome / targetRetirementIncome) * 100 : 0;
@@ -487,9 +487,11 @@ export default function ProjectionsPage() {
       console.log('');
       console.log('TOTALS:');
       console.log('Projected lump sum:', projectedLumpSum);
-      console.log('Annual passive income:', annualPassiveIncome);
-      console.log('Target retirement income:', targetRetirementIncome);
-      console.log('Surplus/Deficit:', surplusOrDeficit);
+      console.log('Annual passive income at retirement:', annualPassiveIncome);
+      console.log('Target income (70% of CURRENT income):', targetRetirementIncome);
+      console.log('Current annual income:', projectionData.annualIncome);
+      console.log('Annual Surplus/Deficit:', surplusOrDeficit);
+      console.log('Monthly Surplus/Deficit:', monthlyDeficitSurplus);
       console.log('==========================================');
 
       const calculatedResults: ProjectionResults = {
