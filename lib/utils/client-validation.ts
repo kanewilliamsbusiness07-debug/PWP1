@@ -168,7 +168,7 @@ export const clientValidationSchema = z.object({
     currentValue: z.number().min(0, 'Current value cannot be negative').max(100000000, 'Current value is too high'),
     loanAmount: z.number().min(0, 'Loan amount cannot be negative').max(100000000, 'Loan amount is too high'),
     interestRate: z.number().min(0, 'Interest rate cannot be negative').max(100, 'Interest rate cannot exceed 100%'),
-    loanTerm: z.number().int().min(1, 'Loan term must be at least 1 year').max(50, 'Loan term cannot exceed 50 years'),
+    loanTerm: z.number().int().min(1, 'Loan term must be at least 1 year'),
     weeklyRent: z.number().min(0, 'Weekly rent cannot be negative').max(100000, 'Weekly rent is too high'),
     annualExpenses: z.number().min(0, 'Annual expenses cannot be negative').max(1000000, 'Annual expenses are too high'),
   })).optional(),
