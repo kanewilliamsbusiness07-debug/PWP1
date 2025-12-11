@@ -1197,7 +1197,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                               value={field.value ?? ''}
                               onChange={(e) => {
                                 const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value === '' ? undefined : (parseInt(value) || 0));
+                                field.onChange(value);
                               }}
                               onBlur={(e) => {
                                 const value = e.target.value.replace(/[^0-9]/g, '');
@@ -2004,7 +2004,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 value={field.value ?? ''}
                               onChange={(e) => {
                                 const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value === '' ? undefined : (parseInt(value) || 0));
+                                field.onChange(value);
                               }}
                               onBlur={(e) => {
                                 const value = e.target.value.replace(/[^0-9]/g, '');
@@ -2093,7 +2093,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 value={field.value ?? ''}
                               onChange={(e) => {
                                 const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value === '' ? undefined : (parseInt(value) || 0));
+                                field.onChange(value);
                               }}
                               onBlur={(e) => {
                                 const value = e.target.value.replace(/[^0-9]/g, '');
@@ -2121,7 +2121,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 value={field.value ?? ''}
                               onChange={(e) => {
                                 const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value === '' ? undefined : (parseInt(value) || 0));
+                                field.onChange(value);
                               }}
                               onBlur={(e) => {
                                 const value = e.target.value.replace(/[^0-9]/g, '');

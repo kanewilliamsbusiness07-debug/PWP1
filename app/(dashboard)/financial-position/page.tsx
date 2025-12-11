@@ -286,19 +286,6 @@ export default function FinancialPositionPage() {
   };
 
   useSyncFields(incomeForm);
-  
-  // Watch form values for auto-save
-  const watchedIncomeValues = incomeForm.watch();
-  
-  // Auto-save income details when form changes
-  useEffect(() => {
-    if (store?.updateField) {
-      const data = incomeForm.getValues();
-      Object.entries(data).forEach(([key, value]) => {
-        store.updateField(key as any, Number(value) || 0);
-      });
-    }
-  }, [watchedIncomeValues, store, incomeForm]);
 
   const handleAddAsset = () => {
     const newAsset: Asset = {
