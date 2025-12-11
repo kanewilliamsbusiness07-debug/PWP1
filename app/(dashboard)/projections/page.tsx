@@ -449,7 +449,11 @@ export default function ProjectionsPage() {
       // TOTAL PROJECTED LUMP SUM
       // ========================================
       
+      // Total lump sum includes all assets (for net worth display)
       const projectedLumpSum = futureSuperannuation + futureShares + futureProperty + futureSavings;
+      
+      // Liquid assets for withdrawal calculation (excludes property - can't easily withdraw from property)
+      const liquidAssetsForWithdrawal = futureSuperannuation + futureShares + futureSavings;
 
       // ========================================
       // PASSIVE INCOME CALCULATION
@@ -459,10 +463,10 @@ export default function ProjectionsPage() {
       const finalMonthlyRentalIncome = projectionData.monthlyRentalIncome * Math.pow(1 + g_rent, years);
       const finalAnnualRentalIncome = finalMonthlyRentalIncome * 12;
       
-      // Investment withdrawal based on safe withdrawal rate
-      const investmentWithdrawal = projectedLumpSum * (assumptions.withdrawalRate / 100);
+      // Investment withdrawal based on safe withdrawal rate (from LIQUID assets only, not property)
+      const investmentWithdrawal = liquidAssetsForWithdrawal * (assumptions.withdrawalRate / 100);
       
-      // Total passive income
+      // Total passive income = withdrawals from liquid assets + rental income from properties
       const annualPassiveIncome = investmentWithdrawal + finalAnnualRentalIncome;
 
       // ========================================
