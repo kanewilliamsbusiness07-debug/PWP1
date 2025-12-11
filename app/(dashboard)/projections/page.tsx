@@ -292,12 +292,17 @@ export default function ProjectionsPage() {
   };
 
   const calculateProjections = () => {
-    // --- Begin: Improved Full-Compounding Financial Projection Logic ---
+    // --- Financial Projection Calculator with Full Compounding ---
     const projectionData = projectionForm.getValues();
     const assumptions = assumptionsForm.getValues();
     setIsCalculating(true);
 
     try {
+      // Constants
+      const SUPER_GUARANTEE_RATE = 0.115; // 11.5%
+      const RETIREMENT_INCOME_THRESHOLD = 0.70; // 70%
+      
+      // Step 1: Calculate Derived Values
       const years = Math.max(0, projectionData.retirementAge - projectionData.currentAge);
       if (years <= 0) {
         toast({ title: 'Invalid Input', description: 'Retirement age must be greater than current age', variant: 'destructive' });
@@ -305,7 +310,6 @@ export default function ProjectionsPage() {
         return;
       }
 
-      // Rates
       const r_super = assumptions.superReturn / 100;
       const r_shares = assumptions.shareReturn / 100;
       const r_property = assumptions.propertyGrowthRate / 100;
@@ -313,69 +317,82 @@ export default function ProjectionsPage() {
       const g_rent = assumptions.rentGrowthRate / 100;
       const inflation = assumptions.inflationRate / 100;
 
-      // Super contributions (Super Guarantee)
-      const superGuaranteeRate = 0.115;
-      const initialSuperContribution = projectionData.annualIncome * superGuaranteeRate;
+      // Step 2: Calculate Future Superannuation (WITH COMPOUNDING)
+      const initialSuperContribution = projectionData.annualIncome * SUPER_GUARANTEE_RATE;
+      
+      // Part 1: Current super grows with compound interest
+      const futureSuperFromGrowth = projectionData.currentSuper * Math.pow(1 + r_super, years);
+      
+      // Part 2: Future value of growing annuity (contributions grow with salary)
+      // Formula: P * [(1+r)^n - (1+g)^n] / (r - g)
+      let futureSuperFromContributions = 0;
+      if (Math.abs(r_super - g_salary) < 0.0001) {
+        // Edge case: when r ≈ g, use alternative formula
+        futureSuperFromContributions = initialSuperContribution * years * Math.pow(1 + r_super, years - 1);
+      } else {
+        futureSuperFromContributions = initialSuperContribution * 
+          ((Math.pow(1 + r_super, years) - Math.pow(1 + g_salary, years)) / (r_super - g_salary));
+      }
+      
+      const futureSuperannuation = futureSuperFromGrowth + futureSuperFromContributions;
 
-      // Helper: growing annuity term with edge-case when r === g
-      const growingAnnuity = (initial: number, r: number, g: number, n: number) => {
-        const eps = 1e-12;
-        if (Math.abs(r - g) < eps) {
-          // Limit: n * initial * (1 + r)^(n-1)
-          return initial * n * Math.pow(1 + r, n - 1);
-        }
-        return initial * ((Math.pow(1 + r, n) - Math.pow(1 + g, n)) / (r - g));
-      };
-
-      // 1) Superannuation with growing contributions (salary growth)
-      const futureSuperPrincipal = projectionData.currentSuper * Math.pow(1 + r_super, years);
-      const futureSuperContributions = growingAnnuity(initialSuperContribution, r_super, g_salary, years);
-      const futureSuper = futureSuperPrincipal + futureSuperContributions;
-
-      // 2) Shares/Investments (no additional contributions assumed)
+      // Step 3: Calculate Future Shares/Investments
       const futureShares = projectionData.currentShares * Math.pow(1 + r_shares, years);
 
-      // 3) Property equity
+      // Step 4: Calculate Future Property Equity
       const futureProperty = projectionData.propertyEquity * Math.pow(1 + r_property, years);
 
-      // 4) Savings with growing net cash flow (rent grows, expenses inflation)
+      // Step 5: Calculate Future Savings (COMPLEX - Net Cashflow Changes Each Year)
       const initialMonthlyNetCashflow = projectionData.monthlyRentalIncome - projectionData.monthlyDebtPayments - projectionData.monthlyExpenses;
       const initialAnnualNetCashflow = initialMonthlyNetCashflow * 12;
-
-      // Effective growth for net cashflow: rent grows at g_rent, expenses at inflation -> simplified effective growth
+      
+      // Part 1: Current savings grow with compound interest
+      const futureSavingsFromGrowth = projectionData.currentSavings * Math.pow(1 + r_super, years);
+      
+      // Part 2: Net cashflow contribution (grows at effective rate)
+      // Effective growth = rent growth - inflation (assuming rent and expenses are similar magnitude)
       const effectiveCashflowGrowth = g_rent - inflation;
+      
+      let futureSavingsFromCashflow = 0;
+      if (Math.abs(r_super - effectiveCashflowGrowth) < 0.0001) {
+        // Edge case: when r ≈ g
+        futureSavingsFromCashflow = initialAnnualNetCashflow * years * Math.pow(1 + r_super, years - 1);
+      } else {
+        futureSavingsFromCashflow = initialAnnualNetCashflow * 
+          ((Math.pow(1 + r_super, years) - Math.pow(1 + effectiveCashflowGrowth, years)) / 
+           (r_super - effectiveCashflowGrowth));
+      }
+      
+      const futureSavings = futureSavingsFromGrowth + futureSavingsFromCashflow;
 
-      // Use a conservative savings return; use super return as proxy for conservative cash returns
-      const r_savings = r_super;
+      // Step 6: Calculate Total Projected Lump Sum
+      const projectedLumpSum = futureSuperannuation + futureShares + futureProperty + futureSavings;
 
-      const futureSavingsPrincipal = projectionData.currentSavings * Math.pow(1 + r_savings, years);
-      const futureSavingsContributions = (() => {
-        const eps = 1e-12;
-        if (Math.abs(r_savings - effectiveCashflowGrowth) < eps) {
-          return initialAnnualNetCashflow * years * Math.pow(1 + r_savings, years - 1);
-        }
-        return initialAnnualNetCashflow * ((Math.pow(1 + r_savings, years) - Math.pow(1 + effectiveCashflowGrowth, years)) / (r_savings - effectiveCashflowGrowth));
-      })();
-      const futureSavings = futureSavingsPrincipal + futureSavingsContributions;
-
-      // 5) Total projected lump sum
-      const projectedLumpSum = futureSuper + futureShares + futureProperty + futureSavings;
-
-      // 6) Annual passive income
-      const finalAnnualRentalIncome = projectionData.monthlyRentalIncome * Math.pow(1 + g_rent, years) * 12;
+      // Step 7: Calculate Annual Passive Income
+      // Rental income at retirement (grown over time)
+      const finalMonthlyRentalIncome = projectionData.monthlyRentalIncome * Math.pow(1 + g_rent, years);
+      const finalAnnualRentalIncome = finalMonthlyRentalIncome * 12;
+      
+      // Investment withdrawal using safe withdrawal rate
       const investmentWithdrawal = projectedLumpSum * (assumptions.withdrawalRate / 100);
+      
+      // Total annual passive income
       const annualPassiveIncome = investmentWithdrawal + finalAnnualRentalIncome;
 
-      // 7) Target income (70% of final salary)
+      // Step 8: Calculate Target Retirement Income (70% Threshold)
+      // Final salary after years of salary growth
       const finalAnnualIncome = projectionData.annualIncome * Math.pow(1 + g_salary, years);
-      const targetRetirementIncome = finalAnnualIncome * 0.7;
+      
+      // Target is 70% of final salary
+      const targetRetirementIncome = finalAnnualIncome * RETIREMENT_INCOME_THRESHOLD;
 
-      // 8) Surplus / Deficit
+      // Step 9: Calculate Surplus/Deficit
       const surplusOrDeficit = annualPassiveIncome - targetRetirementIncome;
+      const percentageOfTarget = targetRetirementIncome > 0 ? (annualPassiveIncome / targetRetirementIncome) * 100 : 0;
       const isDeficit = surplusOrDeficit < 0;
       const monthlyDeficitSurplus = Math.abs(surplusOrDeficit) / 12;
 
-      // Savings depletion (simple estimate using finalSavings only)
+      // Savings depletion (simple estimate using futureSavings only)
       let savingsDepletionYears: number | undefined = undefined;
       if (isDeficit && futureSavings > 0) {
         const annualDeficit = Math.abs(surplusOrDeficit);
