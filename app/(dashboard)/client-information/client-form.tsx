@@ -1153,8 +1153,10 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
 
               {/* Personal Information Tab */}
               <TabsContent value="personal" className="space-y-4 mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Primary Person Information */}
                   <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-2">Primary Person</h3>
                     <FormField
                       control={form.control}
                       name="firstName"
@@ -1341,7 +1343,164 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                     />
                   </div>
 
+                  {/* Partner/Spouse Information */}
                   <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-2">Partner/Spouse (Optional)</h3>
+                    <FormField
+                      control={form.control}
+                      name="partnerFirstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Jane" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="partnerLastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="partnerDob"
+                      render={({ field }) => {
+                        const availableDays = partnerDobMonth && partnerDobYear 
+                          ? generateDays(parseInt(partnerDobMonth), parseInt(partnerDobYear))
+                          : [];
+                        
+                        return (
+                          <FormItem>
+                            <FormLabel>Date of Birth</FormLabel>
+                            <div className="grid grid-cols-3 gap-2">
+                              <Select
+                                value={partnerDobDay}
+                                onValueChange={(value) => {
+                                  setPartnerDobDay(value);
+                                  handlePartnerDateChange(value, partnerDobMonth, partnerDobYear);
+                                }}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Day" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {availableDays.map((day) => (
+                                    <SelectItem key={day.value} value={day.value}>
+                                      {day.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              
+                              <Select
+                                value={partnerDobMonth}
+                                onValueChange={(value) => {
+                                  setPartnerDobMonth(value);
+                                  const daysInMonth = getDaysInMonth(parseInt(value), partnerDobYear ? parseInt(partnerDobYear) : new Date().getFullYear());
+                                  const currentDay = partnerDobDay ? parseInt(partnerDobDay) : 0;
+                                  if (currentDay > daysInMonth) {
+                                    setPartnerDobDay('');
+                                    handlePartnerDateChange('', value, partnerDobYear);
+                                  } else {
+                                    handlePartnerDateChange(partnerDobDay, value, partnerDobYear);
+                                  }
+                                }}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Month" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {MONTHS.map((month) => (
+                                    <SelectItem key={month.value} value={month.value}>
+                                      {month.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              
+                              <Select
+                                value={partnerDobYear}
+                                onValueChange={(value) => {
+                                  setPartnerDobYear(value);
+                                  const daysInMonth = partnerDobMonth ? getDaysInMonth(parseInt(partnerDobMonth), parseInt(value)) : 31;
+                                  const currentDay = partnerDobDay ? parseInt(partnerDobDay) : 0;
+                                  if (currentDay > daysInMonth) {
+                                    setPartnerDobDay('');
+                                    handlePartnerDateChange('', partnerDobMonth, value);
+                                  } else {
+                                    handlePartnerDateChange(partnerDobDay, partnerDobMonth, value);
+                                  }
+                                }}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Year" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="max-h-[200px]">
+                                  {generateYears().map((year) => (
+                                    <SelectItem key={year.value} value={year.value}>
+                                      {year.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="partnerEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="jane@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="partnerPhoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input type="tel" placeholder="0400 000 000" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Contact Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-2">Contact Information</h3>
                     <FormField
                       control={form.control}
                       name="email"
@@ -1475,167 +1634,6 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                         </FormItem>
                       )}
                     />
-                  </div>
-                </div>
-
-                {/* Partner/Spouse Information Section */}
-                <div className="border-t pt-6 mt-6">
-                  <h3 className="text-lg font-semibold mb-4">Partner/Spouse Information (Optional)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="partnerFirstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>First Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Jane" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="partnerLastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Last Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Doe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="partnerDob"
-                        render={({ field }) => {
-                          const availableDays = partnerDobMonth && partnerDobYear 
-                            ? generateDays(parseInt(partnerDobMonth), parseInt(partnerDobYear))
-                            : [];
-                          
-                          return (
-                            <FormItem>
-                              <FormLabel>Date of Birth</FormLabel>
-                              <div className="grid grid-cols-3 gap-2">
-                                <Select
-                                  value={partnerDobDay}
-                                  onValueChange={(value) => {
-                                    setPartnerDobDay(value);
-                                    handlePartnerDateChange(value, partnerDobMonth, partnerDobYear);
-                                  }}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Day" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {availableDays.map((day) => (
-                                      <SelectItem key={day.value} value={day.value}>
-                                        {day.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                
-                                <Select
-                                  value={partnerDobMonth}
-                                  onValueChange={(value) => {
-                                    setPartnerDobMonth(value);
-                                    const daysInMonth = getDaysInMonth(parseInt(value), partnerDobYear ? parseInt(partnerDobYear) : new Date().getFullYear());
-                                    const currentDay = partnerDobDay ? parseInt(partnerDobDay) : 0;
-                                    if (currentDay > daysInMonth) {
-                                      setPartnerDobDay('');
-                                      handlePartnerDateChange('', value, partnerDobYear);
-                                    } else {
-                                      handlePartnerDateChange(partnerDobDay, value, partnerDobYear);
-                                    }
-                                  }}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Month" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {MONTHS.map((month) => (
-                                      <SelectItem key={month.value} value={month.value}>
-                                        {month.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                
-                                <Select
-                                  value={partnerDobYear}
-                                  onValueChange={(value) => {
-                                    setPartnerDobYear(value);
-                                    const daysInMonth = partnerDobMonth ? getDaysInMonth(parseInt(partnerDobMonth), parseInt(value)) : 31;
-                                    const currentDay = partnerDobDay ? parseInt(partnerDobDay) : 0;
-                                    if (currentDay > daysInMonth) {
-                                      setPartnerDobDay('');
-                                      handlePartnerDateChange('', partnerDobMonth, value);
-                                    } else {
-                                      handlePartnerDateChange(partnerDobDay, partnerDobMonth, value);
-                                    }
-                                  }}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Year" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent className="max-h-[200px]">
-                                    {generateYears().map((year) => (
-                                      <SelectItem key={year.value} value={year.value}>
-                                        {year.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          );
-                        }}
-                      />
-                    </div>
-
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="partnerEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="jane@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="partnerPhoneNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone Number</FormLabel>
-                            <FormControl>
-                              <Input type="tel" placeholder="0400 000 000" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
                   </div>
                 </div>
               </TabsContent>
