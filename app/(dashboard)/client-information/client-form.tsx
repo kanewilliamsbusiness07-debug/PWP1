@@ -1549,7 +1549,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                           size="sm"
                           onClick={() => {
                             appendAsset({ id: `asset-${Date.now()}`, name: '', currentValue: 0, type: 'other' });
-                            appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, type: 'other' });
+                            appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, type: 'other' });
                           }}
                         >
                           <Plus className="h-4 w-4 mr-2" />
