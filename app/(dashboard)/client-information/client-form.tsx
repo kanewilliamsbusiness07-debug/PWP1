@@ -781,6 +781,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
           const newProperty = {
             id: `property-auto-${propertyAsset.id}`,
             linkedAssetId: propertyAsset.id,
+            linkedLiabilityId: matchingMortgage?.id || null,
             address: propertyAsset.name || '',
             purchasePrice: Number(propertyAsset.currentValue) || 0,
             currentValue: Number(propertyAsset.currentValue) || 0,
@@ -810,6 +811,57 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
           if (existingProperty.loanTerm !== newLoanTerm) {
             form.setValue(`properties.${existingPropertyIndex}.loanTerm`, newLoanTerm);
           }
+          // Also update linkedLiabilityId if not already set
+          if (!existingProperty.linkedLiabilityId && matchingMortgage.id) {
+            form.setValue(`properties.${existingPropertyIndex}.linkedLiabilityId`, matchingMortgage.id);
+          }
+        }
+      });
+    }
+    
+    // Reverse sync: Update liabilities from investment properties
+    // When a property's loan details change on the Investment Properties page,
+    // sync those changes back to the corresponding liability
+    if (watchedProperties && watchedLiabilities && Array.isArray(watchedProperties) && Array.isArray(watchedLiabilities)) {
+      watchedProperties.forEach((property: any) => {
+        if (!property.linkedLiabilityId) return;
+        
+        // Find the linked liability
+        const liabilityIndex = watchedLiabilities.findIndex((liability: any) => 
+          liability.id === property.linkedLiabilityId
+        );
+        
+        if (liabilityIndex === -1) return;
+        
+        const liability = watchedLiabilities[liabilityIndex];
+        const propertyLoanAmount = Number(property.loanAmount) || 0;
+        const propertyInterestRate = Number(property.interestRate) || 0;
+        const propertyLoanTerm = Number(property.loanTerm) || 30;
+        
+        // Calculate monthly payment from property loan details
+        const calculateMonthlyPayment = (principal: number, rate: number, years: number): number => {
+          if (principal <= 0 || years <= 0) return 0;
+          if (rate === 0) return principal / (years * 12);
+          const monthlyRate = rate / 100 / 12;
+          const numPayments = years * 12;
+          return principal * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+        };
+        
+        const calculatedMonthlyPayment = calculateMonthlyPayment(propertyLoanAmount, propertyInterestRate, propertyLoanTerm);
+        
+        // Update liability if values differ
+        if (Number(liability.balance) !== propertyLoanAmount) {
+          form.setValue(`liabilities.${liabilityIndex}.balance`, propertyLoanAmount);
+        }
+        if (Number(liability.interestRate) !== propertyInterestRate) {
+          form.setValue(`liabilities.${liabilityIndex}.interestRate`, propertyInterestRate);
+        }
+        if (Number(liability.loanTerm) !== propertyLoanTerm) {
+          form.setValue(`liabilities.${liabilityIndex}.loanTerm`, propertyLoanTerm);
+        }
+        // Update monthly payment if it differs significantly (>$1 difference to avoid floating point issues)
+        if (Math.abs(Number(liability.monthlyPayment) - calculatedMonthlyPayment) > 1) {
+          form.setValue(`liabilities.${liabilityIndex}.monthlyPayment`, Math.round(calculatedMonthlyPayment * 100) / 100);
         }
       });
     }

@@ -172,6 +172,8 @@ export const clientValidationSchema = z.object({
     loanTerm: z.number().int().min(1, 'Loan term must be at least 1 year'),
     weeklyRent: z.number().min(0, 'Weekly rent cannot be negative').max(100000, 'Weekly rent is too high'),
     annualExpenses: z.number().min(0, 'Annual expenses cannot be negative').max(1000000, 'Annual expenses are too high'),
+    linkedAssetId: z.string().optional(),
+    linkedLiabilityId: z.string().optional(),
   })).optional(),
   
   // Projections
