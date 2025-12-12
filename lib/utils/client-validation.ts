@@ -107,13 +107,22 @@ export function formatPhoneNumber(phone: string): string {
  * Comprehensive client schema with all validation rules
  */
 export const clientValidationSchema = z.object({
-  // Personal Information - Required
+  // Personal Information - Primary Person (Required)
   firstName: z.string().min(1, 'First name is required').max(100, 'First name is too long'),
   lastName: z.string().min(1, 'Last name is required').max(100, 'Last name is too long'),
   
-  // Personal Information - Optional
+  // Personal Information - Primary Person (Optional)
   middleName: z.string().max(100, 'Middle name is too long').optional().or(z.literal('')),
   dob: z.date().optional().nullable(),
+  
+  // Personal Information - Partner/Spouse (Optional)
+  partnerFirstName: z.string().max(100, 'Partner first name is too long').optional().or(z.literal('')),
+  partnerLastName: z.string().max(100, 'Partner last name is too long').optional().or(z.literal('')),
+  partnerDob: z.date().optional().nullable(),
+  partnerEmail: z.string().email('Invalid email format').optional().or(z.literal('')),
+  partnerPhoneNumber: z.string().max(20, 'Partner phone number is too long').optional().or(z.literal('')),
+  
+  // Shared Household Information
   maritalStatus: z.enum(['SINGLE', 'MARRIED', 'DEFACTO', 'DIVORCED', 'WIDOWED']).optional(),
   numberOfDependants: z.number().int().min(0, 'Number of dependants cannot be negative').max(20, 'Number of dependants is too high').optional(),
   agesOfDependants: z.string().max(200, 'Ages of dependants is too long').optional().or(z.literal('')),
