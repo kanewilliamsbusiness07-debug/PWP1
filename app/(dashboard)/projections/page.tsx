@@ -988,21 +988,21 @@ export default function ProjectionsPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Projected Lump Sum:</span>
                       <span className="font-semibold text-green-600">
-                        ${results.projectedLumpSum.toLocaleString()}
+                        ${results.projectedLumpSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                     
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Annual Passive Income:</span>
                       <span className="font-semibold text-blue-600">
-                        ${results.projectedPassiveIncome.toLocaleString()}
+                        ${results.projectedPassiveIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                     
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Required Income (70%):</span>
                       <span className="font-semibold">
-                        ${results.requiredIncome.toLocaleString()}
+                        ${results.requiredIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -1024,7 +1024,7 @@ export default function ProjectionsPage() {
                   <div className="space-y-3">
                     <div className="text-center">
                       <p className={`text-3xl font-bold ${results.isDeficit ? 'text-red-600' : 'text-green-600'}`}>
-                        ${results.monthlyDeficitSurplus.toLocaleString()}/month
+                        ${results.monthlyDeficitSurplus.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/month
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {results.isDeficit ? 'Shortfall' : 'Surplus'} in retirement
