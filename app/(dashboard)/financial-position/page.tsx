@@ -516,15 +516,11 @@ export default function FinancialPositionPage() {
                                     <FormLabel>Current Value</FormLabel>
                                     <FormControl>
                                       <Input
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9.]*"
+                                        type="number"
+                                        step="any"
                                         {...field}
                                         value={asset.currentValue}
-                                        onChange={(e) => {
-                                          const value = e.target.value.replace(/[^0-9.]/g, '');
-                                          handleAssetChange(asset.id, 'currentValue', Number(value) || 0);
-                                        }}
+                                        onChange={(e) => handleAssetChange(asset.id, 'currentValue', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         placeholder="0.00"
                                         className="font-mono"
                                       />
@@ -629,15 +625,11 @@ export default function FinancialPositionPage() {
                                     <FormLabel>Current Balance</FormLabel>
                                     <FormControl>
                                       <Input
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9.]*"
+                                        type="number"
+                                        step="any"
                                         {...field}
                                         value={liability.balance}
-                                        onChange={(e) => {
-                                          const value = e.target.value.replace(/[^0-9.]/g, '');
-                                          handleLiabilityChange(liability.id, 'balance', Number(value) || 0);
-                                        }}
+                                        onChange={(e) => handleLiabilityChange(liability.id, 'balance', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         placeholder="0.00"
                                         className="font-mono"
                                       />
@@ -654,15 +646,11 @@ export default function FinancialPositionPage() {
                                     <FormLabel>Monthly Payment</FormLabel>
                                     <FormControl>
                                       <Input
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9.]*"
+                                        type="number"
+                                        step="any"
                                         {...field}
                                         value={liability.monthlyPayment}
-                                        onChange={(e) => {
-                                          const value = e.target.value.replace(/[^0-9.]/g, '');
-                                          handleLiabilityChange(liability.id, 'monthlyPayment', Number(value) || 0);
-                                        }}
+                                        onChange={(e) => handleLiabilityChange(liability.id, 'monthlyPayment', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         placeholder="0.00"
                                         className="font-mono"
                                       />
@@ -679,15 +667,11 @@ export default function FinancialPositionPage() {
                                     <FormLabel>Interest Rate (%)</FormLabel>
                                     <FormControl>
                                       <Input
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9.]*"
+                                        type="number"
+                                        step="any"
                                         {...field}
                                         value={liability.interestRate}
-                                        onChange={(e) => {
-                                          const value = e.target.value.replace(/[^0-9.]/g, '');
-                                          handleLiabilityChange(liability.id, 'interestRate', Number(value) || 0);
-                                        }}
+                                        onChange={(e) => handleLiabilityChange(liability.id, 'interestRate', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         placeholder="0.00"
                                         className="font-mono"
                                       />
@@ -755,16 +739,12 @@ export default function FinancialPositionPage() {
                               <FormLabel>Annual Income</FormLabel>
                               <FormControl>
                                 <Input 
-                                  type="text" 
-                                  inputMode="numeric" 
-                                  pattern="[0-9.]*"
+                                  type="number" 
+                                  step="any"
                                   placeholder="0.00" 
                                   className="font-mono"
                                   value={field.value}
-                                  onChange={(e) => {
-                                    const value = e.target.value.replace(/[^0-9.]/g, '');
-                                    handleIncomeChange('annualIncome', Number(value) || 0);
-                                  }}
+                                  onChange={(e) => handleIncomeChange('annualIncome', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -780,16 +760,12 @@ export default function FinancialPositionPage() {
                               <FormLabel>Rental Income</FormLabel>
                               <FormControl>
                                 <Input 
-                                  type="text" 
-                                  inputMode="numeric" 
-                                  pattern="[0-9.]*"
+                                  type="number" 
+                                  step="any"
                                   placeholder="0.00" 
                                   className="font-mono" 
                                   {...field}
-                                  onChange={(e) => {
-                                    const value = e.target.value.replace(/[^0-9.]/g, '');
-                                    field.onChange(value);
-                                  }}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -805,16 +781,12 @@ export default function FinancialPositionPage() {
                               <FormLabel>Dividends</FormLabel>
                               <FormControl>
                                 <Input 
-                                  type="text" 
-                                  inputMode="numeric" 
-                                  pattern="[0-9.]*"
+                                  type="number" 
+                                  step="any"
                                   placeholder="0.00" 
                                   className="font-mono" 
                                   {...field}
-                                  onChange={(e) => {
-                                    const value = e.target.value.replace(/[^0-9.]/g, '');
-                                    field.onChange(value);
-                                  }}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -830,16 +802,12 @@ export default function FinancialPositionPage() {
                               <FormLabel>Franked Dividends</FormLabel>
                               <FormControl>
                                 <Input 
-                                  type="text" 
-                                  inputMode="numeric" 
-                                  pattern="[0-9.]*"
+                                  type="number" 
+                                  step="any"
                                   placeholder="0.00" 
                                   className="font-mono" 
                                   {...field}
-                                  onChange={(e) => {
-                                    const value = e.target.value.replace(/[^0-9.]/g, '');
-                                    field.onChange(value);
-                                  }}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -855,16 +823,12 @@ export default function FinancialPositionPage() {
                               <FormLabel>Capital Gains</FormLabel>
                               <FormControl>
                                 <Input 
-                                  type="text" 
-                                  inputMode="numeric" 
-                                  pattern="[0-9.]*"
+                                  type="number" 
+                                  step="any"
                                   placeholder="0.00" 
                                   className="font-mono" 
                                   {...field}
-                                  onChange={(e) => {
-                                    const value = e.target.value.replace(/[^0-9.]/g, '');
-                                    field.onChange(value);
-                                  }}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -880,16 +844,12 @@ export default function FinancialPositionPage() {
                               <FormLabel>Other Income</FormLabel>
                               <FormControl>
                                 <Input 
-                                  type="text" 
-                                  inputMode="numeric" 
-                                  pattern="[0-9.]*"
+                                  type="number" 
+                                  step="any"
                                   placeholder="0.00" 
                                   className="font-mono"
                                   value={field.value}
-                                  onChange={(e) => {
-                                    const value = e.target.value.replace(/[^0-9.]/g, '');
-                                    handleIncomeChange('otherIncome', Number(value) || 0);
-                                  }}
+                                  onChange={(e) => handleIncomeChange('otherIncome', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />

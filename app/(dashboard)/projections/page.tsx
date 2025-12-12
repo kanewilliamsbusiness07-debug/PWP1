@@ -640,10 +640,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Annual Income</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="100000"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -659,10 +660,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Current Superannuation</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="150000"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -678,10 +680,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Current Savings</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="50000"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -697,10 +700,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Current Shares/Investments</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="100000"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -716,10 +720,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Property Equity</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="300000"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -735,10 +740,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Monthly Debt Payments</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="2500"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -754,10 +760,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Monthly Rental Income</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="3000"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -773,10 +780,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Monthly Expenses</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="5000"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -816,10 +824,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Inflation Rate (%)</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="2.5"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -835,10 +844,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Salary Growth Rate (%)</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="3"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -854,10 +864,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Super Return (%)</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="7"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -873,10 +884,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Share Market Return (%)</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="8"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -892,10 +904,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Property Growth Rate (%)</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="4"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -911,10 +924,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Safe Withdrawal Rate (%)</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="4"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -930,10 +944,11 @@ export default function ProjectionsPage() {
                               <FormLabel>Rent Growth Rate (%)</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="text"
+                                  type="number"
+                                  step="any"
                                   placeholder="3"
                                   {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 />
                               </FormControl>
                               <FormMessage />
