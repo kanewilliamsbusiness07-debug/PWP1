@@ -590,6 +590,31 @@ export default function TaxOptimizationPage() {
     }
   };
 
+  // Watch form values for auto-calculation
+  const watchedAnnualIncome = taxForm.watch('annualIncome');
+  const watchedEmploymentIncome = taxForm.watch('employmentIncome');
+  const watchedInvestmentIncome = taxForm.watch('investmentIncome');
+  const watchedRentalIncome = taxForm.watch('rentalIncome');
+  const watchedOtherIncome = taxForm.watch('otherIncome');
+  const watchedFrankedDividends = taxForm.watch('frankedDividends');
+  const watchedCapitalGains = taxForm.watch('capitalGains');
+  const watchedWorkRelatedExpenses = taxForm.watch('workRelatedExpenses');
+  const watchedVehicleExpenses = taxForm.watch('vehicleExpenses');
+  const watchedUniformsAndLaundry = taxForm.watch('uniformsAndLaundry');
+  const watchedHomeOfficeExpenses = taxForm.watch('homeOfficeExpenses');
+  const watchedSelfEducationExpenses = taxForm.watch('selfEducationExpenses');
+  const watchedInvestmentExpenses = taxForm.watch('investmentExpenses');
+  const watchedCharityDonations = taxForm.watch('charityDonations');
+  const watchedAccountingFees = taxForm.watch('accountingFees');
+  const watchedOtherDeductions = taxForm.watch('otherDeductions');
+  const watchedRentalExpenses = taxForm.watch('rentalExpenses');
+  const watchedSuperContributions = taxForm.watch('superContributions');
+  const watchedHealthInsurance = taxForm.watch('healthInsurance');
+  const watchedHecs = taxForm.watch('hecs');
+  const watchedHelpDebt = taxForm.watch('helpDebt');
+  const watchedHecsBalance = taxForm.watch('hecsBalance');
+  const watchedPrivateHealthInsurance = taxForm.watch('privateHealthInsurance');
+
   // Auto-calculate tax optimization when form data changes
   useEffect(() => {
     const data = taxForm.getValues();
@@ -597,7 +622,31 @@ export default function TaxOptimizationPage() {
       calculateOptimizations();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taxForm.watch()]);
+  }, [
+    watchedAnnualIncome,
+    watchedEmploymentIncome,
+    watchedInvestmentIncome,
+    watchedRentalIncome,
+    watchedOtherIncome,
+    watchedFrankedDividends,
+    watchedCapitalGains,
+    watchedWorkRelatedExpenses,
+    watchedVehicleExpenses,
+    watchedUniformsAndLaundry,
+    watchedHomeOfficeExpenses,
+    watchedSelfEducationExpenses,
+    watchedInvestmentExpenses,
+    watchedCharityDonations,
+    watchedAccountingFees,
+    watchedOtherDeductions,
+    watchedRentalExpenses,
+    watchedSuperContributions,
+    watchedHealthInsurance,
+    watchedHecs,
+    watchedHelpDebt,
+    watchedHecsBalance,
+    watchedPrivateHealthInsurance
+  ]);
 
   return (
     <div className="p-6 space-y-6 bg-background min-h-screen">
