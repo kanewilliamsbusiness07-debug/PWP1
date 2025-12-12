@@ -10,7 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Calculator, TrendingDown, DollarSign, FileText, Lightbulb, CircleAlert as AlertCircle, PieChart } from 'lucide-react';
+import { Calculator, TrendingDown, DollarSign, FileText, Lightbulb, CircleAlert as AlertCircle, PieChart, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTaxForm } from '@/lib/hooks/use-tax-form';
 import { useClientFinancials } from '@/lib/hooks/use-client-financials';
@@ -1072,6 +1072,60 @@ export default function TaxOptimizationPage() {
                   </CardContent>
                 </Card>
               )}
+              
+              {/* Lifetime Tax Until Retirement */}
+              {(() => {
+                const clientData = activeClient ? (activeClient === 'A' ? clientA : clientB) : null;
+                const currentAge = clientData?.currentAge || 35;
+                const retirementAge = clientData?.retirementAge || 65;
+                const yearsToRetirement = Math.max(0, retirementAge - currentAge);
+                const totalTaxUntilRetirement = currentTax.totalTax * yearsToRetirement;
+                const optimizedTotalTax = optimizedTax ? optimizedTax.totalTax * yearsToRetirement : totalTaxUntilRetirement;
+                const lifetimeSavings = totalTaxUntilRetirement - optimizedTotalTax;
+                
+                return (
+                  <Card className="bg-amber-50 border-amber-200">
+                    <CardHeader>
+                      <CardTitle className="text-amber-800 flex items-center">
+                        <Clock className="h-5 w-5 mr-2" />
+                        Tax Until Retirement
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center mb-4">
+                        <p className="text-3xl font-bold text-red-600">
+                          ${totalTaxUntilRetirement.toLocaleString()}
+                        </p>
+                        <p className="text-sm text-amber-800">Total tax over {yearsToRetirement} years</p>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-amber-800">Annual Tax:</span>
+                          <span className="font-semibold">${currentTax.totalTax.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-amber-800">Years to Retirement:</span>
+                          <span className="font-semibold">{yearsToRetirement} years</span>
+                        </div>
+                        {optimizedTax && lifetimeSavings > 0 && (
+                          <>
+                            <hr className="border-amber-300" />
+                            <div className="flex justify-between">
+                              <span className="text-amber-800">Optimized Lifetime Tax:</span>
+                              <span className="font-semibold text-green-600">${optimizedTotalTax.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-amber-800 font-medium">Lifetime Savings:</span>
+                              <span className="font-bold text-green-600">${lifetimeSavings.toLocaleString()}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
             </>
           )}
 
