@@ -781,7 +781,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
           const newProperty = {
             id: `property-auto-${propertyAsset.id}`,
             linkedAssetId: propertyAsset.id,
-            linkedLiabilityId: matchingMortgage?.id || null,
+            linkedLiabilityId: matchingMortgage?.id || undefined,
             address: propertyAsset.name || '',
             purchasePrice: Number(propertyAsset.currentValue) || 0,
             currentValue: Number(propertyAsset.currentValue) || 0,
