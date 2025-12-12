@@ -196,6 +196,18 @@ export const clientValidationSchema = z.object({
   withdrawalRate: z.number().min(0, 'Withdrawal rate cannot be negative').max(50, 'Withdrawal rate cannot exceed 50%').optional(),
   rentGrowthRate: z.number().min(0, 'Rent growth rate cannot be negative').max(50, 'Rent growth rate cannot exceed 50%').optional(),
   
+  // Projection Results (stored from Projections page for Summary page consistency)
+  projectionResults: z.object({
+    yearsToRetirement: z.number(),
+    projectedLumpSum: z.number(),
+    projectedPassiveIncome: z.number(),
+    projectedMonthlyPassiveIncome: z.number(),
+    requiredIncome: z.number(),
+    monthlyDeficitSurplus: z.number(),
+    isDeficit: z.boolean(),
+    calculatedAt: z.string(),
+  }).optional(),
+  
   // Tax Optimization
   employmentIncome: z.number().min(0, 'Employment income cannot be negative').max(10000000, 'Employment income is too high').optional(),
   investmentIncome: z.number().min(0, 'Investment income cannot be negative').max(10000000, 'Investment income is too high').optional(),
