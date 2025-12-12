@@ -224,6 +224,15 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
   },
 
+  // Metric row for inline label-value pairs
+  metricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingVertical: 4,
+  },
+
   // Metric boxes (Page 1, 4) - CONSISTENT SIZING
   metricGrid: {
     flexDirection: 'row',
@@ -1145,6 +1154,414 @@ export function PDFReport({ summary, clientData, chartImages = [] }: PDFReportPr
           <ReportFooter reportDate={reportDate} />
         </Page>
       )}
+
+      {/* ====================================================================== */}
+      {/* PAGE 7: DETAILED TAX BREAKDOWN */}
+      {/* ====================================================================== */}
+
+      <Page size="A4" style={styles.page}>
+        <ReportHeader reportDate={reportDate} clientName={clientFullName} />
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.pageTitle}>Detailed Tax Breakdown</Text>
+
+          {/* Superannuation Tax Treatment */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Superannuation Tax Treatment</Text>
+            <View style={styles.highlightBox}>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>
+                  <Text style={{ fontWeight: 'bold' }}>Annual Super Contribution (11.5% SG):</Text>
+                </Text>
+                <Text style={[styles.bodyText, { textAlign: 'right' }]}>
+                  {formatCurrency(monthlyIncome * 12 * 0.115)}
+                </Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>
+                  <Text style={{ fontWeight: 'bold' }}>Contribution Tax (15%):</Text>
+                </Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', color: COLORS.danger }]}>
+                  {formatCurrency(monthlyIncome * 12 * 0.115 * 0.15)}
+                </Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>
+                  <Text style={{ fontWeight: 'bold' }}>Net Contribution:</Text>
+                </Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', color: COLORS.success }]}>
+                  {formatCurrency(monthlyIncome * 12 * 0.115 * 0.85)}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.captionText}>
+              Superannuation contributions are taxed at 15% concessional rate, significantly lower than marginal tax rates
+            </Text>
+          </View>
+
+          {/* Salary Sacrifice Opportunity */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Salary Sacrifice Opportunity</Text>
+            <View style={[styles.highlightBox, { backgroundColor: '#fff3e0', borderLeftColor: COLORS.orange }]}>
+              <Text style={styles.bodyText}>
+                By salary sacrificing additional amounts into superannuation, you can reduce your taxable income
+                and benefit from the lower 15% tax rate on super contributions.
+              </Text>
+              <View style={{ marginTop: 12 }}>
+                <View style={styles.metricRow}>
+                  <Text style={styles.bodyText}>
+                    <Text style={{ fontWeight: 'bold' }}>Concessional Cap (2024-25):</Text>
+                  </Text>
+                  <Text style={[styles.bodyText, { textAlign: 'right' }]}>$30,000</Text>
+                </View>
+                <View style={styles.metricRow}>
+                  <Text style={styles.bodyText}>
+                    <Text style={{ fontWeight: 'bold' }}>Current SG Contribution:</Text>
+                  </Text>
+                  <Text style={[styles.bodyText, { textAlign: 'right' }]}>
+                    {formatCurrency(monthlyIncome * 12 * 0.115)}
+                  </Text>
+                </View>
+                <View style={styles.metricRow}>
+                  <Text style={styles.bodyText}>
+                    <Text style={{ fontWeight: 'bold' }}>Available for Salary Sacrifice:</Text>
+                  </Text>
+                  <Text style={[styles.bodyText, { textAlign: 'right', color: COLORS.success }]}>
+                    {formatCurrency(Math.max(0, 30000 - monthlyIncome * 12 * 0.115))}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Tax in Retirement */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Tax in Retirement</Text>
+            <View style={styles.highlightBox}>
+              <Text style={styles.bodyText}>
+                At age 60 and above, withdrawals from superannuation are generally tax-free. This means your
+                retirement income will not be subject to income tax, significantly improving your after-tax position.
+              </Text>
+              <View style={{ marginTop: 12 }}>
+                <View style={styles.metricRow}>
+                  <Text style={styles.bodyText}>
+                    <Text style={{ fontWeight: 'bold' }}>Projected Monthly Retirement Income:</Text>
+                  </Text>
+                  <Text style={[styles.bodyText, { textAlign: 'right' }]}>
+                    {formatCurrency(projectedRetirementSurplus)}
+                  </Text>
+                </View>
+                <View style={styles.metricRow}>
+                  <Text style={styles.bodyText}>
+                    <Text style={{ fontWeight: 'bold' }}>Tax on Super Withdrawals (Age 60+):</Text>
+                  </Text>
+                  <Text style={[styles.bodyText, { textAlign: 'right', color: COLORS.success }]}>
+                    $0 (Tax-Free)
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Key Tax Considerations */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Key Tax Considerations</Text>
+            <View style={[styles.highlightBox, { backgroundColor: '#f8f9fa' }]}>
+              <Text style={[styles.bodyText, { marginBottom: 6 }]}>
+                • Concessional contributions are capped at $30,000 per year (2024-25)
+              </Text>
+              <Text style={[styles.bodyText, { marginBottom: 6 }]}>
+                • Non-concessional contributions are capped at $120,000 per year
+              </Text>
+              <Text style={[styles.bodyText, { marginBottom: 6 }]}>
+                • Division 293 tax applies to high income earners (over $250,000)
+              </Text>
+              <Text style={[styles.bodyText, { marginBottom: 6 }]}>
+                • Investment earnings in super are taxed at maximum 15%
+              </Text>
+              <Text style={styles.bodyText}>
+                • Capital gains in super are taxed at maximum 10% (33% discount)
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <ReportFooter reportDate={reportDate} />
+      </Page>
+
+      {/* ====================================================================== */}
+      {/* PAGE 8: INVESTMENT PROPERTY ANALYSIS */}
+      {/* ====================================================================== */}
+
+      <Page size="A4" style={styles.page}>
+        <ReportHeader reportDate={reportDate} clientName={clientFullName} />
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.pageTitle}>Investment Property Analysis</Text>
+
+          {/* Current Property Portfolio */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Current Property Portfolio</Text>
+            <View style={styles.comparisonGrid}>
+              <View style={styles.comparisonBox}>
+                <Text style={styles.comparisonLabel}>Total Property Value</Text>
+                <Text style={[styles.comparisonValue, { color: COLORS.info }]}>
+                  {formatCurrency(totalPropertyValue)}
+                </Text>
+              </View>
+              <View style={styles.comparisonBox}>
+                <Text style={styles.comparisonLabel}>Property Equity</Text>
+                <Text style={[styles.comparisonValue, styles.valuePositive]}>
+                  {formatCurrency(propertyEquity)}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.metricGrid}>
+              <View style={styles.metricBox}>
+                <Text style={styles.metricLabel}>Loan to Value Ratio</Text>
+                <Text style={styles.metricValue}>
+                  {totalPropertyValue > 0 ? (((totalPropertyValue - propertyEquity) / totalPropertyValue) * 100).toFixed(1) : 0}%
+                </Text>
+              </View>
+              <View style={styles.metricBox}>
+                <Text style={styles.metricLabel}>Monthly Rental Income</Text>
+                <Text style={[styles.metricValue, { color: COLORS.success }]}>
+                  {formatCurrency(monthlyRentalIncome)}
+                </Text>
+              </View>
+              <View style={styles.metricBox}>
+                <Text style={styles.metricLabel}>Gross Yield</Text>
+                <Text style={styles.metricValue}>
+                  {totalPropertyValue > 0 ? ((monthlyRentalIncome * 12 / totalPropertyValue) * 100).toFixed(2) : 0}%
+                </Text>
+              </View>
+              <View style={styles.metricBox}>
+                <Text style={styles.metricLabel}>Equity Available</Text>
+                <Text style={[styles.metricValue, { color: COLORS.info }]}>
+                  {formatCurrency(Math.max(0, propertyEquity * 0.8 - (totalPropertyValue - propertyEquity)))}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Property Growth Projection */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Property Growth Projection (6.5% p.a.)</Text>
+            <View style={styles.highlightBox}>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>
+                  <Text style={{ fontWeight: 'bold' }}>Current Value:</Text>
+                </Text>
+                <Text style={[styles.bodyText, { textAlign: 'right' }]}>
+                  {formatCurrency(totalPropertyValue)}
+                </Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>
+                  <Text style={{ fontWeight: 'bold' }}>Value at Retirement ({yearsToRetirement} years):</Text>
+                </Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', color: COLORS.success }]}>
+                  {formatCurrency(projectedPropertyPortfolioValue)}
+                </Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>
+                  <Text style={{ fontWeight: 'bold' }}>Projected Capital Growth:</Text>
+                </Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', color: COLORS.success }]}>
+                  {formatCurrency(projectedPropertyPortfolioValue - totalPropertyValue)}
+                </Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>
+                  <Text style={{ fontWeight: 'bold' }}>Rental Income at Retirement (3% growth p.a.):</Text>
+                </Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', color: COLORS.success }]}>
+                  {formatCurrency(monthlyRentalIncome * Math.pow(1.03, yearsToRetirement))}/month
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Investment Capacity */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Additional Investment Capacity</Text>
+            <View style={isViable ? styles.highlightBox : styles.warningBox}>
+              <Text style={styles.highlightTitle}>
+                {isViable ? '✓ Investment Capacity Available' : '⚠ Limited Investment Potential'}
+              </Text>
+              <View style={{ marginTop: 12 }}>
+                <View style={styles.metricRow}>
+                  <Text style={styles.bodyText}>
+                    <Text style={{ fontWeight: 'bold' }}>Maximum Additional Property Value:</Text>
+                  </Text>
+                  <Text style={[styles.bodyText, { textAlign: 'right', color: COLORS.info }]}>
+                    {formatCurrency(maxPropertyValue)}
+                  </Text>
+                </View>
+                <View style={styles.metricRow}>
+                  <Text style={styles.bodyText}>
+                    <Text style={{ fontWeight: 'bold' }}>Available Monthly Surplus:</Text>
+                  </Text>
+                  <Text style={[styles.bodyText, { textAlign: 'right', color: COLORS.success }]}>
+                    {formatCurrency(surplusIncome)}
+                  </Text>
+                </View>
+                <View style={styles.metricRow}>
+                  <Text style={styles.bodyText}>
+                    <Text style={{ fontWeight: 'bold' }}>Expected Rental from New Property:</Text>
+                  </Text>
+                  <Text style={[styles.bodyText, { textAlign: 'right' }]}>
+                    {formatCurrency(maxPropertyValue * 0.04 / 12)}/month
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.captionText, { marginTop: 10 }]}>
+                {isViable
+                  ? 'Based on your current surplus income, you have capacity to service additional investment property.'
+                  : 'Focus on increasing income or reducing expenses before considering additional property investment.'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Tax Benefits of Investment Property */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Tax Benefits of Investment Property</Text>
+            <View style={[styles.highlightBox, { backgroundColor: '#f8f9fa' }]}>
+              <Text style={[styles.bodyText, { marginBottom: 6 }]}>
+                • <Text style={{ fontWeight: 'bold' }}>Negative Gearing:</Text> Offset property losses against other income
+              </Text>
+              <Text style={[styles.bodyText, { marginBottom: 6 }]}>
+                • <Text style={{ fontWeight: 'bold' }}>Depreciation:</Text> Claim building and fixture depreciation
+              </Text>
+              <Text style={[styles.bodyText, { marginBottom: 6 }]}>
+                • <Text style={{ fontWeight: 'bold' }}>Interest Deductions:</Text> Loan interest is fully deductible
+              </Text>
+              <Text style={styles.bodyText}>
+                • <Text style={{ fontWeight: 'bold' }}>CGT Discount:</Text> 50% discount on capital gains if held 12+ months
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <ReportFooter reportDate={reportDate} />
+      </Page>
+
+      {/* ====================================================================== */}
+      {/* PAGE 9: ASSUMPTIONS & DISCLAIMERS */}
+      {/* ====================================================================== */}
+
+      <Page size="A4" style={styles.page}>
+        <ReportHeader reportDate={reportDate} clientName={clientFullName} />
+
+        <View style={{ flex: 1 }}>
+          <Text style={styles.pageTitle}>Assumptions & Methodology</Text>
+
+          {/* Investment Return Assumptions */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Investment Return Assumptions</Text>
+            <View style={[styles.highlightBox, { backgroundColor: '#f8f9fa' }]}>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>Superannuation Return (p.a.)</Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', fontWeight: 'bold' }]}>7.0%</Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>Share Market Return (p.a.)</Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', fontWeight: 'bold' }]}>8.0%</Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>Property Growth Rate (p.a.)</Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', fontWeight: 'bold' }]}>6.5%</Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>Cash/Savings Return (p.a.)</Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', fontWeight: 'bold' }]}>4.0%</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Growth Rate Assumptions */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Growth Rate Assumptions</Text>
+            <View style={[styles.highlightBox, { backgroundColor: '#f8f9fa' }]}>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>Salary Growth (p.a.)</Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', fontWeight: 'bold' }]}>3.0%</Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>Rental Growth (p.a.)</Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', fontWeight: 'bold' }]}>3.0%</Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>Inflation (CPI) (p.a.)</Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', fontWeight: 'bold' }]}>2.5%</Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.bodyText}>Safe Withdrawal Rate (p.a.)</Text>
+                <Text style={[styles.bodyText, { textAlign: 'right', fontWeight: 'bold' }]}>4.0%</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Calculation Methodology */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Calculation Methodology</Text>
+            <View style={[styles.highlightBox, { backgroundColor: '#f8f9fa' }]}>
+              <Text style={[styles.bodyText, { marginBottom: 8 }]}>
+                <Text style={{ fontWeight: 'bold' }}>Compound Growth: </Text>
+                All asset values use compound interest formulas to project future values, accounting for
+                reinvestment of earnings over time.
+              </Text>
+              <Text style={[styles.bodyText, { marginBottom: 8 }]}>
+                <Text style={{ fontWeight: 'bold' }}>Growing Annuity: </Text>
+                Ongoing contributions (such as superannuation guarantee payments) are modeled using growing
+                annuity formulas, where contributions increase with salary growth.
+              </Text>
+              <Text style={[styles.bodyText, { marginBottom: 8 }]}>
+                <Text style={{ fontWeight: 'bold' }}>Safe Withdrawal Rate: </Text>
+                Retirement income projections use a 4.0% withdrawal rate applied to the total portfolio, 
+                based on research suggesting this rate is sustainable over a 30+ year retirement.
+              </Text>
+              <Text style={styles.bodyText}>
+                <Text style={{ fontWeight: 'bold' }}>Target Income: </Text>
+                The retirement income target is set at 70% of final salary, aligned with the ASFA
+                (Association of Superannuation Funds of Australia) comfortable retirement standard.
+              </Text>
+            </View>
+          </View>
+
+          {/* Important Disclaimers */}
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.subsectionTitle}>Important Disclaimers</Text>
+            <View style={[styles.warningBox, { backgroundColor: '#fff8e1' }]}>
+              <Text style={[styles.captionText, { marginBottom: 6, lineHeight: 1.5 }]}>
+                This report is provided for informational purposes only and does not constitute financial advice.
+                The projections are based on assumptions about future returns, inflation, and other factors that
+                may not materialize as expected.
+              </Text>
+              <Text style={[styles.captionText, { marginBottom: 6, lineHeight: 1.5 }]}>
+                Actual investment returns will vary from year to year and may be significantly different from
+                the assumptions used in this report. Past performance is not indicative of future results.
+              </Text>
+              <Text style={[styles.captionText, { marginBottom: 6, lineHeight: 1.5 }]}>
+                This report does not take into account your specific circumstances, objectives, or needs.
+                You should consider seeking advice from a licensed financial adviser before making any
+                investment decisions.
+              </Text>
+              <Text style={[styles.captionText, { marginBottom: 6, lineHeight: 1.5 }]}>
+                Tax laws and superannuation regulations are subject to change and may affect the outcomes
+                projected in this report.
+              </Text>
+              <Text style={[styles.captionText, { lineHeight: 1.5 }]}>
+                The information in this report is current as of {reportDate} and may become outdated
+                as your circumstances or market conditions change.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <ReportFooter reportDate={reportDate} />
+      </Page>
     </Document>
   );
 }

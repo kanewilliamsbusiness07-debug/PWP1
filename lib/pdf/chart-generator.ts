@@ -1416,3 +1416,400 @@ export async function generateTaxOptimizationChart(data: {
     return '';
   }
 }
+
+/**
+ * Generate investment property projection chart
+ */
+export async function generateInvestmentPropertyChart(data: {
+  currentValue: number;
+  currentEquity: number;
+  projectedValue: number;
+  yearsToRetirement: number;
+  monthlyRental: number;
+  projectedRental: number;
+  maxNewPropertyValue: number;
+  surplusIncome: number;
+}): Promise<string> {
+  try {
+    if (typeof document === 'undefined') {
+      console.warn('Document not available, cannot generate chart');
+      return '';
+    }
+
+    const canvas = document.createElement('canvas');
+    // High resolution for PDF - 3x scale for crisp rendering
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 900 * scale;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.warn('Canvas context not available');
+      return '';
+    }
+
+    // Scale context for drawing
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 900;
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, baseWidth, baseHeight);
+
+    // Title
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 32px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Investment Property Analysis', baseWidth / 2, 50);
+
+    // Current vs Projected Value comparison
+    const barY = 120;
+    const barWidth = 250;
+    const barHeight = 350;
+    const maxValue = Math.max(data.currentValue, data.projectedValue) * 1.2;
+
+    // Current Value bar
+    const currentBarHeight = (data.currentValue / maxValue) * barHeight;
+    const currentBarY = barY + barHeight - currentBarHeight;
+    
+    // Draw gradient for current value bar
+    const gradient1 = ctx.createLinearGradient(150, currentBarY, 150, currentBarY + currentBarHeight);
+    gradient1.addColorStop(0, '#3498db');
+    gradient1.addColorStop(1, '#2980b9');
+    ctx.fillStyle = gradient1;
+    ctx.fillRect(150, currentBarY, barWidth, currentBarHeight);
+    ctx.strokeStyle = '#2574a9';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(150, currentBarY, barWidth, currentBarHeight);
+
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Current Value', 150 + barWidth / 2, barY + barHeight + 30);
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText(`$${data.currentValue.toLocaleString()}`, 150 + barWidth / 2, barY + barHeight + 60);
+
+    // Projected Value bar
+    const projectedBarHeight = (data.projectedValue / maxValue) * barHeight;
+    const projectedBarY = barY + barHeight - projectedBarHeight;
+    
+    const gradient2 = ctx.createLinearGradient(500, projectedBarY, 500, projectedBarY + projectedBarHeight);
+    gradient2.addColorStop(0, '#27ae60');
+    gradient2.addColorStop(1, '#229954');
+    ctx.fillStyle = gradient2;
+    ctx.fillRect(500, projectedBarY, barWidth, projectedBarHeight);
+    ctx.strokeStyle = '#1e8449';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(500, projectedBarY, barWidth, projectedBarHeight);
+
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`At Retirement (${data.yearsToRetirement} yrs)`, 500 + barWidth / 2, barY + barHeight + 30);
+    ctx.font = 'bold 24px Arial';
+    ctx.fillStyle = '#27ae60';
+    ctx.fillText(`$${data.projectedValue.toLocaleString()}`, 500 + barWidth / 2, barY + barHeight + 60);
+
+    // Growth arrow
+    ctx.strokeStyle = '#27ae60';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(410, barY + barHeight / 2);
+    ctx.lineTo(490, barY + barHeight / 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(480, barY + barHeight / 2 - 10);
+    ctx.lineTo(490, barY + barHeight / 2);
+    ctx.lineTo(480, barY + barHeight / 2 + 10);
+    ctx.stroke();
+
+    // Growth percentage
+    const growthPercent = ((data.projectedValue - data.currentValue) / data.currentValue * 100).toFixed(1);
+    ctx.fillStyle = '#27ae60';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`+${growthPercent}%`, 450, barY + barHeight / 2 - 15);
+
+    // Rental Income section (right side)
+    const rentalX = 850;
+    const rentalY = 120;
+    
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(rentalX - 100, rentalY, 350, 200);
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(rentalX - 100, rentalY, 350, 200);
+
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Rental Income Growth', rentalX + 75, rentalY + 35);
+
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Current Monthly:', rentalX - 80, rentalY + 75);
+    ctx.fillStyle = '#3498db';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${data.monthlyRental.toLocaleString()}`, rentalX + 230, rentalY + 75);
+
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('At Retirement:', rentalX - 80, rentalY + 115);
+    ctx.fillStyle = '#27ae60';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${data.projectedRental.toLocaleString()}`, rentalX + 230, rentalY + 115);
+
+    const rentalGrowth = ((data.projectedRental - data.monthlyRental) / Math.max(1, data.monthlyRental) * 100).toFixed(1);
+    ctx.fillStyle = '#27ae60';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`+${rentalGrowth}% Growth`, rentalX + 75, rentalY + 170);
+
+    // Investment Capacity section (bottom)
+    const capacityY = 560;
+    
+    ctx.fillStyle = '#e8f5e9';
+    ctx.fillRect(100, capacityY, 1000, 150);
+    ctx.strokeStyle = '#27ae60';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(100, capacityY, 1000, 150);
+
+    ctx.fillStyle = '#27ae60';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Additional Investment Capacity', baseWidth / 2, capacityY + 35);
+
+    // Max property value
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Maximum New Property Value:', 150, capacityY + 80);
+    ctx.fillStyle = '#3498db';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${data.maxNewPropertyValue.toLocaleString()}`, 550, capacityY + 80);
+
+    // Available surplus
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Monthly Surplus for Servicing:', 600, capacityY + 80);
+    ctx.fillStyle = '#27ae60';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${data.surplusIncome.toLocaleString()}`, 1050, capacityY + 80);
+
+    // Equity available
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Current Equity:', 150, capacityY + 120);
+    ctx.fillStyle = '#9b59b6';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${data.currentEquity.toLocaleString()}`, 550, capacityY + 120);
+
+    // Usable equity (80%)
+    const usableEquity = data.currentEquity * 0.8;
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Usable Equity (80%):', 600, capacityY + 120);
+    ctx.fillStyle = '#9b59b6';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(`$${usableEquity.toLocaleString()}`, 1050, capacityY + 120);
+
+    // Key insights
+    const insightsY = 740;
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Key Insights:', 100, insightsY);
+
+    const insights = [
+      `Property portfolio projected to grow by $${(data.projectedValue - data.currentValue).toLocaleString()} over ${data.yearsToRetirement} years`,
+      `Rental income expected to increase from $${data.monthlyRental.toLocaleString()} to $${data.projectedRental.toLocaleString()}/month`,
+      `Available equity of $${usableEquity.toLocaleString()} can be leveraged for additional investments`,
+    ];
+
+    insights.forEach((insight, index) => {
+      ctx.fillStyle = '#3498db';
+      ctx.beginPath();
+      ctx.arc(110, insightsY + 35 + index * 35, 6, 0, 2 * Math.PI);
+      ctx.fill();
+
+      ctx.fillStyle = '#2c3e50';
+      ctx.font = '14px Arial';
+      ctx.fillText(insight, 130, insightsY + 40 + index * 35);
+    });
+
+    // Convert to high-quality PNG
+    return canvas.toDataURL('image/png', 1.0);
+  } catch (error) {
+    console.error('Error generating investment property chart:', error);
+    return '';
+  }
+}
+
+/**
+ * Generate superannuation tax comparison chart
+ */
+export async function generateSuperTaxChart(data: {
+  annualIncome: number;
+  marginalTaxRate: number;
+  superContribution: number;
+  taxOnSuper: number;
+  taxSavingFromSuper: number;
+}): Promise<string> {
+  try {
+    if (typeof document === 'undefined') {
+      console.warn('Document not available, cannot generate chart');
+      return '';
+    }
+
+    const canvas = document.createElement('canvas');
+    const scale = 3;
+    canvas.width = 1200 * scale;
+    canvas.height = 600 * scale;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.warn('Canvas context not available');
+      return '';
+    }
+
+    ctx.scale(scale, scale);
+    const baseWidth = 1200;
+    const baseHeight = 600;
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, baseWidth, baseHeight);
+
+    // Title
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 28px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Superannuation Tax Advantage', baseWidth / 2, 45);
+
+    // Comparison bars
+    const barY = 100;
+    const barWidth = 400;
+    const barHeight = 80;
+    const barGap = 30;
+
+    // Marginal tax bar
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(100, barY, barWidth, barHeight);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Marginal Tax Rate: ${(data.marginalTaxRate * 100).toFixed(0)}%`, 100 + barWidth / 2, barY + barHeight / 2 + 6);
+
+    // Super tax bar (smaller to show savings)
+    const superBarWidth = barWidth * 0.15 / data.marginalTaxRate; // Proportional to 15%
+    ctx.fillStyle = '#27ae60';
+    ctx.fillRect(100, barY + barHeight + barGap, Math.min(superBarWidth, barWidth), barHeight);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('Super Tax Rate: 15%', 100 + Math.min(superBarWidth, barWidth) / 2, barY + barHeight + barGap + barHeight / 2 + 6);
+
+    // Savings calculation
+    const savingsX = 600;
+    
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(savingsX, barY, 500, barHeight * 2 + barGap);
+    ctx.strokeStyle = '#27ae60';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(savingsX, barY, 500, barHeight * 2 + barGap);
+
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Tax Benefit Analysis', savingsX + 250, barY + 30);
+
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'left';
+    
+    ctx.fillText(`Annual Super Contribution:`, savingsX + 20, barY + 70);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#3498db';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText(`$${data.superContribution.toLocaleString()}`, savingsX + 480, barY + 70);
+
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Tax on Super (15%):`, savingsX + 20, barY + 105);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#e74c3c';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText(`$${data.taxOnSuper.toLocaleString()}`, savingsX + 480, barY + 105);
+
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Tax if Received as Income:`, savingsX + 20, barY + 140);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#e74c3c';
+    ctx.font = 'bold 16px Arial';
+    const taxAsIncome = data.superContribution * data.marginalTaxRate;
+    ctx.fillText(`$${taxAsIncome.toLocaleString()}`, savingsX + 480, barY + 140);
+
+    // Savings highlight
+    ctx.fillStyle = '#e8f5e9';
+    ctx.fillRect(savingsX + 20, barY + 155, 460, 35);
+    ctx.fillStyle = '#27ae60';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Annual Tax Saving:`, savingsX + 30, barY + 178);
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText(`$${data.taxSavingFromSuper.toLocaleString()}`, savingsX + 470, barY + 178);
+
+    // Explanation
+    const explainY = barY + barHeight * 2 + barGap + 60;
+    ctx.fillStyle = '#7f8c8d';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(
+      'By contributing to superannuation, you pay 15% tax instead of your marginal rate,',
+      baseWidth / 2,
+      explainY
+    );
+    ctx.fillText(
+      `saving $${data.taxSavingFromSuper.toLocaleString()} per year on your current contributions.`,
+      baseWidth / 2,
+      explainY + 25
+    );
+
+    // Key benefit
+    ctx.fillStyle = '#fff3e0';
+    ctx.fillRect(200, explainY + 60, 800, 80);
+    ctx.strokeStyle = '#ff9800';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(200, explainY + 60, 800, 80);
+
+    ctx.fillStyle = '#ff9800';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('💡 Maximize Salary Sacrifice to Increase Tax Savings', baseWidth / 2, explainY + 95);
+    
+    const additionalCapacity = Math.max(0, 30000 - data.superContribution);
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = '14px Arial';
+    ctx.fillText(
+      `You can contribute up to $${additionalCapacity.toLocaleString()} more before reaching the $30,000 cap`,
+      baseWidth / 2,
+      explainY + 120
+    );
+
+    return canvas.toDataURL('image/png', 1.0);
+  } catch (error) {
+    console.error('Error generating super tax chart:', error);
+    return '';
+  }
+}
