@@ -323,13 +323,27 @@ export default function InvestmentPropertiesPage() {
     toast({ title: 'Property removed', description: 'Property has been removed from your portfolio' });
   };
 
+  // Watch form values for auto-calculation
+  const watchedFormValues = serviceabilityForm.watch();
+  
   // Auto-calculate serviceability when form data changes
   useEffect(() => {
     const data = serviceabilityForm.getValues();
     const result = calculateServiceability(data);
     setServiceabilityResult(result);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceabilityForm.watch()]);
+  }, [
+    watchedFormValues.annualIncome,
+    watchedFormValues.monthlyExpenses,
+    watchedFormValues.existingDebtPayments,
+    watchedFormValues.targetPropertyPrice,
+    watchedFormValues.deposit,
+    watchedFormValues.interestRate,
+    watchedFormValues.loanTerm,
+    watchedFormValues.expectedRent,
+    watchedFormValues.annualPropertyExpenses,
+    watchedFormValues.depreciationAmount,
+    watchedFormValues.marginalTaxRate
+  ]);
 
   // Manual trigger (kept for UI button) - mirrors auto-calc behavior
   const runServiceabilityTest = () => {
