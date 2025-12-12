@@ -163,6 +163,8 @@ interface ClientData {
     loanTerm: number;
     weeklyRent: number;
     annualExpenses: number;
+    linkedAssetId?: string;
+    linkedLiabilityId?: string;
   }>;
 
   // Projections
