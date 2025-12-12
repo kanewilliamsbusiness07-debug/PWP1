@@ -20,8 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useFinancialStore } from '@/lib/store/store';
 import { ClientSelector } from '@/components/client-selector';
-import { calculateMonthlySurplus } from '@/lib/finance/calculations';
-import { calculateServiceability as canonicalCalculateServiceability } from '@/lib/finance/serviceability';
 
 const propertySchema = z.object({
   address: z.string().min(1, 'Address is required'),
@@ -187,93 +185,126 @@ export default function InvestmentPropertiesPage() {
     };
   };
 
-  // Adapter: map the serviceability form data into the canonical serviceability function
+  // Standalone serviceability calculation - uses Australian lending standards
   const calculateServiceability = (data: ServiceabilityData): ServiceabilityResult => {
-    const clientData: any = {
-      income: {
-        // canonical monthly/gross representation expected by canonical functions
-        annual: data.annualIncome || 0
-      },
-      expenses: {
-        living: data.monthlyExpenses || 0
-      },
-      loans: [
-        {
-          // existing monthly repayment passed through
-          monthlyRepayment: data.existingDebtPayments || 0
-        }
-      ],
-      properties: []
-    };
+    // ========================================
+    // INPUT VALIDATION
+    // ========================================
+    const annualIncome = data.annualIncome || 0;
+    const monthlyGrossIncome = annualIncome / 12;
+    const monthlyExpenses = data.monthlyExpenses || 0;
+    const existingDebtPayments = data.existingDebtPayments || 0;
+    const targetPropertyPrice = data.targetPropertyPrice || 0;
+    const deposit = data.deposit || 0;
+    const interestRatePercent = data.interestRate || 6.5;
+    const interestRateDecimal = interestRatePercent / 100;
+    const loanTermYears = data.loanTerm || 30;
+    const weeklyRent = data.expectedRent || 0;
+    const annualPropertyExpenses = data.annualPropertyExpenses || 0;
+    const depreciationAmount = data.depreciationAmount || 0;
+    const marginalTaxRate = (data.marginalTaxRate || 32.5) / 100;
 
-    const loanAmount = Math.max(0, (data.targetPropertyPrice || 0) - (data.deposit || 0));
-    const proposedLoan: any = {
-      amount: loanAmount,
-      interestRate: (data.interestRate || 6.5) / 100, // Convert percentage to decimal
-      termYears: data.loanTerm || 30,
-      expectedRentWeekly: data.expectedRent || 0,
-      annualExpenses: data.annualPropertyExpenses || 0,
-      depreciation: data.depreciationAmount || 0,
-    };
+    // ========================================
+    // LOAN CALCULATIONS
+    // ========================================
+    const loanAmount = Math.max(0, targetPropertyPrice - deposit);
+    
+    // Monthly loan repayment (P&I)
+    const monthlyRepayment = calculateLoanPayment(loanAmount, interestRatePercent, loanTermYears);
+    
+    // LTV Ratio
+    const ltvRatio = targetPropertyPrice > 0 ? (loanAmount / targetPropertyPrice) * 100 : 0;
 
-    // Use canonical serviceability implementation
-    const canonical = canonicalCalculateServiceability({ clientData, proposedLoan } as any);
+    // ========================================
+    // INCOME & SERVICEABILITY
+    // ========================================
+    // Net monthly income after tax (approximate using 30% effective tax rate)
+    const effectiveTaxRate = annualIncome > 180000 ? 0.39 : annualIncome > 120000 ? 0.34 : annualIncome > 45000 ? 0.25 : 0.19;
+    const monthlyNetIncome = monthlyGrossIncome * (1 - effectiveTaxRate);
+    
+    // Add 80% of rental income (lender shading)
+    const monthlyRent = (weeklyRent * 52) / 12;
+    const shadedMonthlyRent = monthlyRent * 0.8;
+    
+    // Total assessable income
+    const totalAssessableIncome = monthlyNetIncome + shadedMonthlyRent;
+    
+    // Total monthly commitments
+    const monthlyPropertyExpenses = annualPropertyExpenses / 12;
+    const totalMonthlyCommitments = existingDebtPayments + monthlyRepayment + monthlyExpenses + monthlyPropertyExpenses;
+    
+    // Net disposable income (NDI)
+    const netDisposableIncome = totalAssessableIncome - totalMonthlyCommitments;
+    
+    // DTI Ratio (total debt service / gross monthly income)
+    const dtiRatio = monthlyGrossIncome > 0 
+      ? ((existingDebtPayments + monthlyRepayment) / monthlyGrossIncome) * 100 
+      : 0;
 
-    // Calculate LTV ratio
-    const ltvRatio = data.targetPropertyPrice > 0 
-      ? (loanAmount / data.targetPropertyPrice) * 100 
-      : 0;
+    // ========================================
+    // MAX BORROWING CAPACITY
+    // ========================================
+    // Based on 30% of gross income for all debt repayments (Australian standard)
+    const maxDebtPayment = monthlyGrossIncome * 0.30;
+    const availableForNewLoan = Math.max(0, maxDebtPayment - existingDebtPayments);
+    const maxBorrowing = calculateMaxBorrowingFromPayment(availableForNewLoan, interestRateDecimal, loanTermYears);
+
+    // ========================================
+    // STRESS TEST (+3% rate buffer)
+    // ========================================
+    const stressTestRate = interestRatePercent + 3;
+    const stressTestRepayment = calculateLoanPayment(loanAmount, stressTestRate, loanTermYears);
+    const stressTestNDI = totalAssessableIncome - (existingDebtPayments + stressTestRepayment + monthlyExpenses + monthlyPropertyExpenses);
+    const passesStressTest = stressTestNDI > 0;
+
+    // ========================================
+    // NEGATIVE GEARING & TAX BENEFITS
+    // ========================================
+    // Interest-only component for tax deductions
+    const monthlyInterest = loanAmount * interestRateDecimal / 12;
+    const monthlyDepreciation = depreciationAmount / 12;
     
-    // Calculate DTI ratio (total debt / annual income)
-    const totalDebtPayments = (data.existingDebtPayments || 0) + (canonical.monthlyRepayment || 0);
-    const monthlyIncome = (data.annualIncome || 0) / 12;
-    const dtiRatio = monthlyIncome > 0 
-      ? (totalDebtPayments / monthlyIncome) * 100 
-      : 0;
-    
-    // Calculate max borrowing capacity based on 35% serviceability ratio
-    const availableForLoan = monthlyIncome * 0.35 - (data.existingDebtPayments || 0);
-    const maxBorrowing = availableForLoan > 0 
-      ? calculateMaxBorrowingFromPayment(availableForLoan, (data.interestRate || 6.5) / 100, data.loanTerm || 30)
-      : 0;
-    
-    // Calculate negative gearing and tax benefits
-    const monthlyRent = (data.expectedRent || 0) * 52 / 12;
-    const monthlyExpenses = (data.annualPropertyExpenses || 0) / 12;
-    const monthlyInterest = loanAmount * ((data.interestRate || 6.5) / 100) / 12;
-    const monthlyDepreciation = (data.depreciationAmount || 0) / 12;
-    
-    const netPropertyIncome = monthlyRent - monthlyExpenses - monthlyInterest - monthlyDepreciation;
+    // Net property income (for tax purposes)
+    const netPropertyIncome = monthlyRent - monthlyPropertyExpenses - monthlyInterest - monthlyDepreciation;
     const isNegativelyGeared = netPropertyIncome < 0;
     const negativeGearingAmount = isNegativelyGeared ? Math.abs(netPropertyIncome * 12) : 0;
     
-    // Tax benefit from negative gearing (marginal rate * loss)
-    const annualTaxBenefit = negativeGearingAmount * ((data.marginalTaxRate || 32.5) / 100);
+    // Tax benefit from negative gearing
+    const annualTaxBenefit = negativeGearingAmount * marginalTaxRate;
     const monthlyTaxBenefit = annualTaxBenefit / 12;
     
-    // Net monthly payment after tax benefit
-    const netMonthlyPayment = (canonical.monthlyRepayment || 0) - monthlyRent + monthlyExpenses - monthlyTaxBenefit;
+    // Net monthly cost after tax benefit
+    // = Loan repayment - Rent + Property expenses - Tax benefit
+    const netMonthlyPayment = monthlyRepayment - monthlyRent + monthlyPropertyExpenses - monthlyTaxBenefit;
 
-    // Map canonical result into the local ServiceabilityResult shape
-    const mapped: ServiceabilityResult = {
+    // ========================================
+    // AFFORDABILITY ASSESSMENT
+    // ========================================
+    // Can afford if:
+    // 1. DTI ratio <= 35%
+    // 2. Net disposable income > 0
+    // 3. Passes stress test
+    // 4. LTV <= 95% (with LMI) or <= 80% (without)
+    const canAfford = dtiRatio <= 35 && netDisposableIncome > 0 && passesStressTest && ltvRatio <= 95;
+
+    return {
       maxBorrowingCapacity: Math.max(0, Math.round(maxBorrowing)),
-      monthlyServiceCapacity: Math.max(0, Math.round(canonical.monthlyNetIncome ?? 0)),
+      monthlyServiceCapacity: Math.max(0, Math.round(netDisposableIncome)),
       loanToValueRatio: Math.round(ltvRatio * 10) / 10,
       debtToIncomeRatio: Math.round(dtiRatio * 10) / 10,
-      canAfford: !!canonical.canAfford,
-      monthlyShortfall: canonical.netSurplusAfterLoan < 0 ? Math.abs(Math.round(canonical.netSurplusAfterLoan)) : undefined,
+      canAfford,
+      monthlyShortfall: netDisposableIncome < 0 ? Math.abs(Math.round(netDisposableIncome)) : undefined,
       isNegativelyGeared,
       negativeGearingAmount: Math.round(negativeGearingAmount),
       annualTaxBenefit: Math.round(annualTaxBenefit),
       monthlyTaxBenefit: Math.round(monthlyTaxBenefit),
       netMonthlyPaymentAfterTax: Math.round(netMonthlyPayment)
     };
-
-    return mapped;
   };
   
   // Helper function to calculate max borrowing from a monthly payment
   const calculateMaxBorrowingFromPayment = (monthlyPayment: number, annualRate: number, years: number): number => {
+    if (monthlyPayment <= 0) return 0;
     if (annualRate === 0) return monthlyPayment * years * 12;
     const monthlyRate = annualRate / 12;
     const numPayments = years * 12;
@@ -319,6 +350,7 @@ export default function InvestmentPropertiesPage() {
       totalDebt: totals.totalDebt + property.loanAmount,
       totalEquity: totals.totalEquity + (property.currentValue - property.loanAmount),
       totalRent: totals.totalRent + analysis.monthlyRent,
+      totalLoanPayments: totals.totalLoanPayments + analysis.monthlyLoanPayment,
       totalCashFlow: totals.totalCashFlow + analysis.monthlyCashFlow,
       totalTaxBenefit: totals.totalTaxBenefit + analysis.taxBenefit
     };
@@ -327,6 +359,7 @@ export default function InvestmentPropertiesPage() {
     totalDebt: 0,
     totalEquity: 0,
     totalRent: 0,
+    totalLoanPayments: 0,
     totalCashFlow: 0,
     totalTaxBenefit: 0
   });
@@ -342,50 +375,67 @@ export default function InvestmentPropertiesPage() {
 
       {/* Portfolio Summary */}
       {properties.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <div className="flex items-center">
-                <Home className="h-8 w-8 text-accent" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Total Value</p>
-                  <p className="text-2xl font-bold text-foreground">${portfolioTotals.totalValue.toLocaleString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-                    <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                  <p className="text-sm font-medium text-muted-foreground">Total Equity</p>
-                  <p className="text-4xl font-bold mt-2">
-                    ${portfolioTotals.totalEquity.toLocaleString()}
-                  </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <DollarSign className="h-8 w-8 text-primary" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Monthly Rent</p>
-                  <p className="text-2xl font-bold text-primary">${portfolioTotals.totalRent.toLocaleString()}</p>
+                <Home className="h-6 w-6 text-primary" />
+                <div className="ml-3">
+                  <p className="text-xs font-medium text-muted-foreground">Total Value</p>
+                  <p className="text-lg font-bold text-foreground">${portfolioTotals.totalValue.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <div className="flex items-center">
-                <Calculator className="h-8 w-8 text-primary" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Net Cash Flow</p>
-                  <p className={`text-2xl font-bold ${portfolioTotals.totalCashFlow >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
-                    ${portfolioTotals.totalCashFlow.toLocaleString()}
+                <TrendingUp className="h-6 w-6 text-emerald-500" />
+                <div className="ml-3">
+                  <p className="text-xs font-medium text-muted-foreground">Total Equity</p>
+                  <p className="text-lg font-bold text-emerald-500">${portfolioTotals.totalEquity.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <DollarSign className="h-6 w-6 text-blue-500" />
+                <div className="ml-3">
+                  <p className="text-xs font-medium text-muted-foreground">Monthly Rent</p>
+                  <p className="text-lg font-bold text-blue-500">${Math.round(portfolioTotals.totalRent).toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <Calculator className="h-6 w-6 text-amber-500" />
+                <div className="ml-3">
+                  <p className="text-xs font-medium text-muted-foreground">Loan Payments</p>
+                  <p className="text-lg font-bold text-amber-500">${Math.round(portfolioTotals.totalLoanPayments).toLocaleString()}/mo</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                {portfolioTotals.totalCashFlow >= 0 ? (
+                  <TrendingUp className="h-6 w-6 text-emerald-500" />
+                ) : (
+                  <TrendingDown className="h-6 w-6 text-destructive" />
+                )}
+                <div className="ml-3">
+                  <p className="text-xs font-medium text-muted-foreground">Net Cash Flow</p>
+                  <p className={`text-lg font-bold ${portfolioTotals.totalCashFlow >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
+                    ${Math.round(portfolioTotals.totalCashFlow).toLocaleString()}/mo
                   </p>
                 </div>
               </div>
