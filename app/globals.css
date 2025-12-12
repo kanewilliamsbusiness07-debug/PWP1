@@ -69,6 +69,53 @@
     @apply bg-background text-foreground;
   }
   
+  /* Responsive text truncation */
+  .truncate-responsive {
+    @apply truncate;
+  }
+  
+  /* Better scrolling behavior */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+  
+  /* Responsive card padding */
+  .card-responsive {
+    @apply p-3 sm:p-4 md:p-6;
+  }
+  
+  /* Responsive text sizing */
+  .text-responsive-sm {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-responsive-base {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-lg {
+    @apply text-base sm:text-lg md:text-xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl;
+  }
+  
+  /* Prevent horizontal overflow */
+  .overflow-safe {
+    @apply overflow-x-auto overflow-y-visible;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
   /* Perpetual Wealth Partners Custom Styles */
   .pwp-gold {
     color: #FFD700;

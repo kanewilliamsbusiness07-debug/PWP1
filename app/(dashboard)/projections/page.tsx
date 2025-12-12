@@ -562,18 +562,18 @@ export default function ProjectionsPage() {
     : 100;
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-6 bg-background min-h-screen">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Financial Projections</h1>
-          <p className="text-muted-foreground">Plan your retirement and analyze future financial position</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Financial Projections</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Plan your retirement and analyze future financial position</p>
         </div>
         {/* Button removed for auto-calc */}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Input Forms */}
-        <div className="xl:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           <Tabs defaultValue="current" className="space-y-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="current" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">

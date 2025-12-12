@@ -385,9 +385,9 @@ export default function FinancialPositionPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
+    <div className="container mx-auto p-4 sm:p-6 space-y-8">
       {/* Header with summary cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center text-lg">
@@ -623,7 +623,7 @@ export default function FinancialPositionPage() {
                               </Button>
                             </div>
                             
-                            <div className="grid gap-4 md:grid-cols-5">
+                            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                               <FormField
                                 control={liabilitiesForm.control}
                                 name={`${liability.id}.balance`}

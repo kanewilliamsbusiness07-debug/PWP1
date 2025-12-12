@@ -649,11 +649,11 @@ export default function TaxOptimizationPage() {
   ]);
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-6 bg-background min-h-screen">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Tax Optimization</h1>
-          <p className="text-muted-foreground">Analyze tax implications and optimize your strategy</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Tax Optimization</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Analyze tax implications and optimize your strategy</p>
         </div>
         <Button 
           onClick={() => taxForm.handleSubmit(calculateOptimizations)()}
@@ -664,9 +664,9 @@ export default function TaxOptimizationPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tax Input Form */}
-        <div className="xl:col-span-2">
+        <div className="lg:col-span-2">
                     <Card>
             <CardHeader>
               <CardTitle className="text-foreground">Tax Information</CardTitle>
