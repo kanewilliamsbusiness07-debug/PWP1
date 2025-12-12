@@ -1761,16 +1761,16 @@ export default function SummaryPage() {
               <div className="flex items-center justify-center mb-2">
                 <DollarSign className="h-8 w-8 text-blue-500" />
               </div>
-              <p className="text-sm text-muted-foreground">Monthly Cash Flow</p>
+              <p className="text-sm text-muted-foreground">Monthly Income</p>
               <div className="space-y-1">
                 <div>
-                  <p className="text-xs text-muted-foreground">Current</p>
+                  <p className="text-xs text-muted-foreground">Current Surplus</p>
                   <p className={`text-xl font-bold ${summary.monthlyCashFlow >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
                     {formatCurrency(summary.monthlyCashFlow)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">At Retirement</p>
+                  <p className="text-xs text-muted-foreground">Retirement Passive Income</p>
                   <p className={`text-xl font-bold ${summary.projectedRetirementMonthlyCashFlow >= 0 ? 'text-blue-500' : 'text-destructive'}`}>
                     {formatCurrency(summary.projectedRetirementMonthlyCashFlow)}
                   </p>
@@ -1951,8 +1951,12 @@ export default function SummaryPage() {
                   <span className="text-lg font-semibold text-foreground">{summary.yearsToRetirement} years</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Projected Lump Sum</span>
+                  <span className="text-muted-foreground">Projected Net Worth</span>
                   <span className="text-lg font-semibold text-blue-600">${summary.projectedRetirementLumpSum.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Projected Passive Income</span>
+                  <span className="text-lg font-semibold text-blue-600">${summary.projectedRetirementMonthlyCashFlow.toLocaleString()}/month</span>
                 </div>
                 <hr className="border" />
                 <div className="text-center">
