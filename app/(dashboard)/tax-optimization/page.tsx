@@ -94,6 +94,7 @@ export default function TaxOptimizationPage() {
   const [chartData, setChartData] = useState<ChartDataItem[]>([]);
   const { toast } = useToast();
   const financialStore = useFinancialStore();
+  const setClientData = useFinancialStore((state) => state.setClientData);
   const clientFinancials = useClientFinancials();
   
   // Subscribe to specific store values to ensure re-renders
@@ -563,6 +564,25 @@ export default function TaxOptimizationPage() {
       
       setOptimizedTax(optimized);
       setIsCalculating(false);
+      
+      // Store tax optimization results in client data for Summary page to use
+      const clientSlot = activeClient || 'A';
+      const activeClientData = clientSlot === 'A' ? clientA : clientB;
+      if (activeClientData) {
+        setClientData(clientSlot, {
+          taxOptimizationResults: {
+            currentTax: current.totalTax,
+            optimizedTax: optimized.totalTax,
+            taxSavings: totalStrategySavings,
+            annualIncome: current.annualIncome,
+            taxableIncome: current.taxableIncome,
+            totalDeductions: current.totalDeductions,
+            marginalTaxRate: current.marginalTaxRate,
+            averageTaxRate: current.averageTaxRate,
+            calculatedAt: new Date().toISOString(),
+          }
+        });
+      }
       
       toast({
         title: 'Tax calculation complete',

@@ -199,6 +199,19 @@ interface ClientData {
     calculatedAt: string; // ISO timestamp
   };
 
+  // Tax Optimization Results (calculated on Tax Optimization page, used by Summary page)
+  taxOptimizationResults?: {
+    currentTax: number;
+    optimizedTax: number;
+    taxSavings: number;
+    annualIncome: number;
+    taxableIncome: number;
+    totalDeductions: number;
+    marginalTaxRate: number;
+    averageTaxRate: number;
+    calculatedAt: string; // ISO timestamp
+  };
+
   // Tax Optimization
   employmentIncome?: number;
   investmentIncome?: number;
