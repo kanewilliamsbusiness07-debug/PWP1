@@ -1189,20 +1189,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                           <FormLabel>Number of Dependants</FormLabel>
                           <FormControl>
                             <Input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
+                              type="number"
+                              step="1"
                               placeholder="0"
                               {...field}
                               value={field.value ?? ''}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value);
-                              }}
-                              onBlur={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value === '' ? 0 : (parseInt(value) || 0));
-                              }}
+                              onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -1377,22 +1369,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Annual Income</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1408,22 +1390,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Rental Income</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1439,22 +1411,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Dividends</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1470,22 +1432,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Franked Dividends</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1501,22 +1453,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Capital Gains</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1532,22 +1474,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Other Income</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1570,20 +1502,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             </FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="e.g., 4500"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -1652,16 +1576,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                       <FormLabel>Value</FormLabel>
                                       <FormControl>
                                         <Input
-                                          type="text"
-                                          inputMode="numeric"
-                                          pattern="[0-9.]*"
+                                          type="number"
+                                          step="any"
                                           placeholder="0"
                                           {...field}
                                           value={field.value ?? ''}
-                                          onChange={(e) => {
-                                            const value = e.target.value.replace(/[^0-9.]/g, '');
-                                            field.onChange(parseFloat(value) || 0);
-                                          }}
+                                          onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         />
                                       </FormControl>
                                       <FormMessage />
@@ -1775,16 +1695,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                       <FormLabel>Balance</FormLabel>
                                       <FormControl>
                                         <Input
-                                          type="text"
-                                          inputMode="numeric"
-                                          pattern="[0-9.]*"
+                                          type="number"
+                                          step="any"
                                           placeholder="0"
                                           {...field}
                                           value={field.value ?? ''}
-                                          onChange={(e) => {
-                                            const value = e.target.value.replace(/[^0-9.]/g, '');
-                                            field.onChange(parseFloat(value) || 0);
-                                          }}
+                                          onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         />
                                       </FormControl>
                                       <FormMessage />
@@ -1799,16 +1715,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                       <FormLabel>Monthly Payment</FormLabel>
                                       <FormControl>
                                         <Input
-                                          type="text"
-                                          inputMode="numeric"
-                                          pattern="[0-9.]*"
+                                          type="number"
+                                          step="any"
                                           placeholder="0"
                                           {...field}
                                           value={field.value ?? ''}
-                                          onChange={(e) => {
-                                            const value = e.target.value.replace(/[^0-9.]/g, '');
-                                            field.onChange(parseFloat(value) || 0);
-                                          }}
+                                          onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         />
                                       </FormControl>
                                       <FormMessage />
@@ -1823,16 +1735,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                       <FormLabel>Interest Rate (%)</FormLabel>
                                       <FormControl>
                                         <Input
-                                          type="text"
-                                          inputMode="numeric"
-                                          pattern="[0-9.]*"
+                                          type="number"
+                                          step="any"
                                           placeholder="0"
                                           {...field}
                                           value={field.value ?? ''}
-                                          onChange={(e) => {
-                                            const value = e.target.value.replace(/[^0-9.]/g, '');
-                                            field.onChange(parseFloat(value) || 0);
-                                          }}
+                                          onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         />
                                       </FormControl>
                                       <FormMessage />
@@ -1900,16 +1808,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 <FormLabel>Purchase Price</FormLabel>
                                 <FormControl>
                                   <Input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9.]*"
+                                    type="number"
+                                    step="any"
                                     placeholder="0"
                                     {...field}
                                     value={field.value ?? ''}
-                                    onChange={(e) => {
-                                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                                      field.onChange(parseFloat(value) || 0);
-                                    }}
+                                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1924,16 +1828,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 <FormLabel>Current Value</FormLabel>
                                 <FormControl>
                                   <Input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9.]*"
+                                    type="number"
+                                    step="any"
                                     placeholder="0"
                                     {...field}
                                     value={field.value ?? ''}
-                                    onChange={(e) => {
-                                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                                      field.onChange(parseFloat(value) || 0);
-                                    }}
+                                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1948,16 +1848,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 <FormLabel>Loan Amount</FormLabel>
                                 <FormControl>
                                   <Input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9.]*"
+                                    type="number"
+                                    step="any"
                                     placeholder="0"
                                     {...field}
                                     value={field.value ?? ''}
-                                    onChange={(e) => {
-                                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                                      field.onChange(parseFloat(value) || 0);
-                                    }}
+                                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1972,16 +1868,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 <FormLabel>Interest Rate (%)</FormLabel>
                                 <FormControl>
                                   <Input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9.]*"
+                                    type="number"
+                                    step="any"
                                     placeholder="0"
                                     {...field}
                                     value={field.value ?? ''}
-                                    onChange={(e) => {
-                                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                                      field.onChange(parseFloat(value) || 0);
-                                    }}
+                                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1996,20 +1888,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 <FormLabel>Loan Term (years)</FormLabel>
                                 <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
+                                type="number"
+                                step="1"
                                 placeholder="30"
                                 {...field}
                                 value={field.value ?? ''}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value);
-                              }}
-                              onBlur={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value === '' ? 0 : (parseInt(value) || 0));
-                              }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
                               />
                                 </FormControl>
                                 <FormMessage />
@@ -2024,16 +1908,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 <FormLabel>Weekly Rent</FormLabel>
                                 <FormControl>
                                   <Input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9.]*"
+                                    type="number"
+                                    step="any"
                                     placeholder="0"
                                     {...field}
                                     value={field.value ?? ''}
-                                    onChange={(e) => {
-                                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                                      field.onChange(parseFloat(value) || 0);
-                                    }}
+                                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2048,16 +1928,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 <FormLabel>Annual Expenses</FormLabel>
                                 <FormControl>
                                   <Input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9.]*"
+                                    type="number"
+                                    step="any"
                                     placeholder="0"
                                     {...field}
                                     value={field.value ?? ''}
-                                    onChange={(e) => {
-                                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                                      field.onChange(parseFloat(value) || 0);
-                                    }}
+                                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -2085,20 +1961,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Current Age</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
+                                type="number"
+                                step="1"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value);
-                              }}
-                              onBlur={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value === '' ? 0 : (parseInt(value) || 0));
-                              }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2113,20 +1981,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Retirement Age</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
+                                type="number"
+                                step="1"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value);
-                              }}
-                              onBlur={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(value === '' ? 0 : (parseInt(value) || 0));
-                              }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2141,22 +2001,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Current Super</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2171,22 +2021,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Current Savings</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2201,22 +2041,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Current Shares</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2231,22 +2061,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Property Equity</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2261,22 +2081,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Monthly Debt Payments</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2291,22 +2101,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Monthly Rental Income</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2327,22 +2127,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Inflation Rate (%)</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2357,22 +2147,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Salary Growth Rate (%)</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2387,22 +2167,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Super Return (%)</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2417,22 +2187,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Share Return (%)</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2447,22 +2207,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Property Growth Rate (%)</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2477,22 +2227,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Withdrawal Rate (%)</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2507,22 +2247,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Rent Growth Rate (%)</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2548,22 +2278,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Employment Income</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2578,22 +2298,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Investment Income</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2614,22 +2324,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Work Related Expenses</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2644,22 +2344,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Vehicle Expenses</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2674,22 +2364,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Uniforms & Laundry</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2704,22 +2384,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Home Office Expenses</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2734,22 +2404,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Self Education Expenses</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2764,22 +2424,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Investment Expenses</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2794,22 +2444,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Charity Donations</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2824,22 +2464,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Accounting Fees</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2854,22 +2484,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Rental Expenses</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2884,22 +2504,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Super Contributions</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2914,22 +2524,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>HELP Debt</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
@@ -2944,22 +2544,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>HECS Balance</FormLabel>
                             <FormControl>
                               <Input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9.]*"
+                                type="number"
+                                step="any"
                                 placeholder="0"
                                 {...field}
                                 value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  // Allow empty string during typing, parse to number on blur
-                                  field.onChange(value);
-                                }}
-                                onBlur={(e) => {
-                                  // Ensure we have a number on blur
-                                  const value = e.target.value.replace(/[^0-9.]/g, '');
-                                  field.onChange(value === '' ? 0 : (parseFloat(value) || 0));
-                                }}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
                             <FormMessage />
