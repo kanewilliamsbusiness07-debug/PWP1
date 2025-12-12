@@ -426,9 +426,25 @@ export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
   const monthlyHECS = hecsAnnual / 12;
 
   // Property expenses: support both nested (assets.properties) and flat array (assets) formats
+  // IMPORTANT: Avoid double-counting by tracking linked assets
   let monthlyPropertyExpenses = 0;
   
-  // First check for nested properties structure
+  // First, collect expenses from investment properties (Investment Properties page)
+  // These are the primary source of property expenses with annualExpenses field
+  const investmentProperties = clientData?.properties || [];
+  const linkedAssetIds = new Set<string>();
+  
+  if (Array.isArray(investmentProperties)) {
+    for (const p of investmentProperties) {
+      monthlyPropertyExpenses += Number(p?.annualExpenses || 0) / 12;
+      // Track which assets are linked to avoid double-counting
+      if (p?.linkedAssetId) {
+        linkedAssetIds.add(p.linkedAssetId);
+      }
+    }
+  }
+  
+  // Check for nested properties structure (legacy format)
   let properties = clientData?.assets?.properties || [];
   
   // If assets is an array (Financial Position page format), filter for property assets
@@ -436,15 +452,13 @@ export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
     properties = clientData.assets.filter((a: any) => a?.type === 'property');
   }
   
-  // Also check investment properties array from Investment Properties page
-  const investmentProperties = clientData?.properties || [];
-  if (Array.isArray(investmentProperties)) {
-    for (const p of investmentProperties) {
-      monthlyPropertyExpenses += Number(p?.annualExpenses || 0) / 12;
-    }
-  }
-  
+  // Only add expenses from property assets that are NOT already linked to investment properties
+  // This prevents double-counting when the same property appears in both arrays
   for (const p of properties) {
+    // Skip if this asset is already linked to an investment property
+    if (p?.id && linkedAssetIds.has(p.id)) {
+      continue;
+    }
     if ((p?.type || '').toString().toLowerCase() === 'investment' || (p?.type || '').toString().toLowerCase() === 'property') {
       monthlyPropertyExpenses += Number(p?.annualExpenses || p?.annualExpense || 0) / 12;
     }
