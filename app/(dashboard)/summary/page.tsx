@@ -1506,9 +1506,19 @@ export default function SummaryPage() {
             const savedPdf = await response.json();
             setLastGeneratedPdfId(savedPdf.id);
             
+            // Also download the PDF to user's browser
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
             toast({
               title: 'PDF Generated',
-              description: 'Professional PDF report has been generated and saved'
+              description: 'Professional PDF report has been generated, saved, and downloaded'
             });
 
             return savedPdf.id;
@@ -1696,22 +1706,44 @@ export default function SummaryPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Net Worth - Current vs Retirement */}
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
                 <TrendingUp className="h-8 w-8 text-emerald-500" />
               </div>
               <p className="text-sm text-muted-foreground">Net Worth</p>
-              <p className="text-2xl font-bold text-emerald-500">{formatCurrency(summary.netWorth)}</p>
+              <div className="space-y-1">
+                <div>
+                  <p className="text-xs text-muted-foreground">Current</p>
+                  <p className="text-xl font-bold text-emerald-500">{formatCurrency(summary.netWorth)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">At Retirement</p>
+                  <p className="text-xl font-bold text-blue-500">{formatCurrency(summary.projectedRetirementLumpSum)}</p>
+                </div>
+              </div>
             </div>
 
+            {/* Monthly Cash Flow - Current vs Retirement */}
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
                 <DollarSign className="h-8 w-8 text-blue-500" />
               </div>
               <p className="text-sm text-muted-foreground">Monthly Cash Flow</p>
-              <p className={`text-2xl font-bold ${summary.monthlyCashFlow >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
-                {formatCurrency(summary.monthlyCashFlow)}
-              </p>
+              <div className="space-y-1">
+                <div>
+                  <p className="text-xs text-muted-foreground">Current</p>
+                  <p className={`text-xl font-bold ${summary.monthlyCashFlow >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
+                    {formatCurrency(summary.monthlyCashFlow)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">At Retirement</p>
+                  <p className={`text-xl font-bold ${summary.projectedRetirementMonthlyCashFlow >= 0 ? 'text-blue-500' : 'text-destructive'}`}>
+                    {formatCurrency(summary.projectedRetirementMonthlyCashFlow)}
+                  </p>
+                </div>
+              </div>
             </div>
             
             <div className="text-center">
@@ -2010,26 +2042,6 @@ export default function SummaryPage() {
                   <Share2 className="h-4 w-4 mr-2" />
                   Share Report
                 </Button>
-              </CardContent>
-            </Card>
-
-            {/* Key Recommendations (bottom) */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-foreground">Key Recommendations</CardTitle>
-                <CardDescription className="text-muted-foreground">Actions to improve your financial position</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {summary.recommendations.map((recommendation, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
-                        {index + 1}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{recommendation}</p>
-                    </div>
-                  ))}
-                </div>
               </CardContent>
             </Card>
           </div>
