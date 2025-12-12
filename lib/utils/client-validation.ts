@@ -208,6 +208,19 @@ export const clientValidationSchema = z.object({
     calculatedAt: z.string(),
   }).optional(),
   
+  // Tax Optimization Results (stored from Tax Optimization page for Summary page consistency)
+  taxOptimizationResults: z.object({
+    currentTax: z.number(),
+    optimizedTax: z.number(),
+    taxSavings: z.number(),
+    annualIncome: z.number(),
+    taxableIncome: z.number(),
+    totalDeductions: z.number(),
+    marginalTaxRate: z.number(),
+    averageTaxRate: z.number(),
+    calculatedAt: z.string(),
+  }).optional(),
+  
   // Tax Optimization
   employmentIncome: z.number().min(0, 'Employment income cannot be negative').max(10000000, 'Employment income is too high').optional(),
   investmentIncome: z.number().min(0, 'Investment income cannot be negative').max(10000000, 'Investment income is too high').optional(),

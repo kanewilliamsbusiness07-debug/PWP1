@@ -379,10 +379,22 @@ export interface MonthlySurplusResult {
  * Monthly Surplus = Total Monthly Income - Total Monthly Expenses
  */
 export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
-  // Support both nested (income.employment) and flat (employmentIncome) structures
-  const employmentAnnual = Number(clientData?.income?.employment || clientData?.employmentIncome || clientData?.annualIncome || 0);
+  // Support both nested (income.employment) and flat (employmentIncome/grossSalary/grossIncome/annualIncome) structures
+  const employmentAnnual = Number(
+    clientData?.income?.employment || 
+    clientData?.employmentIncome || 
+    clientData?.annualIncome || 
+    clientData?.grossSalary || 
+    clientData?.grossIncome || 
+    0
+  );
   const rentalAnnual = Number(clientData?.income?.rental || clientData?.rentalIncome || 0);
-  const investmentAnnual = Number(clientData?.income?.investment || clientData?.investmentIncome || 0);
+  const investmentAnnual = Number(
+    clientData?.income?.investment || 
+    clientData?.investmentIncome || 
+    clientData?.dividends || 
+    0
+  );
   const otherAnnual = Number(clientData?.income?.other || clientData?.otherIncome || 0);
 
   const employment = employmentAnnual / 12;
@@ -400,7 +412,7 @@ export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
   const taxResult = calculateTax({
     grossIncome: annualTaxableIncome,
     deductions: [],
-    hecsBalance: Number(clientData?.liabilities?.hecsDebt?.currentBalance || 0)
+    hecsBalance: Number(clientData?.liabilities?.hecsDebt?.currentBalance || clientData?.hecsBalance || clientData?.helpDebt || 0)
   }, DEFAULT_TAX_RULES);
 
   const annualTax = taxResult.totalTax;
@@ -413,30 +425,75 @@ export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
 
   const monthlyHECS = hecsAnnual / 12;
 
-  // Property expenses only for investment properties (annual -> monthly)
+  // Property expenses: support both nested (assets.properties) and flat array (assets) formats
   let monthlyPropertyExpenses = 0;
-  const properties = clientData?.assets?.properties || [];
+  
+  // First check for nested properties structure
+  let properties = clientData?.assets?.properties || [];
+  
+  // If assets is an array (Financial Position page format), filter for property assets
+  if (Array.isArray(clientData?.assets)) {
+    properties = clientData.assets.filter((a: any) => a?.type === 'property');
+  }
+  
+  // Also check investment properties array from Investment Properties page
+  const investmentProperties = clientData?.properties || [];
+  if (Array.isArray(investmentProperties)) {
+    for (const p of investmentProperties) {
+      monthlyPropertyExpenses += Number(p?.annualExpenses || 0) / 12;
+    }
+  }
+  
   for (const p of properties) {
-    if ((p?.type || '').toString().toLowerCase() === 'investment') {
+    if ((p?.type || '').toString().toLowerCase() === 'investment' || (p?.type || '').toString().toLowerCase() === 'property') {
       monthlyPropertyExpenses += Number(p?.annualExpenses || p?.annualExpense || 0) / 12;
     }
   }
 
-  // Loan repayments: home loan, investment loans, personal loans, credit cards
+  // Loan repayments: support both nested structure and flat array structure
   let monthlyLoanRepayments = 0;
-  const homeLoan = clientData?.liabilities?.homeLoan;
-  if (homeLoan && Number(homeLoan.monthlyRepayment)) monthlyLoanRepayments += Number(homeLoan.monthlyRepayment);
+  
+  // Check if liabilities is an array (Financial Position page format)
+  if (Array.isArray(clientData?.liabilities)) {
+    for (const liability of clientData.liabilities) {
+      monthlyLoanRepayments += Number(liability?.monthlyPayment || 0);
+    }
+  } else {
+    // Legacy nested structure
+    const homeLoan = clientData?.liabilities?.homeLoan;
+    if (homeLoan && Number(homeLoan.monthlyRepayment)) monthlyLoanRepayments += Number(homeLoan.monthlyRepayment);
 
-  const investmentLoans = clientData?.liabilities?.investmentLoans || [];
-  for (const l of investmentLoans) monthlyLoanRepayments += Number(l?.monthlyRepayment || 0);
+    const investmentLoans = clientData?.liabilities?.investmentLoans || [];
+    for (const l of investmentLoans) monthlyLoanRepayments += Number(l?.monthlyRepayment || 0);
 
-  const personalLoans = clientData?.liabilities?.personalLoans || [];
-  for (const l of personalLoans) monthlyLoanRepayments += Number(l?.monthlyRepayment || 0);
+    const personalLoans = clientData?.liabilities?.personalLoans || [];
+    for (const l of personalLoans) monthlyLoanRepayments += Number(l?.monthlyRepayment || 0);
 
-  const creditCards = clientData?.liabilities?.creditCards || [];
-  for (const c of creditCards) monthlyLoanRepayments += Number(c?.minimumPayment || 0);
+    const creditCards = clientData?.liabilities?.creditCards || [];
+    for (const c of creditCards) monthlyLoanRepayments += Number(c?.minimumPayment || 0);
+  }
+  
+  // Also check for HECS balance in flat structure
+  let hecsBalance = Number(clientData?.liabilities?.hecsDebt?.currentBalance || 0);
+  if (!hecsBalance && Array.isArray(clientData?.liabilities)) {
+    const hecsLiability = clientData.liabilities.find((l: any) => l?.type === 'hecs');
+    hecsBalance = Number(hecsLiability?.balance || 0);
+  }
+  if (!hecsBalance) {
+    hecsBalance = Number(clientData?.hecsBalance || clientData?.helpDebt || 0);
+  }
+  
+  // Recalculate HECS with actual balance
+  const annualTaxableIncomeForHecs = employmentAnnual + rentalAnnual + investmentAnnual + otherAnnual;
+  const taxResultForHecs = calculateTax({
+    grossIncome: annualTaxableIncomeForHecs,
+    deductions: [],
+    hecsBalance: hecsBalance
+  }, DEFAULT_TAX_RULES);
+  const actualHecsAnnual = Number(taxResultForHecs.hecsRepayment || 0);
+  const actualMonthlyHECS = actualHecsAnnual / 12;
 
-  const totalMonthlyExpenses = livingExpenses + monthlyTax + monthlyHECS + monthlyPropertyExpenses + monthlyLoanRepayments;
+  const totalMonthlyExpenses = livingExpenses + monthlyTax + actualMonthlyHECS + monthlyPropertyExpenses + monthlyLoanRepayments;
 
   const monthlySurplus = totalMonthlyIncome - totalMonthlyExpenses;
 
@@ -453,7 +510,7 @@ export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
     expenses: {
       living: livingExpenses,
       tax: monthlyTax,
-      hecs: monthlyHECS,
+      hecs: actualMonthlyHECS,
       propertyExpenses: monthlyPropertyExpenses,
       loanRepayments: monthlyLoanRepayments,
       total: totalMonthlyExpenses
