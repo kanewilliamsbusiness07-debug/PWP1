@@ -28,7 +28,7 @@ const liabilitySchema = z.object({
   balance: z.number().min(0, 'Balance must be positive'),
   monthlyPayment: z.number().min(0, 'Payment must be positive'),
   interestRate: z.number().min(0).max(100, 'Rate must be between 0-100'),
-  loanTerm: z.number().int().min(1, 'Loan term must be at least 1 year').max(50, 'Loan term cannot exceed 50 years'),
+  loanTerm: z.number().int().min(1, 'Loan term must be at least 1 year').max(100, 'Loan term cannot exceed 100 years'),
   type: z.enum(['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other'])
 });
 

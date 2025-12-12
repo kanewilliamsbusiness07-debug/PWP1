@@ -27,7 +27,7 @@ const propertySchema = z.object({
   currentValue: z.number().min(0, 'Value must be positive'),
   loanAmount: z.number().min(0, 'Loan amount must be positive'),
   interestRate: z.number().min(0).max(20, 'Rate must be between 0-20%'),
-  loanTerm: z.number().min(1).max(50, 'Term must be between 1-50 years'),
+  loanTerm: z.number().min(1).max(100, 'Term must be between 1-100 years'),
   weeklyRent: z.number().min(0, 'Rent must be positive'),
   annualExpenses: z.number().min(0, 'Expenses must be positive')
 });
@@ -39,7 +39,7 @@ const serviceabilitySchema = z.object({
   targetPropertyPrice: z.number().min(0, 'Price must be positive'),
   deposit: z.number().min(0, 'Deposit must be positive'),
   interestRate: z.number().min(0).max(20, 'Rate must be between 0-20%'),
-  loanTerm: z.number().min(1).max(50, 'Term must be between 1-50 years'),
+  loanTerm: z.number().min(1).max(100, 'Term must be between 1-100 years'),
   expectedRent: z.number().min(0, 'Rent must be positive'),
   annualPropertyExpenses: z.number().min(0, 'Property expenses must be positive'),
   depreciationAmount: z.number().min(0, 'Depreciation must be positive'),

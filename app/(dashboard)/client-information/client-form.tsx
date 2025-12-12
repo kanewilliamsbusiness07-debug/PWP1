@@ -754,30 +754,30 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       // Get current properties to avoid duplicates
       const currentProperties = form.getValues('properties') || [];
       
-      // For each property asset, try to find a matching mortgage and create an investment property
+      // For each property asset, try to find a matching mortgage and create/update an investment property
       propertyAssets.forEach((propertyAsset: any) => {
         const assetName = (propertyAsset.name || '').toLowerCase().trim();
         
         // Check if an investment property already exists for this asset (by matching address/name)
-        const existingProperty = currentProperties.find((prop: any) => 
+        const existingPropertyIndex = currentProperties.findIndex((prop: any) => 
           (prop.address || '').toLowerCase().trim() === assetName ||
           (prop.linkedAssetId === propertyAsset.id)
         );
         
-        if (!existingProperty && assetName) {
-          // Try to find a matching mortgage by name similarity
-          const matchingMortgage = mortgageLiabilities.find((mortgage: any) => {
-            const mortgageName = (mortgage.name || '').toLowerCase().trim();
-            // Match if names are similar or if both contain common property identifiers
-            return mortgageName === assetName || 
-                   mortgageName.includes(assetName) || 
-                   assetName.includes(mortgageName) ||
-                   (assetName.length > 3 && mortgageName.length > 3 && 
-                    (assetName.split(' ').some((word: string) => word.length > 3 && mortgageName.includes(word)) ||
-                     mortgageName.split(' ').some((word: string) => word.length > 3 && assetName.includes(word))));
-          });
-          
-          // Create investment property from asset + mortgage data
+        // Try to find a matching mortgage by name similarity
+        const matchingMortgage = mortgageLiabilities.find((mortgage: any) => {
+          const mortgageName = (mortgage.name || '').toLowerCase().trim();
+          // Match if names are similar or if both contain common property identifiers
+          return mortgageName === assetName || 
+                 mortgageName.includes(assetName) || 
+                 assetName.includes(mortgageName) ||
+                 (assetName.length > 3 && mortgageName.length > 3 && 
+                  (assetName.split(' ').some((word: string) => word.length > 3 && mortgageName.includes(word)) ||
+                   mortgageName.split(' ').some((word: string) => word.length > 3 && assetName.includes(word))));
+        });
+        
+        if (existingPropertyIndex === -1 && assetName) {
+          // Create new investment property from asset + mortgage data
           const newProperty = {
             id: `property-auto-${propertyAsset.id}`,
             linkedAssetId: propertyAsset.id,
@@ -786,13 +786,30 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
             currentValue: Number(propertyAsset.currentValue) || 0,
             loanAmount: matchingMortgage ? (Number(matchingMortgage.balance) || 0) : 0,
             interestRate: matchingMortgage ? (Number(matchingMortgage.interestRate) || 0) : 0,
-            loanTerm: 30,
+            loanTerm: matchingMortgage ? (Number(matchingMortgage.loanTerm) || 30) : 30,
             weeklyRent: 0,
             annualExpenses: 0,
           };
           
           // Append the new property
           appendProperty(newProperty);
+        } else if (existingPropertyIndex !== -1 && matchingMortgage) {
+          // Update existing property with new mortgage values (loanAmount, interestRate, loanTerm)
+          const existingProperty = currentProperties[existingPropertyIndex];
+          const newLoanAmount = Number(matchingMortgage.balance) || 0;
+          const newInterestRate = Number(matchingMortgage.interestRate) || 0;
+          const newLoanTerm = Number(matchingMortgage.loanTerm) || 30;
+          
+          // Only update if values have actually changed
+          if (existingProperty.loanAmount !== newLoanAmount) {
+            form.setValue(`properties.${existingPropertyIndex}.loanAmount`, newLoanAmount);
+          }
+          if (existingProperty.interestRate !== newInterestRate) {
+            form.setValue(`properties.${existingPropertyIndex}.interestRate`, newInterestRate);
+          }
+          if (existingProperty.loanTerm !== newLoanTerm) {
+            form.setValue(`properties.${existingPropertyIndex}.loanTerm`, newLoanTerm);
+          }
         }
       });
     }
