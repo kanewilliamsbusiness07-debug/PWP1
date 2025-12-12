@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { calculateDebtPaymentsAtRetirement } from '@/lib/finance/calculations';
 
 const projectionSchema = z.object({
   currentAge: z.number().min(18).max(100),
@@ -479,10 +480,20 @@ export default function ProjectionsPage() {
       // Target is 70% of CURRENT income (not final salary)
       const targetRetirementIncome = projectionData.annualIncome * RETIREMENT_INCOME_THRESHOLD;
       
-      // Calculate surplus or deficit: passive income at retirement vs 70% of current income
-      const surplusOrDeficit = annualPassiveIncome - targetRetirementIncome;
+      // Calculate debt payments at retirement - only include loans that won't be paid off
+      // Get liabilities from client data (Financial Position page)
+      const liabilities = clientData?.liabilities || [];
+      const monthlyDebtAtRetirement = calculateDebtPaymentsAtRetirement(liabilities, years);
+      const annualDebtPaymentsAtRetirement = monthlyDebtAtRetirement * 12;
+      
+      // Calculate available income at retirement: passive income minus debt payments that still exist
+      const availableIncomeAtRetirement = annualPassiveIncome - annualDebtPaymentsAtRetirement;
+      
+      // Calculate surplus or deficit: available income vs 70% of current income
+      // This matches the summary page's calculateRetirementDeficitSurplus function
+      const surplusOrDeficit = availableIncomeAtRetirement - targetRetirementIncome;
       const percentageOfTarget = targetRetirementIncome > 0 ? 
-        (annualPassiveIncome / targetRetirementIncome) * 100 : 0;
+        (availableIncomeAtRetirement / targetRetirementIncome) * 100 : 0;
       const isDeficit = surplusOrDeficit < 0;
       const monthlyDeficitSurplus = Math.abs(surplusOrDeficit) / 12;
 
@@ -525,6 +536,10 @@ export default function ProjectionsPage() {
       console.log('TOTALS:');
       console.log('Projected lump sum:', projectedLumpSum);
       console.log('Annual passive income at retirement:', annualPassiveIncome);
+      console.log('Total liabilities count:', liabilities.length);
+      console.log('Monthly debt payments at retirement:', monthlyDebtAtRetirement);
+      console.log('Annual debt payments at retirement:', annualDebtPaymentsAtRetirement);
+      console.log('Available income (passive - debt at retirement):', availableIncomeAtRetirement);
       console.log('Target income (70% of CURRENT income):', targetRetirementIncome);
       console.log('Current annual income:', projectionData.annualIncome);
       console.log('Annual Surplus/Deficit:', surplusOrDeficit);

@@ -462,3 +462,50 @@ export function calculateMonthlySurplus(clientData: any): MonthlySurplusResult {
     savingsRate
   };
 }
+
+/**
+ * Calculate monthly debt payments that will still exist at retirement.
+ * Considers the loan term for each liability - if a loan will be paid off
+ * before retirement, it won't be included in retirement debt calculations.
+ * 
+ * @param liabilities - Array of liabilities with balance, monthlyPayment, and loanTerm
+ * @param yearsToRetirement - Number of years until retirement
+ * @returns Monthly debt payments that will still exist at retirement
+ */
+export function calculateDebtPaymentsAtRetirement(
+  liabilities: Array<{
+    balance: number;
+    monthlyPayment: number;
+    loanTerm: number; // in years
+    interestRate?: number;
+  }>,
+  yearsToRetirement: number
+): number {
+  if (!liabilities || !Array.isArray(liabilities) || yearsToRetirement <= 0) {
+    return 0;
+  }
+
+  let totalMonthlyPaymentsAtRetirement = 0;
+
+  for (const liability of liabilities) {
+    const balance = Number(liability.balance || 0);
+    const monthlyPayment = Number(liability.monthlyPayment || 0);
+    const loanTerm = Number(liability.loanTerm || 30); // Default to 30 years if not specified
+    
+    if (balance <= 0 || monthlyPayment <= 0) {
+      continue;
+    }
+
+    // Calculate remaining years on the loan at retirement
+    // If loanTerm is less than yearsToRetirement, the loan will be paid off before retirement
+    const remainingYearsAtRetirement = loanTerm - yearsToRetirement;
+    
+    if (remainingYearsAtRetirement > 0) {
+      // Loan will still exist at retirement - include the payment
+      totalMonthlyPaymentsAtRetirement += monthlyPayment;
+    }
+    // else: Loan will be paid off before retirement - don't include
+  }
+
+  return totalMonthlyPaymentsAtRetirement;
+}
