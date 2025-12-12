@@ -148,6 +148,7 @@ interface ClientData {
     balance: number;
     monthlyPayment: number;
     interestRate: number;
+    loanTerm: number;
     type: 'mortgage' | 'personal-loan' | 'credit-card' | 'hecs' | 'other';
   }>;
 

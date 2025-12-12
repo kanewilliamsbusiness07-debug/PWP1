@@ -28,6 +28,7 @@ const liabilitySchema = z.object({
   balance: z.number().min(0, 'Balance must be positive'),
   monthlyPayment: z.number().min(0, 'Payment must be positive'),
   interestRate: z.number().min(0).max(100, 'Rate must be between 0-100'),
+  loanTerm: z.number().int().min(1, 'Loan term must be at least 1 year').max(50, 'Loan term cannot exceed 50 years'),
   type: z.enum(['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other'])
 });
 
@@ -84,6 +85,7 @@ export default function FinancialPositionPage() {
       balance: number;
       monthlyPayment: number;
       interestRate: number;
+      loanTerm: number;
       type: Liability['type'];
     };
   };
@@ -107,6 +109,7 @@ export default function FinancialPositionPage() {
         balance: liability.balance,
         monthlyPayment: liability.monthlyPayment,
         interestRate: liability.interestRate,
+        loanTerm: liability.loanTerm,
         type: liability.type
       }
     }), {})
@@ -194,6 +197,7 @@ export default function FinancialPositionPage() {
         balance: liab.balance,
         monthlyPayment: liab.monthlyPayment,
         interestRate: liab.interestRate,
+        loanTerm: liab.loanTerm ?? 30,
         type: liab.type
       })) : [
         {
@@ -202,6 +206,7 @@ export default function FinancialPositionPage() {
           balance: totalDebt ?? 0,
           monthlyPayment: 0,
           interestRate: store.interestRate ?? 0,
+          loanTerm: 30,
           type: 'other'
         }
       ];
@@ -234,6 +239,7 @@ export default function FinancialPositionPage() {
               balance: liability.balance,
               monthlyPayment: liability.monthlyPayment,
               interestRate: liability.interestRate,
+              loanTerm: liability.loanTerm,
               type: liability.type
             }
           }), {})
@@ -308,6 +314,7 @@ export default function FinancialPositionPage() {
       balance: 0,
       monthlyPayment: 0,
       interestRate: 0,
+      loanTerm: 30,
       type: 'other'
     };
     setLiabilities(prev => [...prev, newLiability]);
@@ -616,7 +623,7 @@ export default function FinancialPositionPage() {
                               </Button>
                             </div>
                             
-                            <div className="grid gap-4 md:grid-cols-4">
+                            <div className="grid gap-4 md:grid-cols-5">
                               <FormField
                                 control={liabilitiesForm.control}
                                 name={`${liability.id}.balance`}
@@ -673,6 +680,27 @@ export default function FinancialPositionPage() {
                                         value={liability.interestRate}
                                         onChange={(e) => handleLiabilityChange(liability.id, 'interestRate', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         placeholder="0.00"
+                                        className="font-mono"
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={liabilitiesForm.control}
+                                name={`${liability.id}.loanTerm`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Loan Term (Years)</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        step="1"
+                                        {...field}
+                                        value={liability.loanTerm}
+                                        onChange={(e) => handleLiabilityChange(liability.id, 'loanTerm', e.target.value === '' ? 30 : parseInt(e.target.value))}
+                                        placeholder="30"
                                         className="font-mono"
                                       />
                                     </FormControl>
