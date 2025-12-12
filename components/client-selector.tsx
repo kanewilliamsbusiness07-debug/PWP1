@@ -20,11 +20,6 @@ export function ClientSelector() {
   const { toast } = useToast();
   const [selectedSavedClient, setSelectedSavedClient] = useState<string>('');
   const savedClientNames = financialStore.getAllSavedClientNames();
-  
-  const handleLoadClient = (name: string, slot: "A" | "B") => {
-    financialStore.loadClientByName(name, slot);
-    setSelectedSavedClient('');
-  };
 
   const handleDeleteClient = async (name: string) => {
     const savedClient = financialStore.savedClients[name];
@@ -61,46 +56,37 @@ export function ClientSelector() {
     }
   };
 
+  // Get current active client info
+  const activeClient = financialStore.activeClient === 'A' ? financialStore.clientA : financialStore.clientB;
+  const clientName = activeClient 
+    ? `${activeClient.firstName || ''} ${activeClient.lastName || ''}`.trim() || 'Unnamed Client'
+    : 'No Client Loaded';
+
+  const handleLoadClientDirect = (name: string) => {
+    // Always load to slot A for simplicity
+    financialStore.loadClientByName(name, 'A');
+    financialStore.setActiveClient('A');
+    setSelectedSavedClient('');
+  };
+
   return (
     <div className="space-y-4">
-      {/* Client Slot Selector */}
-      <div className="flex space-x-2 mb-4">
-        <Button
-          variant={financialStore.activeClient === 'A' ? 'default' : 'outline'}
-          className={`flex-1 ${
-            financialStore.activeClient === 'A' 
-              ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
-              : 'border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white'
-          }`}
-          onClick={() => financialStore.setActiveClient('A')}
-          disabled={!financialStore.clientA}
-        >
-          Client A
-          {financialStore.clientA && (
-            <Badge variant="secondary" className="ml-2">
-              {financialStore.clientA.firstName}
-            </Badge>
-          )}
-        </Button>
-        
-        <Button
-          variant={financialStore.activeClient === 'B' ? 'default' : 'outline'}
-          className={`flex-1 ${
-            financialStore.activeClient === 'B' 
-              ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
-              : 'border-yellow-500 text-yellow-600 hover:bg-yellow-500 hover:text-white'
-          }`}
-          onClick={() => financialStore.setActiveClient('B')}
-          disabled={!financialStore.clientB}
-        >
-          Client B
-          {financialStore.clientB && (
-            <Badge variant="secondary" className="ml-2">
-              {financialStore.clientB.firstName}
-            </Badge>
-          )}
-        </Button>
-      </div>
+      {/* Client Info Box */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground">Client Info</h3>
+              <p className="text-lg font-semibold">{clientName}</p>
+            </div>
+            {activeClient && (
+              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                Active
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Load Saved Client */}
       {savedClientNames.length > 0 && (
@@ -127,18 +113,12 @@ export function ClientSelector() {
                 {selectedSavedClient && (
                   <div className="flex gap-2">
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
-                      onClick={() => handleLoadClient(selectedSavedClient, 'A')}
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                      onClick={() => handleLoadClientDirect(selectedSavedClient)}
                     >
-                      Load to A
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleLoadClient(selectedSavedClient, 'B')}
-                    >
-                      Load to B
+                      Load
                     </Button>
                     <Button
                       variant="outline"
