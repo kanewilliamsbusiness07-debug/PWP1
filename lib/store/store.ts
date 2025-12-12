@@ -46,18 +46,27 @@ class SafeLocalStorage implements StateStorage {
 
 // Client data type - comprehensive including all fields from all pages
 interface ClientData {
-  // Personal Information
+  // Personal Information - Primary Person
   firstName: string;
   lastName: string;
   middleName?: string;
   dateOfBirth?: Date;
-  maritalStatus?: string;
-  numberOfDependants?: number;
-  agesOfDependants?: string;
   email?: string;
   phoneNumber?: string;
   // Legacy field - kept for backward compatibility during migration
   mobile?: string;
+  
+  // Personal Information - Partner/Spouse (optional)
+  partnerFirstName?: string;
+  partnerLastName?: string;
+  partnerDateOfBirth?: Date;
+  partnerEmail?: string;
+  partnerPhoneNumber?: string;
+  
+  // Shared Household Information
+  maritalStatus?: string;
+  numberOfDependants?: number;
+  agesOfDependants?: string;
   addressLine1?: string;
   addressLine2?: string;
   suburb?: string;
