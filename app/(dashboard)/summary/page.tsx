@@ -13,6 +13,7 @@ import * as z from 'zod';
 import { FileText, Download, Printer, Share2, TrendingUp, TrendingDown, DollarSign, Calculator, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle } from 'lucide-react';
 import React from 'react';
 import { pdf } from '@react-pdf/renderer';
+import { EmailReportSection } from '@/components/email-report-section';
 import {
   generateIncomeChart,
   generateExpenseChart,
@@ -2015,6 +2016,24 @@ export default function SummaryPage() {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Email Report Section */}
+            <EmailReportSection
+              clientEmail={activeClient?.email || ''}
+              clientName={summary.clientName}
+              summary={{
+                netWorth: summary.netWorth,
+                monthlyCashFlow: summary.monthlyCashFlow,
+                taxSavings: summary.taxSavings,
+                isRetirementDeficit: summary.isRetirementDeficit,
+                retirementDeficitSurplus: summary.retirementDeficitSurplus,
+                projectedRetirementLumpSum: summary.projectedRetirementLumpSum,
+                projectedRetirementMonthlyCashFlow: summary.projectedRetirementMonthlyCashFlow,
+              }}
+              onGeneratePdf={generatePDF}
+              lastGeneratedPdfId={lastGeneratedPdfId}
+              clientId={activeClient?.id}
+            />
           </div>
         </div>
       </div>
