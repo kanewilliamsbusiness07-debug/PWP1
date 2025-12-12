@@ -1660,12 +1660,13 @@ export default function SummaryPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen" id="summary-content" ref={summaryContentRef}>
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-6 bg-background min-h-screen" id="summary-content" ref={summaryContentRef}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Financial Planning Summary</h1>
-          <p className="text-muted-foreground">Comprehensive overview and export options for {summary?.clientName || ''}</p>
-        </div>        <div className="flex gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Financial Planning Summary</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Comprehensive overview and export options for {summary?.clientName || ''}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={shareReport}>
             <Share2 className="h-4 w-4 mr-2" />
             Share
@@ -1694,7 +1695,7 @@ export default function SummaryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
                 <TrendingUp className="h-8 w-8 text-emerald-500" />
@@ -1738,9 +1739,9 @@ export default function SummaryPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Financial Position Summary */}
-        <div className="xl:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           {/* Assets & Liabilities */}
           <Card>
             <CardHeader>
@@ -1942,7 +1943,7 @@ export default function SummaryPage() {
         </div>
 
         {/* Layout: Recommendations & Actions on left, Financial Snapshot on right */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8 pt-6 border-t">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-8 pt-6 border-t">
           {/* Left column: Sidebar - Financial Snapshot, Report Actions, Key Recommendations */}
           <div className="lg:col-span-4 space-y-6">
             {/* Financial Snapshot (moved to sidebar top) */}

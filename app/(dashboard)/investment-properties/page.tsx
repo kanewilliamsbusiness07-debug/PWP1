@@ -379,17 +379,17 @@ export default function InvestmentPropertiesPage() {
   });
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-6 bg-background min-h-screen">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Investment Properties</h1>
-          <p className="text-muted-foreground">Analyze property investments and calculate serviceability</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Investment Properties</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Analyze property investments and calculate serviceability</p>
         </div>
       </div>
 
       {/* Portfolio Summary */}
       {properties.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center">
@@ -666,7 +666,7 @@ export default function InvestmentPropertiesPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Monthly Rent</p>
                         <p className="text-lg font-semibold text-emerald-500">${analysis.monthlyRent.toLocaleString()}</p>
@@ -712,7 +712,7 @@ export default function InvestmentPropertiesPage() {
         </TabsContent>
 
         <TabsContent value="serviceability" className="space-y-6">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Serviceability Form */}
             <Card>
               <CardHeader>

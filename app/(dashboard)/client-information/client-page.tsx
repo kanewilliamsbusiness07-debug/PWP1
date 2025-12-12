@@ -161,15 +161,15 @@ export function ClientPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto py-4 sm:py-6 px-4 sm:px-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Client Information</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Client Information</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Manage client personal information, financial data, and comprehensive details
           </p>
         </div>
-        <Button onClick={handleNewClient} className="bg-yellow-500 text-white hover:bg-yellow-600">
+        <Button onClick={handleNewClient} className="bg-yellow-500 text-white hover:bg-yellow-600 w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           New Client
         </Button>
