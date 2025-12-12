@@ -120,9 +120,14 @@ export default function SummaryPage() {
     loadClientFromUrl();
   }, [activeClientForEmail?.id, isLoadingClient, financialStore, toast]);
 
-  // Calculate summary from real financial store data
-  const activeClient = financialStore.activeClient 
-    ? financialStore[`client${financialStore.activeClient}` as keyof typeof financialStore] as any
+  // Subscribe to specific store values using selectors for proper reactivity
+  const activeClientSlot = useFinancialStore((state) => state.activeClient);
+  const clientA = useFinancialStore((state) => state.clientA);
+  const clientB = useFinancialStore((state) => state.clientB);
+  
+  // Get active client data with proper subscription
+  const activeClient = activeClientSlot 
+    ? (activeClientSlot === 'A' ? clientA : clientB) as any
     : null;
 
   // Calculate totals from store and client data
@@ -153,6 +158,14 @@ export default function SummaryPage() {
   const [summary, setSummary] = useState<FinancialSummary>(defaultSummary);
   const calculateSummary = (): FinancialSummary => {
     const client = activeClient;
+    
+    // Debug logging to help track data flow
+    console.log('=== SUMMARY PAGE: calculateSummary called ===');
+    console.log('Active client slot:', activeClientSlot);
+    console.log('Client data:', client ? 'exists' : 'null');
+    console.log('Client projectionResults:', client?.projectionResults);
+    console.log('Client taxOptimizationResults:', client?.taxOptimizationResults);
+    
     const clientName = client 
       ? `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Client'
       : 'No Client Selected';
@@ -517,9 +530,14 @@ export default function SummaryPage() {
     setSummary(calculateSummary());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    financialStore.activeClient,
-    financialStore.clientA,
-    financialStore.clientB,
+    activeClientSlot,
+    clientA,
+    clientB,
+    // Also watch specific nested results that we care about
+    clientA?.projectionResults,
+    clientB?.projectionResults,
+    clientA?.taxOptimizationResults,
+    clientB?.taxOptimizationResults,
     financialStore.grossIncome,
     financialStore.superBalance,
     financialStore.cashSavings,
