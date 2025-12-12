@@ -77,7 +77,6 @@ interface ServiceabilityResult {
 }
 
 export default function InvestmentPropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>([]);
   const [serviceabilityResult, setServiceabilityResult] = useState<ServiceabilityResult | null>(null);
   const { toast } = useToast();
 
@@ -95,11 +94,26 @@ export default function InvestmentPropertiesPage() {
     }
   });
 
-  // Subscribe to specific store values to ensure re-renders
+  // Subscribe to store values
   const grossIncome = useFinancialStore((state) => state.grossIncome);
   const totalDebt = useFinancialStore((state) => state.totalDebt);
   const cashSavings = useFinancialStore((state) => state.cashSavings);
   const rentalIncome = useFinancialStore((state) => state.rentalIncome);
+  
+  // Subscribe to active client and their properties
+  const activeClient = useFinancialStore((state) => state.activeClient);
+  const clientA = useFinancialStore((state) => state.clientA);
+  const clientB = useFinancialStore((state) => state.clientB);
+  const setClientData = useFinancialStore((state) => state.setClientData);
+  
+  // Get properties from the active client
+  const clientData = activeClient === 'A' ? clientA : clientB;
+  const properties: Property[] = (clientData?.properties as Property[]) || [];
+  
+  // Function to update properties in the store
+  const updatePropertiesInStore = (newProperties: Property[]) => {
+    setClientData(activeClient || 'A', { properties: newProperties });
+  };
   
   const calculateLoanPayment = (principal: number, rate: number, years: number): number => {
     if (rate === 0) return principal / (years * 12);
@@ -192,10 +206,11 @@ export default function InvestmentPropertiesPage() {
       properties: []
     };
 
+    const loanAmount = Math.max(0, (data.targetPropertyPrice || 0) - (data.deposit || 0));
     const proposedLoan: any = {
-      amount: Math.max(0, (data.targetPropertyPrice || 0) - (data.deposit || 0)),
-      interestRate: data.interestRate || 0,
-      termYears: data.loanTerm || 0,
+      amount: loanAmount,
+      interestRate: (data.interestRate || 6.5) / 100, // Convert percentage to decimal
+      termYears: data.loanTerm || 30,
       expectedRentWeekly: data.expectedRent || 0,
       annualExpenses: data.annualPropertyExpenses || 0,
       depreciation: data.depreciationAmount || 0,
@@ -204,35 +219,76 @@ export default function InvestmentPropertiesPage() {
     // Use canonical serviceability implementation
     const canonical = canonicalCalculateServiceability({ clientData, proposedLoan } as any);
 
-    // Map canonical result into the local ServiceabilityResult shape (best-effort)
+    // Calculate LTV ratio
+    const ltvRatio = data.targetPropertyPrice > 0 
+      ? (loanAmount / data.targetPropertyPrice) * 100 
+      : 0;
+    
+    // Calculate DTI ratio (total debt / annual income)
+    const totalDebtPayments = (data.existingDebtPayments || 0) + (canonical.monthlyRepayment || 0);
+    const monthlyIncome = (data.annualIncome || 0) / 12;
+    const dtiRatio = monthlyIncome > 0 
+      ? (totalDebtPayments / monthlyIncome) * 100 
+      : 0;
+    
+    // Calculate max borrowing capacity based on 35% serviceability ratio
+    const availableForLoan = monthlyIncome * 0.35 - (data.existingDebtPayments || 0);
+    const maxBorrowing = availableForLoan > 0 
+      ? calculateMaxBorrowingFromPayment(availableForLoan, (data.interestRate || 6.5) / 100, data.loanTerm || 30)
+      : 0;
+    
+    // Calculate negative gearing and tax benefits
+    const monthlyRent = (data.expectedRent || 0) * 52 / 12;
+    const monthlyExpenses = (data.annualPropertyExpenses || 0) / 12;
+    const monthlyInterest = loanAmount * ((data.interestRate || 6.5) / 100) / 12;
+    const monthlyDepreciation = (data.depreciationAmount || 0) / 12;
+    
+    const netPropertyIncome = monthlyRent - monthlyExpenses - monthlyInterest - monthlyDepreciation;
+    const isNegativelyGeared = netPropertyIncome < 0;
+    const negativeGearingAmount = isNegativelyGeared ? Math.abs(netPropertyIncome * 12) : 0;
+    
+    // Tax benefit from negative gearing (marginal rate * loss)
+    const annualTaxBenefit = negativeGearingAmount * ((data.marginalTaxRate || 32.5) / 100);
+    const monthlyTaxBenefit = annualTaxBenefit / 12;
+    
+    // Net monthly payment after tax benefit
+    const netMonthlyPayment = (canonical.monthlyRepayment || 0) - monthlyRent + monthlyExpenses - monthlyTaxBenefit;
+
+    // Map canonical result into the local ServiceabilityResult shape
     const mapped: ServiceabilityResult = {
-      // maxBorrowingCapacity isn't provided by canonical result; leave 0 as placeholder
-      maxBorrowingCapacity: 0,
-      // Expose monthly net income as the primary service capacity
-      monthlyServiceCapacity: canonical.monthlyNetIncome ?? 0,
-      loanToValueRatio: 0,
-      debtToIncomeRatio: 0,
+      maxBorrowingCapacity: Math.max(0, Math.round(maxBorrowing)),
+      monthlyServiceCapacity: Math.max(0, Math.round(canonical.monthlyNetIncome ?? 0)),
+      loanToValueRatio: Math.round(ltvRatio * 10) / 10,
+      debtToIncomeRatio: Math.round(dtiRatio * 10) / 10,
       canAfford: !!canonical.canAfford,
       monthlyShortfall: canonical.netSurplusAfterLoan < 0 ? Math.abs(Math.round(canonical.netSurplusAfterLoan)) : undefined,
-      isNegativelyGeared: canonical.netSurplusAfterLoan < 0,
-      negativeGearingAmount: canonical.netSurplusAfterLoan < 0 ? Math.abs(Math.round(canonical.netSurplusAfterLoan) * 12) : 0,
-      annualTaxBenefit: 0,
-      monthlyTaxBenefit: 0,
-      netMonthlyPaymentAfterTax: canonical.monthlyRepayment ?? 0
+      isNegativelyGeared,
+      negativeGearingAmount: Math.round(negativeGearingAmount),
+      annualTaxBenefit: Math.round(annualTaxBenefit),
+      monthlyTaxBenefit: Math.round(monthlyTaxBenefit),
+      netMonthlyPaymentAfterTax: Math.round(netMonthlyPayment)
     };
 
     return mapped;
   };
+  
+  // Helper function to calculate max borrowing from a monthly payment
+  const calculateMaxBorrowingFromPayment = (monthlyPayment: number, annualRate: number, years: number): number => {
+    if (annualRate === 0) return monthlyPayment * years * 12;
+    const monthlyRate = annualRate / 12;
+    const numPayments = years * 12;
+    return monthlyPayment * (Math.pow(1 + monthlyRate, numPayments) - 1) / (monthlyRate * Math.pow(1 + monthlyRate, numPayments));
+  };
 
   const addProperty = (data: z.infer<typeof propertySchema>) => {
     const newProperty: Property = { ...data, id: Date.now().toString() };
-    setProperties([...properties, newProperty]);
+    updatePropertiesInStore([...properties, newProperty]);
     propertyForm.reset();
     toast({ title: 'Property added', description: `${data.address} has been added to your portfolio` });
   };
 
   const removeProperty = (id: string) => {
-    setProperties(properties.filter(property => property.id !== id));
+    updatePropertiesInStore(properties.filter(property => property.id !== id));
     toast({ title: 'Property removed', description: 'Property has been removed from your portfolio' });
   };
 
@@ -901,6 +957,62 @@ export default function InvestmentPropertiesPage() {
                           </p>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Negative Gearing Analysis */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        {serviceabilityResult.isNegativelyGeared ? (
+                          <TrendingDown className="h-5 w-5 mr-2 text-amber-500" />
+                        ) : (
+                          <TrendingUp className="h-5 w-5 mr-2 text-emerald-500" />
+                        )}
+                        {serviceabilityResult.isNegativelyGeared ? 'Negatively Geared Property' : 'Positively Geared Property'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {serviceabilityResult.isNegativelyGeared && (
+                          <>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Annual Negative Gearing</p>
+                              <p className="text-xl font-bold text-amber-500">
+                                ${serviceabilityResult.negativeGearingAmount.toLocaleString()}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Annual Tax Benefit</p>
+                              <p className="text-xl font-bold text-emerald-500">
+                                ${serviceabilityResult.annualTaxBenefit.toLocaleString()}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Monthly Tax Benefit</p>
+                              <p className="text-xl font-bold text-emerald-500">
+                                ${serviceabilityResult.monthlyTaxBenefit.toLocaleString()}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                        <div>
+                          <p className="text-sm text-muted-foreground">Net Monthly Payment (After Tax)</p>
+                          <p className={`text-xl font-bold ${serviceabilityResult.netMonthlyPaymentAfterTax >= 0 ? 'text-destructive' : 'text-emerald-500'}`}>
+                            ${Math.abs(serviceabilityResult.netMonthlyPaymentAfterTax).toLocaleString()}
+                            {serviceabilityResult.netMonthlyPaymentAfterTax < 0 ? ' (income)' : ' (cost)'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {serviceabilityResult.isNegativelyGeared && (
+                        <div className="p-3 bg-muted rounded-lg mt-4">
+                          <p className="text-sm text-muted-foreground">
+                            <strong>Note:</strong> Negative gearing means property expenses exceed rental income. 
+                            The tax benefit partially offsets this loss, reducing your effective out-of-pocket cost.
+                          </p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </>
