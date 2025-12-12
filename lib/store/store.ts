@@ -186,6 +186,18 @@ interface ClientData {
   propertyGrowthRate?: number;
   withdrawalRate?: number;
   rentGrowthRate?: number;
+  
+  // Projection Results (calculated on Projections page, used by Summary page)
+  projectionResults?: {
+    yearsToRetirement: number;
+    projectedLumpSum: number;
+    projectedPassiveIncome: number; // Annual
+    projectedMonthlyPassiveIncome: number; // Monthly
+    requiredIncome: number; // Annual target (70% of current income)
+    monthlyDeficitSurplus: number;
+    isDeficit: boolean;
+    calculatedAt: string; // ISO timestamp
+  };
 
   // Tax Optimization
   employmentIncome?: number;

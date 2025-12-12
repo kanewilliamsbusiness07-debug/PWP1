@@ -73,6 +73,7 @@ export default function ProjectionsPage() {
   const activeClient = useFinancialStore((state) => state.activeClient);
   const clientA = useFinancialStore((state) => state.clientA);
   const clientB = useFinancialStore((state) => state.clientB);
+  const setClientData = useFinancialStore((state) => state.setClientData);
   const grossIncome = useFinancialStore((state) => state.grossIncome);
   const superBalance = useFinancialStore((state) => state.superBalance);
   const cashSavings = useFinancialStore((state) => state.cashSavings);
@@ -558,6 +559,22 @@ export default function ProjectionsPage() {
         afterTaxIncome: taxCalc.afterTaxIncome,
         totalTax: taxCalc.totalTax
       };
+
+      // Store projection results in client data for Summary page to use
+      if (activeClient) {
+        setClientData(activeClient, {
+          projectionResults: {
+            yearsToRetirement: years,
+            projectedLumpSum,
+            projectedPassiveIncome: annualPassiveIncome,
+            projectedMonthlyPassiveIncome: annualPassiveIncome / 12,
+            requiredIncome: targetRetirementIncome,
+            monthlyDeficitSurplus,
+            isDeficit,
+            calculatedAt: new Date().toISOString(),
+          }
+        });
+      }
 
       setTimeout(() => {
         setResults(calculatedResults);
