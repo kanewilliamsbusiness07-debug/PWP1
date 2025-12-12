@@ -1628,7 +1628,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, type: 'other' })}
+                          onClick={() => appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, type: 'other' })}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Add Liability
@@ -1741,6 +1741,26 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                           {...field}
                                           value={field.value ?? ''}
                                           onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`liabilities.${index}.loanTerm`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Loan Term (Years)</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          type="number"
+                                          step="1"
+                                          placeholder="30"
+                                          {...field}
+                                          value={field.value ?? ''}
+                                          onChange={(e) => field.onChange(e.target.value === '' ? 30 : parseInt(e.target.value))}
                                         />
                                       </FormControl>
                                       <FormMessage />
