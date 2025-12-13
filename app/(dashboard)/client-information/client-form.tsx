@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import * as formatModule from 'date-fns/format';
 const format: (date: Date | number, fmt: string) => string = (formatModule as any).default ?? (formatModule as any);
-import { CalendarIcon, Save, Plus, Trash2, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Save, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFinancialStore } from '@/lib/store/store';
 import { useToast } from '@/hooks/use-toast';
@@ -45,26 +45,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const MARITAL_STATUS = [
@@ -139,11 +119,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
   const { toast } = useToast();
   const { saveClient, deleteClient } = useClientStorage();
   const router = useRouter();
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [saveName, setSaveName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const client = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
   
@@ -708,85 +684,6 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     }
   };
 
-  const handleSaveByName = async () => {
-    setIsSaving(true);
-    try {
-      const formData = form.getValues();
-      
-      // Validate form before saving
-      const isValid = await form.trigger();
-      if (!isValid) {
-        toast({
-          title: 'Validation Error',
-          description: 'Please fix the errors in the form before saving',
-          variant: 'destructive',
-        });
-        setIsSaving(false);
-        return;
-      }
-
-      // Save to store
-      financialStore.saveClientByName(saveName || `${formData.firstName} ${formData.lastName}`, clientSlot);
-      
-      // Prepare data for API
-      // Ensure dob is a string (YYYY-MM-DD format) for the API
-      const dobString = formatDateToString(formData.dob);
-      
-      const clientData: any = {
-        ...formData,
-        dob: dobString,
-        // Sanitize string fields
-        firstName: formData.firstName?.trim() || '',
-        lastName: formData.lastName?.trim() || '',
-        middleName: formData.middleName?.trim() || '',
-        email: formData.email?.trim() || '',
-        mobile: formData.mobile?.trim() || '',
-        addressLine1: formData.addressLine1?.trim() || '',
-        addressLine2: formData.addressLine2?.trim() || '',
-        suburb: formData.suburb?.trim() || '',
-        postcode: formData.postcode?.trim() || '',
-        agesOfDependants: formData.agesOfDependants?.trim() || '',
-      };
-
-      const currentClient = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
-      const clientId = (currentClient as any)?.id;
-
-      // Use the storage hook to save
-      const savedClient = await saveClient({
-        ...clientData,
-        id: clientId,
-      });
-
-      if (savedClient) {
-        // Update store with saved client ID
-        financialStore.setClientData(clientSlot, {
-          ...formData,
-          dateOfBirth: formData.dob,
-          id: savedClient.id,
-        } as any);
-
-        toast({
-          title: 'Client Saved',
-          description: `${formData.firstName} ${formData.lastName} has been saved successfully.`,
-        });
-
-        setSaveDialogOpen(false);
-        setSaveName('');
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to save client. Please check all required fields and try again.',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Error saving client:', error);
-      // Error handling is done in the hook
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const { fields: assetFields, append: appendAsset, remove: removeAsset } = useFieldArray({
     control: form.control,
     name: 'assets',
@@ -1079,229 +976,6 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
           <div>
             <CardTitle>Client {clientSlot}</CardTitle>
             <CardDescription>Complete client information and financial data</CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Client
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Save Client</DialogTitle>
-                  <DialogDescription>
-                    Enter a name to save this client for later retrieval
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                  <Input
-                    placeholder={`${form.getValues('firstName')} ${form.getValues('lastName')}`}
-                    value={saveName}
-                    onChange={(e) => setSaveName(e.target.value)}
-                  />
-                </div>
-                <DialogFooter>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setSaveDialogOpen(false)}
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleSaveByName}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? 'Saving...' : 'Save'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            
-            {client && (
-              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    disabled={!((client as any)?.id)}
-                    title={!((client as any)?.id) ? 'Save the client first to enable deletion' : 'Delete this client'}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Client
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Client</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete this client? This action cannot be undone and will permanently remove all client information.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={async () => {
-                        setIsDeleting(true);
-                        try {
-                          const clientId = (client as any)?.id;
-                          console.log('Delete client clicked, clientId:', clientId);
-                          
-                          if (!clientId) {
-                            toast({
-                              title: 'Error',
-                              description: 'Cannot delete: Client has not been saved to the database. Please save the client first.',
-                              variant: 'destructive',
-                            });
-                            setIsDeleting(false);
-                            setDeleteDialogOpen(false);
-                            return;
-                          }
-                          
-                          console.log('Calling deleteClient with ID:', clientId);
-                          const success = await deleteClient(clientId);
-                          console.log('Delete result:', success);
-                          
-                          if (success) {
-                            // Dispatch event to notify account center to refresh (deleteClient already dispatches, but doing it here too for safety)
-                            if (typeof window !== 'undefined') {
-                              window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id: clientId } }));
-                            }
-                            
-                            // Also remove from local storage if it exists there
-                            const clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim();
-                            if (clientName) {
-                              const savedNames = financialStore.getAllSavedClientNames();
-                              if (savedNames.includes(clientName)) {
-                                financialStore.deleteClientByName(clientName);
-                              }
-                            }
-                            
-                            // Clear the client from the store
-                            const emptyClientData = {
-                                firstName: '',
-                                lastName: '',
-                                middleName: '',
-                                email: '',
-                                mobile: '',
-                                addressLine1: '',
-                                addressLine2: '',
-                                suburb: '',
-                                state: undefined,
-                                postcode: '',
-                                maritalStatus: 'SINGLE',
-                                numberOfDependants: 0,
-                                agesOfDependants: '',
-                                ownOrRent: undefined,
-                                annualIncome: 0,
-                                rentalIncome: 0,
-                                dividends: 0,
-                                frankedDividends: 0,
-                                capitalGains: 0,
-                                otherIncome: 0,
-                                assets: [],
-                                liabilities: [],
-                                properties: [],
-                                currentAge: 0,
-                                retirementAge: 0,
-                                currentSuper: 0,
-                                currentSavings: 0,
-                                currentShares: 0,
-                                propertyEquity: 0,
-                                monthlyDebtPayments: 0,
-                                monthlyRentalIncome: 0,
-                                monthlyExpenses: 0,
-                                inflationRate: 0,
-                                salaryGrowthRate: 0,
-                                superReturn: 0,
-                                shareReturn: 0,
-                                propertyGrowthRate: 0,
-                                withdrawalRate: 0,
-                                rentGrowthRate: 0,
-                                employmentIncome: 0,
-                                investmentIncome: 0,
-                                workRelatedExpenses: 0,
-                                vehicleExpenses: 0,
-                                uniformsAndLaundry: 0,
-                                homeOfficeExpenses: 0,
-                                selfEducationExpenses: 0,
-                                investmentExpenses: 0,
-                                charityDonations: 0,
-                                accountingFees: 0,
-                                rentalExpenses: 0,
-                                superContributions: 0,
-                                healthInsurance: false,
-                                hecs: false,
-                                helpDebt: 0,
-                                hecsBalance: 0,
-                                privateHealthInsurance: false,
-                              } as any;
-                              
-                              financialStore.setClientData(clientSlot, emptyClientData);
-                              
-                              // Clear active client if it was this one, otherwise keep current
-                              if (financialStore.activeClient === clientSlot) {
-                                // Switch to the other slot if available, otherwise set to null
-                                const otherSlot = clientSlot === 'A' ? 'B' : 'A';
-                                const otherClient = otherSlot === 'A' ? financialStore.clientA : financialStore.clientB;
-                                if (otherClient && (otherClient.firstName || otherClient.lastName)) {
-                                  financialStore.setActiveClient(otherSlot);
-                                } else {
-                                  financialStore.setActiveClient(undefined as any);
-                                }
-                              }
-                              
-                              setDeleteDialogOpen(false);
-                              
-                              toast({
-                                title: 'Success',
-                                description: 'Client deleted successfully',
-                              });
-                            } else {
-                              toast({
-                                title: 'Error',
-                                description: 'Failed to delete client from database. Please try again.',
-                                variant: 'destructive',
-                              });
-                              setIsDeleting(false);
-                            }
-                        } catch (error) {
-                          console.error('Error deleting client:', error);
-                          toast({
-                            title: 'Error',
-                            description: error instanceof Error ? error.message : 'Failed to delete client. Please try again.',
-                            variant: 'destructive',
-                          });
-                          setIsDeleting(false);
-                        }
-                      }}
-                      disabled={isDeleting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {isDeleting ? 'Deleting...' : 'Delete'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const emptyData = getEmptyClientData();
-                financialStore.setClientData(clientSlot, emptyData);
-                toast({
-                  title: 'Client cleared',
-                  description: `Client ${clientSlot} has been reset`
-                });
-              }}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Clear Form
-            </Button>
           </div>
         </div>
       </CardHeader>
