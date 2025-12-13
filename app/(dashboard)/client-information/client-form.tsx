@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import * as formatModule from 'date-fns/format';
 const format: (date: Date | number, fmt: string) => string = (formatModule as any).default ?? (formatModule as any);
-import { CalendarIcon, Save, Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, Save, Plus, Trash2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFinancialStore } from '@/lib/store/store';
 import { useToast } from '@/hooks/use-toast';
@@ -146,6 +146,62 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const client = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
+  
+  // Helper function to create empty client data
+  const getEmptyClientData = () => ({
+    firstName: '',
+    lastName: '',
+    middleName: '',
+    email: '',
+    mobile: '',
+    phoneNumber: '',
+    addressLine1: '',
+    addressLine2: '',
+    suburb: '',
+    state: undefined,
+    postcode: '',
+    maritalStatus: 'SINGLE',
+    numberOfDependants: 0,
+    agesOfDependants: '',
+    ownOrRent: undefined,
+    annualIncome: 0,
+    grossIncome: 0,
+    grossSalary: 0,
+    rentalIncome: 0,
+    dividends: 0,
+    frankedDividends: 0,
+    capitalGains: 0,
+    otherIncome: 0,
+    assets: [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }],
+    liabilities: [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }],
+    properties: [],
+    currentAge: 0,
+    retirementAge: 65,
+    currentSuper: 0,
+    currentSavings: 0,
+    currentShares: 0,
+    propertyEquity: 0,
+    monthlyDebtPayments: 0,
+    monthlyRentalIncome: 0,
+    monthlyExpenses: 0,
+    employmentIncome: 0,
+    investmentIncome: 0,
+    workRelatedExpenses: 0,
+    vehicleExpenses: 0,
+    uniformsAndLaundry: 0,
+    homeOfficeExpenses: 0,
+    selfEducationExpenses: 0,
+    investmentExpenses: 0,
+    charityDonations: 0,
+    accountingFees: 0,
+    rentalExpenses: 0,
+    superContributions: 0,
+    healthInsurance: false,
+    hecs: false,
+    helpDebt: 0,
+    hecsBalance: 0,
+    privateHealthInsurance: false,
+  } as any);
   
   // Tab order for navigation
   const TAB_ORDER = ['personal', 'financial', 'properties', 'projections', 'tax'];
@@ -1230,6 +1286,22 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                 </AlertDialogContent>
               </AlertDialog>
             )}
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const emptyData = getEmptyClientData();
+                financialStore.setClientData(clientSlot, emptyData);
+                toast({
+                  title: 'Client cleared',
+                  description: `Client ${clientSlot} has been reset`
+                });
+              }}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Clear Form
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -1546,6 +1618,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                     className="bg-yellow-500 text-white hover:bg-yellow-600"
                     disabled={isSaving}
                   >
+                    <Save className="h-4 w-4 mr-2" />
                     {isSaving ? 'Saving...' : 'Save & Continue'}
                   </Button>
                 </div>
@@ -2110,6 +2183,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                     className="bg-yellow-500 text-white hover:bg-yellow-600"
                     disabled={isSaving}
                   >
+                    <Save className="h-4 w-4 mr-2" />
                     {isSaving ? 'Saving...' : 'Save & Continue'}
                   </Button>
                 </div>
@@ -2312,6 +2386,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                     className="bg-yellow-500 text-white hover:bg-yellow-600"
                     disabled={isSaving}
                   >
+                    <Save className="h-4 w-4 mr-2" />
                     {isSaving ? 'Saving...' : 'Save & Continue'}
                   </Button>
                 </div>
@@ -2510,6 +2585,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                     className="bg-yellow-500 text-white hover:bg-yellow-600"
                     disabled={isSaving}
                   >
+                    <Save className="h-4 w-4 mr-2" />
                     {isSaving ? 'Saving...' : 'Save & Continue'}
                   </Button>
                 </div>
@@ -2879,6 +2955,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                 className="bg-yellow-500 text-white hover:bg-yellow-600"
                 disabled={isSaving}
               >
+                <Save className="h-4 w-4 mr-2" />
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
