@@ -59,13 +59,18 @@ async function getEmailTransporter(userId: string) {
   }
 
   // Fallback to environment SMTP settings
+  const smtpPort = parseInt(process.env.SMTP_PORT || '587');
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false,
+    host: process.env.SMTP_HOST || 'smtp.office365.com',
+    port: smtpPort,
+    secure: smtpPort === 465, // true for 465, false for other ports (587 uses STARTTLS)
     auth: {
-      user: process.env.SMTP_USER || 'apikey',
+      user: process.env.SMTP_USER || 'admin@pwp2026.com.au',
       pass: process.env.SMTP_PASSWORD
+    },
+    tls: {
+      ciphers: 'SSLv3',
+      rejectUnauthorized: false
     }
   });
 }
@@ -87,12 +92,13 @@ export async function sendEmail(
   }
 
   const transporter = await getEmailTransporter(userId);
-  const fromEmail = user.emailIntegration?.email || user.email || options.from || process.env.SMTP_FROM || 'noreply@aokperpetual.com';
+  const fromEmail = user.emailIntegration?.email || user.email || options.from || process.env.SMTP_FROM || 'admin@pwp2026.com.au';
+  const fromName = user.name || process.env.SMTP_FROM_NAME || 'Perpetual Wealth Partners';
 
   const recipients = Array.isArray(options.to) ? options.to : [options.to];
 
   await transporter.sendMail({
-    from: `"${user.name}" <${fromEmail}>`,
+    from: `"${fromName}" <${fromEmail}>`,
     to: recipients.join(', '),
     subject: options.subject,
     html: options.html,
