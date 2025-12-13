@@ -24,6 +24,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 
 const taxFormSchema = z.object({
@@ -92,9 +93,14 @@ export default function TaxOptimizationPage() {
   const [strategies, setStrategies] = useState<OptimizationStrategy[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [chartData, setChartData] = useState<ChartDataItem[]>([]);
+  const [viewMode, setViewMode] = useState<'A' | 'B' | 'combined'>('A');
+  const [combinedCurrentTax, setCombinedCurrentTax] = useState<TaxCalculationResult | null>(null);
+  const [combinedOptimizedTax, setCombinedOptimizedTax] = useState<TaxCalculationResult | null>(null);
+  const [combinedStrategies, setCombinedStrategies] = useState<OptimizationStrategy[]>([]);
   const { toast } = useToast();
   const financialStore = useFinancialStore();
   const setClientData = useFinancialStore((state) => state.setClientData);
+  const setActiveClient = useFinancialStore((state) => state.setActiveClient);
   const clientFinancials = useClientFinancials();
   
   // Subscribe to specific store values to ensure re-renders
@@ -137,6 +143,13 @@ export default function TaxOptimizationPage() {
   if (combinedTaxResults) {
     combinedTaxResults.potentialSavings = combinedTaxResults.totalTax - combinedTaxResults.optimizedTotalTax;
   }
+
+  // Set viewMode to combined when both clients exist
+  useEffect(() => {
+    if (showCombined && viewMode !== 'combined') {
+      setViewMode('combined');
+    }
+  }, [showCombined, viewMode]);
   
   const taxForm = useForm<TaxFormData>({
     resolver: zodResolver(taxFormSchema),
@@ -630,18 +643,20 @@ export default function TaxOptimizationPage() {
     })).sort((a, b) => b.saving - a.saving);
   };
 
-  const calculateOptimizations = () => {
-    const data = taxForm.getValues();
-    setIsCalculating(true);
+  const calculateOptimizations = (inputData?: TaxFormData, client?: 'A' | 'B') => {
+    const data = inputData || taxForm.getValues();
+    const targetClient = client || activeClient;
+    
+    if (!inputData) setIsCalculating(true);
     
     setTimeout(() => {
       // Calculate current scenario
       const current = calculateTax(data);
-      setCurrentTax(current);
+      if (!inputData) setCurrentTax(current);
       
       // Generate optimization strategies
       const optimizationStrategies = generateOptimizationStrategies(data, current);
-      setStrategies(optimizationStrategies);
+      if (!inputData) setStrategies(optimizationStrategies);
 
       // Calculate total savings from strategies
       const totalStrategySavings = optimizationStrategies.reduce((sum, strategy) => sum + strategy.potentialSaving, 0);
@@ -653,11 +668,13 @@ export default function TaxOptimizationPage() {
         totalTax: current.totalTax - totalStrategySavings
       };
       
-      setOptimizedTax(optimized);
-      setIsCalculating(false);
+      if (!inputData) {
+        setOptimizedTax(optimized);
+        setIsCalculating(false);
+      }
       
       // Store tax optimization results in client data for Summary page to use
-      const clientSlot = activeClient || 'A';
+      const clientSlot = targetClient || 'A';
       const activeClientData = clientSlot === 'A' ? clientA : clientB;
       if (activeClientData) {
         setClientData(clientSlot, {
@@ -688,10 +705,12 @@ export default function TaxOptimizationPage() {
         });
       }
       
-      toast({
-        title: 'Tax calculation complete',
-        description: `Potential savings identified: $${totalStrategySavings.toLocaleString()}`
-      });
+      if (!inputData) {
+        toast({
+          title: 'Tax calculation complete',
+          description: `Potential savings identified: $${totalStrategySavings.toLocaleString()}`
+        });
+      }
     }, 1500);
   };
 
@@ -744,6 +763,102 @@ export default function TaxOptimizationPage() {
     const data = taxForm.getValues();
     if (data.annualIncome >= 0) {
       calculateOptimizations();
+      
+      // Also calculate for the other client if both exist
+      if (showCombined) {
+        if (activeClient === 'A' && clientB) {
+          const bData: TaxFormData = {
+            annualIncome: clientB.annualIncome ?? clientB.grossSalary ?? 0,
+            employmentIncome: clientB.employmentIncome ?? 0,
+            investmentIncome: clientB.investmentIncome ?? 0,
+            rentalIncome: clientB.rentalIncome ?? 0,
+            otherIncome: clientB.otherIncome ?? 0,
+            frankedDividends: clientB.frankedDividends ?? 0,
+            capitalGains: clientB.capitalGains ?? 0,
+            workRelatedExpenses: clientB.workRelatedExpenses ?? 0,
+            vehicleExpenses: clientB.vehicleExpenses ?? 0,
+            uniformsAndLaundry: clientB.uniformsAndLaundry ?? 0,
+            homeOfficeExpenses: clientB.homeOfficeExpenses ?? 0,
+            selfEducationExpenses: clientB.selfEducationExpenses ?? 0,
+            investmentExpenses: clientB.investmentExpenses ?? 0,
+            charityDonations: clientB.charityDonations ?? 0,
+            accountingFees: clientB.accountingFees ?? 0,
+            otherDeductions: 0,
+            rentalExpenses: clientB.rentalExpenses ?? 0,
+            superContributions: clientB.superContributions ?? 0,
+            healthInsurance: clientB.healthInsurance ?? false,
+            hecs: clientB.hecs ?? false,
+            helpDebt: clientB.helpDebt ?? 0,
+            hecsBalance: clientB.hecsBalance ?? 0,
+            privateHealthInsurance: clientB.privateHealthInsurance ?? false
+          };
+          calculateOptimizations(bData, 'B');
+        } else if (activeClient === 'B' && clientA) {
+          const aData: TaxFormData = {
+            annualIncome: clientA.annualIncome ?? clientA.grossSalary ?? 0,
+            employmentIncome: clientA.employmentIncome ?? 0,
+            investmentIncome: clientA.investmentIncome ?? 0,
+            rentalIncome: clientA.rentalIncome ?? 0,
+            otherIncome: clientA.otherIncome ?? 0,
+            frankedDividends: clientA.frankedDividends ?? 0,
+            capitalGains: clientA.capitalGains ?? 0,
+            workRelatedExpenses: clientA.workRelatedExpenses ?? 0,
+            vehicleExpenses: clientA.vehicleExpenses ?? 0,
+            uniformsAndLaundry: clientA.uniformsAndLaundry ?? 0,
+            homeOfficeExpenses: clientA.homeOfficeExpenses ?? 0,
+            selfEducationExpenses: clientA.selfEducationExpenses ?? 0,
+            investmentExpenses: clientA.investmentExpenses ?? 0,
+            charityDonations: clientA.charityDonations ?? 0,
+            accountingFees: clientA.accountingFees ?? 0,
+            otherDeductions: 0,
+            rentalExpenses: clientA.rentalExpenses ?? 0,
+            superContributions: clientA.superContributions ?? 0,
+            healthInsurance: clientA.healthInsurance ?? false,
+            hecs: clientA.hecs ?? false,
+            helpDebt: clientA.helpDebt ?? 0,
+            hecsBalance: clientA.hecsBalance ?? 0,
+            privateHealthInsurance: clientA.privateHealthInsurance ?? false
+          };
+          calculateOptimizations(aData, 'A');
+        }
+      }
+      
+      // Calculate combined results if both clients have data
+      if (showCombined && clientATaxResults && clientBTaxResults) {
+        // Combined current tax
+        const combinedCurrent = {
+          annualIncome: (clientATaxResults.annualIncome || 0) + (clientBTaxResults.annualIncome || 0),
+          totalTax: (clientATaxResults.totalTax || 0) + (clientBTaxResults.totalTax || 0),
+          afterTaxIncome: (clientATaxResults.afterTaxIncome || 0) + (clientBTaxResults.afterTaxIncome || 0),
+          totalDeductions: (clientATaxResults.totalDeductions || 0) + (clientBTaxResults.totalDeductions || 0),
+          taxableIncome: (clientATaxResults.taxableIncome || 0) + (clientBTaxResults.taxableIncome || 0),
+          marginalTaxRate: Math.max(clientATaxResults.marginalTaxRate || 0, clientBTaxResults.marginalTaxRate || 0), // Use higher marginal rate
+          averageTaxRate: (((clientATaxResults.totalTax || 0) + (clientBTaxResults.totalTax || 0)) / 
+                          ((clientATaxResults.annualIncome || 0) + (clientBTaxResults.annualIncome || 0))) * 100,
+          // Add required fields with combined values
+          incomeTax: (clientATaxResults.totalTax || 0) + (clientBTaxResults.totalTax || 0),
+          medicareLevy: 0, // Simplified - would need proper calculation
+          hecsRepayment: 0, // Simplified - would need proper calculation  
+          frankedCredits: 0 // Simplified - would need proper calculation
+        };
+        setCombinedCurrentTax(combinedCurrent);
+        
+        // Combined optimized tax (using stored optimized results)
+        const clientAOptimized = clientA?.optimizedTaxResults;
+        const clientBOptimized = clientB?.optimizedTaxResults;
+        if (clientAOptimized && clientBOptimized) {
+          const combinedOptimized = {
+            ...combinedCurrent,
+            totalTax: (clientAOptimized.totalTax || clientATaxResults.totalTax || 0) + 
+                     (clientBOptimized.totalTax || clientBTaxResults.totalTax || 0),
+            afterTaxIncome: (clientAOptimized.afterTaxIncome || clientATaxResults.afterTaxIncome || 0) + 
+                           (clientBOptimized.afterTaxIncome || clientBTaxResults.afterTaxIncome || 0)
+          };
+          setCombinedOptimizedTax(combinedOptimized);
+          
+          // Note: Combined strategies are not calculated separately - using individual strategies
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -779,13 +894,39 @@ export default function TaxOptimizationPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Tax Optimization</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Analyze tax implications and optimize your strategy</p>
         </div>
-        <Button 
-          onClick={() => taxForm.handleSubmit(calculateOptimizations)()}
-          disabled={isCalculating}
-          className="bg-yellow-500 text-white hover:bg-yellow-600"
-        >
-          Calculate & Optimize
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Client Selector */}
+          {showCombined && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">View:</span>
+              <Select
+                value={viewMode}
+                onValueChange={(value: 'A' | 'B' | 'combined') => {
+                  setViewMode(value);
+                  if (value !== 'combined') {
+                    setActiveClient(value);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="A">{clientAName}</SelectItem>
+                  <SelectItem value="B">{clientBName}</SelectItem>
+                  <SelectItem value="combined">Combined</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <Button 
+            onClick={taxForm.handleSubmit((data) => calculateOptimizations(data))}
+            disabled={isCalculating}
+            className="bg-yellow-500 text-white hover:bg-yellow-600"
+          >
+            Calculate & Optimize
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -800,7 +941,7 @@ export default function TaxOptimizationPage() {
             </CardHeader>
             <CardContent>
               <Form {...taxForm}>
-                <form onSubmit={taxForm.handleSubmit(calculateOptimizations)} className="space-y-6">
+                <form onSubmit={taxForm.handleSubmit((data) => calculateOptimizations(data))} className="space-y-6">
                   <Tabs defaultValue="income" className="space-y-4">
                     <TabsList className="grid w-full grid-cols-3">
                       <TabsTrigger value="income" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
@@ -1084,7 +1225,7 @@ export default function TaxOptimizationPage() {
         {/* Results Panel */}
         <div className="space-y-6">
           {/* Combined Household Tax Summary */}
-          {showCombined && combinedTaxResults && (
+          {viewMode === 'combined' && combinedTaxResults && (
             <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
               <CardHeader>
                 <CardTitle className="flex items-center text-yellow-700 dark:text-yellow-400">
@@ -1164,7 +1305,7 @@ export default function TaxOptimizationPage() {
             </Card>
           )}
           
-          {currentTax && (
+          {(viewMode === 'A' || viewMode === 'B' || (!showCombined && !viewMode)) && currentTax && (
             <>
               {/* Current Tax Calculation */}
               <Card>
@@ -1314,7 +1455,156 @@ export default function TaxOptimizationPage() {
             </>
           )}
 
-          {!currentTax && (
+          {viewMode === 'combined' && combinedCurrentTax && (
+            <>
+              {/* Combined Current Tax Calculation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-foreground">
+                    <FileText className="h-5 w-5 mr-2" />
+                    Combined Current Tax Calculation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Combined Gross Income:</span>
+                      <span className="font-semibold text-foreground">${combinedCurrentTax.annualIncome.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Combined Deductions:</span>
+                      <span className="font-semibold text-yellow-600 dark:text-yellow-400">-${combinedCurrentTax.totalDeductions.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Combined Taxable Income:</span>
+                      <span className="font-semibold">${combinedCurrentTax.taxableIncome.toLocaleString()}</span>
+                    </div>
+                    <hr className="border-gray-200" />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Combined Income Tax:</span>
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">${(combinedCurrentTax.incomeTax || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Combined Medicare Levy:</span>
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">${(combinedCurrentTax.medicareLevy || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Combined HECS Repayment:</span>
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">${(combinedCurrentTax.hecsRepayment || 0).toLocaleString()}</span>
+                    </div>
+                    <hr className="border" />
+                    <div className="flex justify-between">
+                      <span className="font-medium text-foreground">Combined Total Tax:</span>
+                      <span className="text-xl font-bold text-gray-700 dark:text-gray-300">${combinedCurrentTax.totalTax.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-foreground">Combined After-Tax Income:</span>
+                      <span className="text-xl font-bold text-green-600 dark:text-green-400">${combinedCurrentTax.afterTaxIncome.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Average Tax Rate:</span>
+                      <span className="font-semibold text-foreground">{combinedCurrentTax.averageTaxRate.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Marginal Tax Rate:</span>
+                      <span className="font-semibold text-foreground">{combinedCurrentTax.marginalTaxRate.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Combined Optimization Comparison */}
+              {combinedOptimizedTax && (
+                <Card className="bg-green-50 border-green-200">
+                  <CardHeader>
+                    <CardTitle className="text-green-800 flex items-center">
+                      <TrendingDown className="h-5 w-5 mr-2" />
+                      Combined Potential Savings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center mb-4">
+                      <p className="text-3xl font-bold text-green-600">
+                        ${(combinedCurrentTax.totalTax - combinedOptimizedTax.totalTax).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-green-800">Combined annual tax savings</p>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-green-800">Current Combined Tax:</span>
+                        <span className="font-semibold">${combinedCurrentTax.totalTax.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-green-800">Optimized Combined Tax:</span>
+                        <span className="font-semibold">${combinedOptimizedTax.totalTax.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Combined Lifetime Tax Until Retirement */}
+              {(() => {
+                // Use average retirement age from both clients
+                const clientAAge = clientA?.currentAge || 35;
+                const clientARetirement = clientA?.retirementAge || 65;
+                const clientBAge = clientB?.currentAge || 35;
+                const clientBRetirement = clientB?.retirementAge || 65;
+                const avgCurrentAge = (clientAAge + clientBAge) / 2;
+                const avgRetirementAge = (clientARetirement + clientBRetirement) / 2;
+                const yearsToRetirement = Math.max(0, avgRetirementAge - avgCurrentAge);
+                const totalTaxUntilRetirement = combinedCurrentTax.totalTax * yearsToRetirement;
+                const optimizedTotalTax = combinedOptimizedTax ? combinedOptimizedTax.totalTax * yearsToRetirement : totalTaxUntilRetirement;
+                const lifetimeSavings = totalTaxUntilRetirement - optimizedTotalTax;
+                
+                return (
+                  <Card className="bg-amber-50 border-amber-200">
+                    <CardHeader>
+                      <CardTitle className="text-amber-800 flex items-center">
+                        <Clock className="h-5 w-5 mr-2" />
+                        Combined Tax Until Retirement
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center mb-4">
+                        <p className="text-3xl font-bold text-red-600">
+                          ${totalTaxUntilRetirement.toLocaleString()}
+                        </p>
+                        <p className="text-sm text-amber-800">Combined total tax over {yearsToRetirement} years</p>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-amber-800">Combined Annual Tax:</span>
+                          <span className="font-semibold">${combinedCurrentTax.totalTax.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-amber-800">Average Years to Retirement:</span>
+                          <span className="font-semibold">{yearsToRetirement} years</span>
+                        </div>
+                        {combinedOptimizedTax && lifetimeSavings > 0 && (
+                          <>
+                            <hr className="border-amber-300" />
+                            <div className="flex justify-between">
+                              <span className="text-amber-800">Optimized Combined Lifetime Tax:</span>
+                              <span className="font-semibold text-green-600">${optimizedTotalTax.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-amber-800 font-medium">Combined Lifetime Savings:</span>
+                              <span className="font-bold text-green-600">${lifetimeSavings.toLocaleString()}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+            </>
+          )}
+
+          {!currentTax && !combinedCurrentTax && (
             <Card className="bg-white border-gray-200">
               <CardContent className="p-8 text-center">
                 <Calculator className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -1326,35 +1616,35 @@ export default function TaxOptimizationPage() {
       </div>
 
       {/* Optimization Strategies */}
-      {strategies.length > 0 && (
+      {((viewMode !== 'combined' && strategies.length > 0) || (viewMode === 'combined' && combinedStrategies.length > 0)) && (
         <div className="space-y-6">
           {/* Tax Savings by Category */}
           <Card className="bg-white border-gray-200">
             <CardHeader>
               <CardTitle className="text-gray-900 flex items-center">
                 <TrendingDown className="h-5 w-5 mr-2" />
-                Tax Optimization Impact
+                {viewMode === 'combined' ? 'Combined Tax Optimization Impact' : 'Tax Optimization Impact'}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              {currentTax && optimizedTax ? (
+              {(viewMode !== 'combined' && currentTax && optimizedTax) || (viewMode === 'combined' && combinedCurrentTax && combinedOptimizedTax) ? (
                 <div className="grid grid-cols-2 gap-6">
                   {/* Current After-Tax Income */}
                   <div className="text-center p-6 bg-gray-50 rounded-lg">
-                    <h3 className="text-gray-700 mb-2">Current Income</h3>
+                    <h3 className="text-gray-700 mb-2">{viewMode === 'combined' ? 'Current Combined Income' : 'Current Income'}</h3>
                     <p className="text-3xl font-bold text-gray-900">
-                      ${currentTax.afterTaxIncome.toLocaleString()}
+                      ${(viewMode === 'combined' ? combinedCurrentTax!.afterTaxIncome : currentTax!.afterTaxIncome).toLocaleString()}
                     </p>
                   </div>
                   
                   {/* Optimized After-Tax Income */}
                   <div className="text-center p-6 bg-green-50 rounded-lg">
-                    <h3 className="text-green-700 mb-2">Optimized Income</h3>
+                    <h3 className="text-green-700 mb-2">{viewMode === 'combined' ? 'Optimized Combined Income' : 'Optimized Income'}</h3>
                     <p className="text-3xl font-bold text-green-700">
-                      ${optimizedTax.afterTaxIncome.toLocaleString()}
+                      ${(viewMode === 'combined' ? combinedOptimizedTax!.afterTaxIncome : optimizedTax!.afterTaxIncome).toLocaleString()}
                     </p>
                     <p className="text-green-700 mt-2 font-medium">
-                      Total Savings: ${(optimizedTax.afterTaxIncome - currentTax.afterTaxIncome).toLocaleString()}
+                      Total Savings: ${((viewMode === 'combined' ? combinedOptimizedTax!.afterTaxIncome : optimizedTax!.afterTaxIncome) - (viewMode === 'combined' ? combinedCurrentTax!.afterTaxIncome : currentTax!.afterTaxIncome)).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -1369,13 +1659,13 @@ export default function TaxOptimizationPage() {
             <CardHeader>
               <CardTitle className="text-gray-900 flex items-center">
                 <Lightbulb className="h-5 w-5 mr-2" />
-                Tax Optimization Strategies
+                {viewMode === 'combined' ? 'Combined Tax Optimization Strategies' : 'Tax Optimization Strategies'}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {strategies.length > 0 ? (
+              {((viewMode !== 'combined' && strategies.length > 0) || (viewMode === 'combined' && combinedStrategies.length > 0)) ? (
                 <div className="space-y-4">
-                  {strategies.map((strategy, index) => (
+                  {(viewMode === 'combined' ? combinedStrategies : strategies).map((strategy, index) => (
                     <div key={index} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
                       <div className="flex items-start justify-between mb-2">
                         <div>
@@ -1387,7 +1677,7 @@ export default function TaxOptimizationPage() {
                             ${strategy.potentialSaving.toLocaleString()}
                           </span>
                           <span className="text-sm text-gray-500">
-                            {Math.round((strategy.potentialSaving / strategies.reduce((sum, s) => sum + s.potentialSaving, 0)) * 100)}% of total
+                            {Math.round((strategy.potentialSaving / (viewMode === 'combined' ? combinedStrategies : strategies).reduce((sum, s) => sum + s.potentialSaving, 0)) * 100)}% of total
                           </span>
                         </div>
                       </div>
@@ -1399,7 +1689,7 @@ export default function TaxOptimizationPage() {
                         <div
                           className="bg-green-500 h-1.5 rounded-full"
                           style={{
-                            width: `${Math.round((strategy.potentialSaving / strategies.reduce((sum, s) => sum + s.potentialSaving, 0)) * 100)}%`
+                            width: `${Math.round((strategy.potentialSaving / (viewMode === 'combined' ? combinedStrategies : strategies).reduce((sum, s) => sum + s.potentialSaving, 0)) * 100)}%`
                           }}
                         />
                       </div>
