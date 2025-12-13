@@ -279,10 +279,7 @@ export function ClientPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Dual Client Information</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Enter information for both clients side-by-side
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Client Information</h1>
         </div>
         <Button onClick={handleNewClients} className="bg-yellow-500 text-white hover:bg-yellow-600 w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
@@ -299,57 +296,13 @@ export function ClientPage() {
       {/* Dual Client Forms - Side by Side */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Client A */}
-        <div className="relative">
-          <div className="absolute -top-3 left-4 z-10">
-            <span className="bg-gray-700 text-white text-sm font-bold px-3 py-1 rounded-full">
-              Client A
-            </span>
-          </div>
-          <div className="border rounded-lg pt-4 bg-card">
-            <div className="px-4 pb-2 flex justify-between items-center">
-              <span className="text-sm text-muted-foreground font-medium">
-                {clientA?.firstName && clientA?.lastName 
-                  ? `${clientA.firstName} ${clientA.lastName}`
-                  : 'No client data'}
-              </span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => handleClearClient('A')}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Clear
-              </Button>
-            </div>
-            <ClientForm key={`A-${formKeyA}`} clientSlot="A" />
-          </div>
+        <div>
+          <ClientForm key={`A-${formKeyA}`} clientSlot="A" />
         </div>
 
         {/* Client B */}
-        <div className="relative">
-          <div className="absolute -top-3 left-4 z-10">
-            <span className="bg-gray-700 text-white text-sm font-bold px-3 py-1 rounded-full">
-              Client B
-            </span>
-          </div>
-          <div className="border rounded-lg pt-4 bg-card">
-            <div className="px-4 pb-2 flex justify-between items-center">
-              <span className="text-sm text-muted-foreground font-medium">
-                {clientB?.firstName && clientB?.lastName 
-                  ? `${clientB.firstName} ${clientB.lastName}`
-                  : 'No client data'}
-              </span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => handleClearClient('B')}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Clear
-              </Button>
-            </div>
-            <ClientForm key={`B-${formKeyB}`} clientSlot="B" />
-          </div>
+        <div>
+          <ClientForm key={`B-${formKeyB}`} clientSlot="B" />
         </div>
       </div>
     </div>
