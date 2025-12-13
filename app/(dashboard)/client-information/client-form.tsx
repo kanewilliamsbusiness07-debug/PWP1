@@ -144,7 +144,27 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState('personal');
   const client = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
+  
+  // Tab order for navigation
+  const TAB_ORDER = ['personal', 'financial', 'properties', 'projections', 'tax'];
+  
+  // Function to save and move to next tab
+  const handleSaveAndNext = async () => {
+    // Trigger form validation and save
+    const isValid = await form.trigger();
+    if (isValid) {
+      await form.handleSubmit(async (data) => {
+        await onSubmitInternal(data);
+        // Move to next tab after successful save
+        const currentIndex = TAB_ORDER.indexOf(activeTab);
+        if (currentIndex < TAB_ORDER.length - 1) {
+          setActiveTab(TAB_ORDER[currentIndex + 1]);
+        }
+      })();
+    }
+  };
   
   // Date of Birth state for dropdowns - Primary Person
   const [dobDay, setDobDay] = useState<string>('');
@@ -511,7 +531,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     }
   }, [client, form, clientSlot]);
 
-  const onSubmit = async (data: ClientFormData) => {
+  const onSubmitInternal = async (data: ClientFormData) => {
     setIsSaving(true);
     try {
       // Validate required fields before saving
@@ -1126,8 +1146,8 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="personal" className="w-full">
+          <form onSubmit={form.handleSubmit(onSubmitInternal)} className="space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="personal">Personal</TabsTrigger>
                 <TabsTrigger value="financial">Financial</TabsTrigger>
@@ -1622,6 +1642,18 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                       )}
                     />
                   </div>
+                </div>
+
+                {/* Save & Continue Button */}
+                <div className="flex justify-end pt-4 border-t mt-6">
+                  <Button
+                    type="button"
+                    onClick={handleSaveAndNext}
+                    className="bg-yellow-500 text-white hover:bg-yellow-600"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save & Continue'}
+                  </Button>
                 </div>
               </TabsContent>
 
@@ -2166,6 +2198,18 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                     ))}
                   </div>
                 </div>
+
+                {/* Save & Continue Button */}
+                <div className="flex justify-end pt-4 border-t mt-6">
+                  <Button
+                    type="button"
+                    onClick={handleSaveAndNext}
+                    className="bg-yellow-500 text-white hover:bg-yellow-600"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save & Continue'}
+                  </Button>
+                </div>
               </TabsContent>
 
               {/* Investment Properties Tab */}
@@ -2355,6 +2399,18 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                       </CardContent>
                     </Card>
                   ))}
+                </div>
+
+                {/* Save & Continue Button */}
+                <div className="flex justify-end pt-4 border-t mt-6">
+                  <Button
+                    type="button"
+                    onClick={handleSaveAndNext}
+                    className="bg-yellow-500 text-white hover:bg-yellow-600"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save & Continue'}
+                  </Button>
                 </div>
               </TabsContent>
 
@@ -2672,6 +2728,18 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Save & Continue Button */}
+                <div className="flex justify-end pt-4 border-t mt-6">
+                  <Button
+                    type="button"
+                    onClick={handleSaveAndNext}
+                    className="bg-yellow-500 text-white hover:bg-yellow-600"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save & Continue'}
+                  </Button>
                 </div>
               </TabsContent>
 
