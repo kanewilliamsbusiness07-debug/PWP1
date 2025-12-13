@@ -852,9 +852,10 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
   
   // Initialize the ref with existing property-linked assets on mount
   useEffect(() => {
-    if (watchedProperties && Array.isArray(watchedProperties)) {
+    const properties = form.getValues('properties');
+    if (properties && Array.isArray(properties)) {
       const linkedIds = new Set<string>();
-      watchedProperties.forEach((prop: any) => {
+      properties.forEach((prop: any) => {
         if (prop.linkedAssetId) {
           linkedIds.add(prop.linkedAssetId);
         }
@@ -867,131 +868,137 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
   // Auto-create investment properties when asset type is changed to "property"
   // This is a one-way sync: assets → properties (NOT bi-directional)
   useEffect(() => {
-    if (!watchedAssets || !Array.isArray(watchedAssets)) return;
-    
-    const currentProperties = form.getValues('properties') || [];
-    
-    // Filter for property assets that are NOT owner-occupied (investment properties only)
-    const propertyAssets = watchedAssets.filter((asset: any) => {
-      if (asset.type !== 'property') return false;
-      // Skip owner-occupied properties (first asset with ownerOccupied === 'own')
-      if (asset.ownerOccupied === 'own') return false;
-      return true;
-    });
-    
-    // Update existing linked properties with new asset/liability data
-    currentProperties.forEach((prop: any, propIndex: number) => {
-      if (prop.linkedAssetId) {
-        const linkedAsset = watchedAssets.find((a: any) => a.id === prop.linkedAssetId);
-        if (linkedAsset) {
-          // Update property values from asset
-          const assetIndex = watchedAssets.findIndex((a: any) => a.id === linkedAsset.id);
-          const linkedLiability = watchedLiabilities?.[assetIndex];
-          
-          const updates: any = {};
-          if (linkedAsset.name && linkedAsset.name !== prop.address) {
-            updates.address = linkedAsset.name;
-          }
-          if (Number(linkedAsset.currentValue) !== Number(prop.currentValue)) {
-            updates.currentValue = Number(linkedAsset.currentValue) || 0;
-          }
-          if (linkedLiability && linkedLiability.type === 'mortgage') {
-            if (Number(linkedLiability.balance) !== Number(prop.loanAmount)) {
-              updates.loanAmount = Number(linkedLiability.balance) || 0;
+    const subscription = form.watch(() => {
+      const assets = form.getValues('assets');
+      if (!assets || !Array.isArray(assets)) return;
+
+      const currentProperties = form.getValues('properties') || [];
+      const liabilities = form.getValues('liabilities') || [];
+
+      // Filter for property assets that are NOT owner-occupied (investment properties only)
+      const propertyAssets = assets.filter((asset: any) => {
+        if (asset.type !== 'property') return false;
+        // Skip owner-occupied properties (first asset with ownerOccupied === 'own')
+        if (asset.ownerOccupied === 'own') return false;
+        return true;
+      });
+
+      // Update existing linked properties with new asset/liability data
+      currentProperties.forEach((prop: any, propIndex: number) => {
+        if (prop.linkedAssetId) {
+          const linkedAsset = assets.find((a: any) => a.id === prop.linkedAssetId);
+          if (linkedAsset) {
+            // Update property values from asset
+            const assetIndex = assets.findIndex((a: any) => a.id === linkedAsset.id);
+            const linkedLiability = liabilities[assetIndex];
+
+            const updates: any = {};
+            if (linkedAsset.name && linkedAsset.name !== prop.address) {
+              updates.address = linkedAsset.name;
             }
-            if (Number(linkedLiability.interestRate) !== Number(prop.interestRate)) {
-              updates.interestRate = Number(linkedLiability.interestRate) || 0;
+            if (Number(linkedAsset.currentValue) !== Number(prop.currentValue)) {
+              updates.currentValue = Number(linkedAsset.currentValue) || 0;
             }
-            if (Number(linkedLiability.loanTerm) !== Number(prop.loanTerm)) {
-              updates.loanTerm = Number(linkedLiability.loanTerm) || 30;
+            if (linkedLiability && linkedLiability.type === 'mortgage') {
+              if (Number(linkedLiability.balance) !== Number(prop.loanAmount)) {
+                updates.loanAmount = Number(linkedLiability.balance) || 0;
+              }
+              if (Number(linkedLiability.interestRate) !== Number(prop.interestRate)) {
+                updates.interestRate = Number(linkedLiability.interestRate) || 0;
+              }
+              if (Number(linkedLiability.loanTerm) !== Number(prop.loanTerm)) {
+                updates.loanTerm = Number(linkedLiability.loanTerm) || 30;
+              }
             }
-          }
-          
-          // Only update if there are changes
-          if (Object.keys(updates).length > 0) {
-            Object.entries(updates).forEach(([key, value]) => {
-              form.setValue(`properties.${propIndex}.${key}` as any, value);
-            });
+
+            // Only update if there are changes
+            if (Object.keys(updates).length > 0) {
+              Object.entries(updates).forEach(([key, value]) => {
+                form.setValue(`properties.${propIndex}.${key}` as any, value);
+              });
+            }
           }
         }
-      }
-    });
-    
-    // Find property assets that don't have a corresponding property entry yet
-    const newPropertyAssets = propertyAssets.filter((asset: any) => {
-      // Skip empty assets (no name and no value) - don't create ghost properties
-      if (!asset.name && (!asset.currentValue || Number(asset.currentValue) === 0)) {
-        return false;
-      }
-      
-      // Skip if already synced
-      if (syncedAssetIdsRef.current.has(asset.id)) return false;
-      
-      // Skip if a property with this linkedAssetId already exists
-      const alreadyExists = currentProperties.some(
-        (prop: any) => prop.linkedAssetId === asset.id
-      );
-      return !alreadyExists;
-    });
-    
-    // Create new properties for each new property-type asset
-    newPropertyAssets.forEach((asset: any) => {
-      // Find matching mortgage liability - check both by name match and by index position
-      let matchingMortgage = watchedLiabilities?.find((liability: any) => 
-        liability.type === 'mortgage' && 
-        liability.name && 
-        asset.name && 
-        liability.name.toLowerCase().includes(asset.name.toLowerCase())
-      );
-      
-      // If no name match, try to find a mortgage at the same index position as the asset
-      if (!matchingMortgage) {
-        const assetIndex = watchedAssets.findIndex((a: any) => a.id === asset.id);
-        const liabilityAtSameIndex = watchedLiabilities?.[assetIndex];
-        if (liabilityAtSameIndex && liabilityAtSameIndex.type === 'mortgage') {
-          matchingMortgage = liabilityAtSameIndex;
+      });
+
+      // Find property assets that don't have a corresponding property entry yet
+      const newPropertyAssets = propertyAssets.filter((asset: any) => {
+        // Skip empty assets (no name and no value) - don't create ghost properties
+        if (!asset.name && (!asset.currentValue || Number(asset.currentValue) === 0)) {
+          return false;
         }
-      }
-      
-      // Check if there's an empty property we can fill instead of appending
-      const emptyPropertyIndex = currentProperties.findIndex((prop: any) => 
-        !prop.address && 
-        (!prop.currentValue || Number(prop.currentValue) === 0) &&
-        !prop.linkedAssetId
-      );
-      
-      const propertyData = {
-        address: asset.name || '',
-        purchasePrice: Number(asset.currentValue) || 0,
-        currentValue: Number(asset.currentValue) || 0,
-        loanAmount: matchingMortgage ? Number(matchingMortgage.balance) || 0 : 0,
-        interestRate: matchingMortgage ? Number(matchingMortgage.interestRate) || 0 : 0,
-        loanTerm: matchingMortgage ? Number(matchingMortgage.loanTerm) || 30 : 30,
-        weeklyRent: 0,
-        annualExpenses: 0,
-        linkedAssetId: asset.id,
-        linkedLiabilityId: matchingMortgage?.id || undefined,
-      };
-      
-      // Mark this asset as synced BEFORE updating to prevent re-triggering
-      syncedAssetIdsRef.current.add(asset.id);
-      
-      if (emptyPropertyIndex >= 0) {
-        // Fill the empty property slot instead of appending
-        const existingId = currentProperties[emptyPropertyIndex].id;
-        form.setValue(`properties.${emptyPropertyIndex}`, {
-          id: existingId,
-          ...propertyData,
-        });
-      } else {
-        // No empty slot, append a new property
-        appendProperty({
-          id: `property-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          ...propertyData,
-        });
-      }
+
+        // Skip if already synced
+        if (syncedAssetIdsRef.current.has(asset.id)) return false;
+
+        // Skip if a property with this linkedAssetId already exists
+        const alreadyExists = currentProperties.some(
+          (prop: any) => prop.linkedAssetId === asset.id
+        );
+        return !alreadyExists;
+      });
+
+      // Create new properties for each new property-type asset
+      newPropertyAssets.forEach((asset: any) => {
+        // Find matching mortgage liability - check both by name match and by index position
+        let matchingMortgage = liabilities.find((liability: any) =>
+          liability.type === 'mortgage' &&
+          liability.name &&
+          asset.name &&
+          liability.name.toLowerCase().includes(asset.name.toLowerCase())
+        );
+
+        // If no name match, try to find a mortgage at the same index position as the asset
+        if (!matchingMortgage) {
+          const assetIndex = assets.findIndex((a: any) => a.id === asset.id);
+          const liabilityAtSameIndex = liabilities[assetIndex];
+          if (liabilityAtSameIndex && liabilityAtSameIndex.type === 'mortgage') {
+            matchingMortgage = liabilityAtSameIndex;
+          }
+        }
+
+        // Check if there's an empty property we can fill instead of appending
+        const emptyPropertyIndex = currentProperties.findIndex((prop: any) =>
+          !prop.address &&
+          (!prop.currentValue || Number(prop.currentValue) === 0) &&
+          !prop.linkedAssetId
+        );
+
+        const propertyData = {
+          address: asset.name || '',
+          purchasePrice: Number(asset.currentValue) || 0,
+          currentValue: Number(asset.currentValue) || 0,
+          loanAmount: matchingMortgage ? Number(matchingMortgage.balance) || 0 : 0,
+          interestRate: matchingMortgage ? Number(matchingMortgage.interestRate) || 0 : 0,
+          loanTerm: matchingMortgage ? Number(matchingMortgage.loanTerm) || 30 : 30,
+          weeklyRent: 0,
+          annualExpenses: 0,
+          linkedAssetId: asset.id,
+          linkedLiabilityId: matchingMortgage?.id || undefined,
+        };
+
+        // Mark this asset as synced BEFORE updating to prevent re-triggering
+        syncedAssetIdsRef.current.add(asset.id);
+
+        if (emptyPropertyIndex >= 0) {
+          // Fill the empty property slot instead of appending
+          const existingId = currentProperties[emptyPropertyIndex].id;
+          form.setValue(`properties.${emptyPropertyIndex}`, {
+            id: existingId,
+            ...propertyData,
+          });
+        } else {
+          // No empty slot, append a new property
+          appendProperty({
+            id: `property-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            ...propertyData,
+          });
+        }
+      });
     });
-  }, [watchedAssets, watchedLiabilities, form, appendProperty]);
+
+    return () => subscription.unsubscribe();
+  }, [form, appendProperty]);
 
   // Expose methods via ref
   React.useImperativeHandle(ref, () => ({
@@ -2700,4 +2707,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     </Card>
   );
 });
+
+ClientForm.displayName = 'ClientForm';
 
