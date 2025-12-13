@@ -37,8 +37,9 @@ function SharedAssumptionsSection() {
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <div>
-            <Label className="text-sm text-muted-foreground">Inflation Rate (%)</Label>
+            <Label htmlFor="inflation-rate" className="text-sm text-muted-foreground">Inflation Rate (%)</Label>
             <Input
+              id="inflation-rate"
               type="number"
               step="0.1"
               min="0"
@@ -48,8 +49,9 @@ function SharedAssumptionsSection() {
             />
           </div>
           <div>
-            <Label className="text-sm text-muted-foreground">Salary Growth (%)</Label>
+            <Label htmlFor="salary-growth" className="text-sm text-muted-foreground">Salary Growth (%)</Label>
             <Input
+              id="salary-growth"
               type="number"
               step="0.1"
               min="0"
@@ -59,8 +61,9 @@ function SharedAssumptionsSection() {
             />
           </div>
           <div>
-            <Label className="text-sm text-muted-foreground">Super Return (%)</Label>
+            <Label htmlFor="super-return" className="text-sm text-muted-foreground">Super Return (%)</Label>
             <Input
+              id="super-return"
               type="number"
               step="0.1"
               min="0"
@@ -70,8 +73,9 @@ function SharedAssumptionsSection() {
             />
           </div>
           <div>
-            <Label className="text-sm text-muted-foreground">Share Return (%)</Label>
+            <Label htmlFor="share-return" className="text-sm text-muted-foreground">Share Return (%)</Label>
             <Input
+              id="share-return"
               type="number"
               step="0.1"
               min="0"
@@ -81,8 +85,9 @@ function SharedAssumptionsSection() {
             />
           </div>
           <div>
-            <Label className="text-sm text-muted-foreground">Property Growth (%)</Label>
+            <Label htmlFor="property-growth" className="text-sm text-muted-foreground">Property Growth (%)</Label>
             <Input
+              id="property-growth"
               type="number"
               step="0.1"
               min="0"
@@ -92,8 +97,9 @@ function SharedAssumptionsSection() {
             />
           </div>
           <div>
-            <Label className="text-sm text-muted-foreground">Withdrawal Rate (%)</Label>
+            <Label htmlFor="withdrawal-rate" className="text-sm text-muted-foreground">Withdrawal Rate (%)</Label>
             <Input
+              id="withdrawal-rate"
               type="number"
               step="0.1"
               min="0"
@@ -103,8 +109,9 @@ function SharedAssumptionsSection() {
             />
           </div>
           <div>
-            <Label className="text-sm text-muted-foreground">Rent Growth (%)</Label>
+            <Label htmlFor="rent-growth" className="text-sm text-muted-foreground">Rent Growth (%)</Label>
             <Input
+              id="rent-growth"
               type="number"
               step="0.1"
               min="0"
