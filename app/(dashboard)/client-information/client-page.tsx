@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useFinancialStore } from '@/lib/store/store';
 import { useAuth } from '@/hooks/use-auth';
 import { useClientStorage } from '@/lib/hooks/use-client-storage';
-import { ClientForm } from './client-form';
+import { ClientForm, ClientFormRef } from './client-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Users, Save, Trash2 } from 'lucide-react';
@@ -136,6 +136,8 @@ export function ClientPage() {
   const [isLoadingClient, setIsLoadingClient] = useState(false);
   const [formKeyA, setFormKeyA] = useState(0);
   const [formKeyB, setFormKeyB] = useState(0);
+  const clientFormRefA = React.useRef<ClientFormRef>(null);
+  const clientFormRefB = React.useRef<ClientFormRef>(null);
 
   useEffect(() => {
     if (!user && !loading) {
@@ -249,37 +251,27 @@ export function ClientPage() {
   const handleSaveClients = async () => {
     try {
       let savedCount = 0;
-      
-      // Save Client A if it has data
-      if (clientA && (clientA.firstName || clientA.lastName || clientA.email)) {
-        const savedClientA = await saveClient({
-          ...clientA,
-          dob: clientA.dateOfBirth,
-        });
-        if (savedClientA) {
-          financialStore.setClientData('A', {
-            ...clientA,
-            id: savedClientA.id,
-          } as any);
+
+      // Save Client A using ref
+      try {
+        if (clientFormRefA.current) {
+          await clientFormRefA.current.saveClient();
           savedCount++;
         }
+      } catch (error) {
+        console.error('Error saving Client A:', error);
       }
-      
-      // Save Client B if it has data
-      if (clientB && (clientB.firstName || clientB.lastName || clientB.email)) {
-        const savedClientB = await saveClient({
-          ...clientB,
-          dob: clientB.dateOfBirth,
-        });
-        if (savedClientB) {
-          financialStore.setClientData('B', {
-            ...clientB,
-            id: savedClientB.id,
-          } as any);
+
+      // Save Client B using ref
+      try {
+        if (clientFormRefB.current) {
+          await clientFormRefB.current.saveClient();
           savedCount++;
         }
+      } catch (error) {
+        console.error('Error saving Client B:', error);
       }
-      
+
       if (savedCount > 0) {
         toast({
           title: 'Clients saved',
@@ -303,9 +295,14 @@ export function ClientPage() {
 
   // Handle creating new clients
   const handleNewClients = () => {
-    const emptyClientData = getEmptyClientData();
-    financialStore.setClientData('A', emptyClientData);
-    financialStore.setClientData('B', emptyClientData);
+    // Reset both forms using refs
+    if (clientFormRefA.current) {
+      clientFormRefA.current.resetClient();
+    }
+    if (clientFormRefB.current) {
+      clientFormRefB.current.resetClient();
+    }
+
     financialStore.setIncomeData({
       grossIncome: 0,
       employmentIncome: 0,
@@ -327,30 +324,31 @@ export function ClientPage() {
   const handleDeleteClients = async () => {
     try {
       let deletedCount = 0;
-      
-      // Delete Client A if it exists
-      if ((clientA as any)?.id) {
-        const successA = await deleteClient((clientA as any).id);
-        if (successA) {
-          deletedCount++;
+
+      // Delete Client A using ref
+      try {
+        if (clientFormRefA.current) {
+          const successA = await clientFormRefA.current.deleteClient();
+          if (successA) deletedCount++;
         }
+      } catch (error) {
+        console.error('Error deleting Client A:', error);
       }
-      
-      // Delete Client B if it exists
-      if ((clientB as any)?.id) {
-        const successB = await deleteClient((clientB as any).id);
-        if (successB) {
-          deletedCount++;
+
+      // Delete Client B using ref
+      try {
+        if (clientFormRefB.current) {
+          const successB = await clientFormRefB.current.deleteClient();
+          if (successB) deletedCount++;
         }
+      } catch (error) {
+        console.error('Error deleting Client B:', error);
       }
-      
-      // Clear both clients from store regardless
-      const emptyClientData = getEmptyClientData();
-      financialStore.setClientData('A', emptyClientData);
-      financialStore.setClientData('B', emptyClientData);
+
+      // Reset form keys to force re-render
       setFormKeyA(prev => prev + 1);
       setFormKeyB(prev => prev + 1);
-      
+
       if (deletedCount > 0) {
         toast({
           title: 'Clients deleted',
@@ -406,12 +404,12 @@ export function ClientPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Client A */}
         <div>
-          <ClientForm key={`A-${formKeyA}`} clientSlot="A" />
+          <ClientForm ref={clientFormRefA} key={`A-${formKeyA}`} clientSlot="A" />
         </div>
 
         {/* Client B */}
         <div>
-          <ClientForm key={`B-${formKeyB}`} clientSlot="B" />
+          <ClientForm ref={clientFormRefB} key={`B-${formKeyB}`} clientSlot="B" />
         </div>
       </div>
     </div>
