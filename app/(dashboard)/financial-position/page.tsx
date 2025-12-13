@@ -100,6 +100,23 @@ export default function FinancialPositionPage() {
   const clientBIncome = (clientB?.annualIncome || clientB?.grossSalary || 0) + (clientB?.rentalIncome || 0) + (clientB?.dividends || 0) + (clientB?.otherIncome || 0);
   const combinedIncome = clientAIncome + clientBIncome;
   
+  // Monthly cashflow calculations (monthly income - monthly expenses - monthly debt payments)
+  const clientAMonthlyIncome = clientAIncome / 12;
+  const clientBMonthlyIncome = clientBIncome / 12;
+  const clientAMonthlyDebtPayments = clientALiabilities.reduce((sum, l) => sum + (Number(l.monthlyPayment) || 0), 0);
+  const clientBMonthlyDebtPayments = clientBLiabilities.reduce((sum, l) => sum + (Number(l.monthlyPayment) || 0), 0);
+  const clientAMonthlyExpenses = clientA?.monthlyExpenses || 0;
+  const clientBMonthlyExpenses = clientB?.monthlyExpenses || 0;
+  const clientAMonthlyCashflow = clientAMonthlyIncome - clientAMonthlyExpenses - clientAMonthlyDebtPayments;
+  const clientBMonthlyCashflow = clientBMonthlyIncome - clientBMonthlyExpenses - clientBMonthlyDebtPayments;
+  const combinedMonthlyCashflow = clientAMonthlyCashflow + clientBMonthlyCashflow;
+  
+  // Current client cashflow for single view
+  const currentMonthlyIncome = (grossIncome || 0) / 12;
+  const currentMonthlyDebtPayments = liabilities.reduce((sum, l) => sum + (Number(l.monthlyPayment) || 0), 0);
+  const currentMonthlyExpenses = currentClient?.monthlyExpenses || 0;
+  const currentMonthlyCashflow = currentMonthlyIncome - currentMonthlyExpenses - currentMonthlyDebtPayments;
+  
   type AssetsFormValues = {
     [key: string]: {
       name: string;
@@ -491,7 +508,7 @@ export default function FinancialPositionPage() {
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-8">
       {/* Header with summary cards */}
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center text-lg">
@@ -602,6 +619,52 @@ export default function FinancialPositionPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-lg">
+              <Wallet className="mr-2 h-5 w-5 text-yellow-600" />
+              Monthly Cashflow
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {hasClientA && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{clientAName}</span>
+                  <span className={`font-semibold flex items-center ${clientAMonthlyCashflow >= 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {clientAMonthlyCashflow >= 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                    ${Math.abs(clientAMonthlyCashflow).toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {hasClientB && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{clientBName}</span>
+                  <span className={`font-semibold flex items-center ${clientBMonthlyCashflow >= 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {clientBMonthlyCashflow >= 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                    ${Math.abs(clientBMonthlyCashflow).toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {showCombined && (
+                <div className="flex justify-between items-center pt-2 border-t border-yellow-300 dark:border-yellow-700">
+                  <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Combined</span>
+                  <span className={`text-lg font-bold flex items-center ${combinedMonthlyCashflow >= 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {combinedMonthlyCashflow >= 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                    ${Math.abs(combinedMonthlyCashflow).toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {!showCombined && (
+                <div className={`text-2xl font-bold flex items-center ${currentMonthlyCashflow >= 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {currentMonthlyCashflow >= 0 ? <TrendingUp className="h-5 w-5 mr-1" /> : <TrendingDown className="h-5 w-5 mr-1" />}
+                  ${Math.abs(currentMonthlyCashflow).toLocaleString()}/mo
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
       {/* Combined Household Summary Banner */}
@@ -613,7 +676,7 @@ export default function FinancialPositionPage() {
                 <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">Combined Household Financial Position</p>
                 <p className="text-xs text-muted-foreground">Aggregated totals for {clientAName} & {clientBName}</p>
               </div>
-              <div className="grid grid-cols-4 gap-6 text-center">
+              <div className="grid grid-cols-5 gap-6 text-center">
                 <div>
                   <p className="text-xs text-muted-foreground">Total Assets</p>
                   <p className="font-bold text-yellow-700 dark:text-yellow-400">${combinedTotalAssets.toLocaleString()}</p>
@@ -629,6 +692,12 @@ export default function FinancialPositionPage() {
                 <div>
                   <p className="text-xs text-muted-foreground">Combined Income</p>
                   <p className="font-bold text-yellow-700 dark:text-yellow-400">${combinedIncome.toLocaleString()}/yr</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Monthly Cashflow</p>
+                  <p className={`font-bold ${combinedMonthlyCashflow >= 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                    ${Math.abs(combinedMonthlyCashflow).toLocaleString()}/mo
+                  </p>
                 </div>
               </div>
             </div>

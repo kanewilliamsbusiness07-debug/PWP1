@@ -20,14 +20,17 @@ function SharedAssumptionsSection() {
   const financialStore = useFinancialStore();
   const sharedAssumptions = useFinancialStore((state) => state.sharedAssumptions);
   
-  const handleChange = (field: string, value: number) => {
-    financialStore.setSharedAssumptions({ [field]: value });
+  const handleChange = (field: string, value: string) => {
+    const numValue = value === '' ? 0 : parseFloat(value);
+    if (!isNaN(numValue)) {
+      financialStore.setSharedAssumptions({ [field]: numValue });
+    }
   };
   
   return (
-    <Card className="border-2 border-purple-300 bg-purple-50/50">
+    <Card className="border bg-card">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-purple-800 flex items-center gap-2">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <Users className="h-5 w-5" />
           Shared Assumptions (Apply to Both Clients)
         </CardTitle>
@@ -35,72 +38,79 @@ function SharedAssumptionsSection() {
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <div>
-            <Label className="text-sm text-purple-700">Inflation Rate (%)</Label>
+            <Label className="text-sm text-muted-foreground">Inflation Rate (%)</Label>
             <Input
               type="number"
               step="0.1"
-              value={sharedAssumptions?.inflationRate || 2.5}
-              onChange={(e) => handleChange('inflationRate', parseFloat(e.target.value) || 0)}
+              min="0"
+              defaultValue={sharedAssumptions?.inflationRate ?? 2.5}
+              onChange={(e) => handleChange('inflationRate', e.target.value)}
               className="mt-1"
             />
           </div>
           <div>
-            <Label className="text-sm text-purple-700">Salary Growth (%)</Label>
+            <Label className="text-sm text-muted-foreground">Salary Growth (%)</Label>
             <Input
               type="number"
               step="0.1"
-              value={sharedAssumptions?.salaryGrowthRate || 3.0}
-              onChange={(e) => handleChange('salaryGrowthRate', parseFloat(e.target.value) || 0)}
+              min="0"
+              defaultValue={sharedAssumptions?.salaryGrowthRate ?? 3.0}
+              onChange={(e) => handleChange('salaryGrowthRate', e.target.value)}
               className="mt-1"
             />
           </div>
           <div>
-            <Label className="text-sm text-purple-700">Super Return (%)</Label>
+            <Label className="text-sm text-muted-foreground">Super Return (%)</Label>
             <Input
               type="number"
               step="0.1"
-              value={sharedAssumptions?.superReturn || 7.0}
-              onChange={(e) => handleChange('superReturn', parseFloat(e.target.value) || 0)}
+              min="0"
+              defaultValue={sharedAssumptions?.superReturn ?? 7.0}
+              onChange={(e) => handleChange('superReturn', e.target.value)}
               className="mt-1"
             />
           </div>
           <div>
-            <Label className="text-sm text-purple-700">Share Return (%)</Label>
+            <Label className="text-sm text-muted-foreground">Share Return (%)</Label>
             <Input
               type="number"
               step="0.1"
-              value={sharedAssumptions?.shareReturn || 7.0}
-              onChange={(e) => handleChange('shareReturn', parseFloat(e.target.value) || 0)}
+              min="0"
+              defaultValue={sharedAssumptions?.shareReturn ?? 7.0}
+              onChange={(e) => handleChange('shareReturn', e.target.value)}
               className="mt-1"
             />
           </div>
           <div>
-            <Label className="text-sm text-purple-700">Property Growth (%)</Label>
+            <Label className="text-sm text-muted-foreground">Property Growth (%)</Label>
             <Input
               type="number"
               step="0.1"
-              value={sharedAssumptions?.propertyGrowthRate || 4.0}
-              onChange={(e) => handleChange('propertyGrowthRate', parseFloat(e.target.value) || 0)}
+              min="0"
+              defaultValue={sharedAssumptions?.propertyGrowthRate ?? 4.0}
+              onChange={(e) => handleChange('propertyGrowthRate', e.target.value)}
               className="mt-1"
             />
           </div>
           <div>
-            <Label className="text-sm text-purple-700">Withdrawal Rate (%)</Label>
+            <Label className="text-sm text-muted-foreground">Withdrawal Rate (%)</Label>
             <Input
               type="number"
               step="0.1"
-              value={sharedAssumptions?.withdrawalRate || 4.0}
-              onChange={(e) => handleChange('withdrawalRate', parseFloat(e.target.value) || 0)}
+              min="0"
+              defaultValue={sharedAssumptions?.withdrawalRate ?? 4.0}
+              onChange={(e) => handleChange('withdrawalRate', e.target.value)}
               className="mt-1"
             />
           </div>
           <div>
-            <Label className="text-sm text-purple-700">Rent Growth (%)</Label>
+            <Label className="text-sm text-muted-foreground">Rent Growth (%)</Label>
             <Input
               type="number"
               step="0.1"
-              value={sharedAssumptions?.rentGrowthRate || 3.0}
-              onChange={(e) => handleChange('rentGrowthRate', parseFloat(e.target.value) || 0)}
+              min="0"
+              defaultValue={sharedAssumptions?.rentGrowthRate ?? 3.0}
+              onChange={(e) => handleChange('rentGrowthRate', e.target.value)}
               className="mt-1"
             />
           </div>
@@ -291,13 +301,13 @@ export function ClientPage() {
         {/* Client A */}
         <div className="relative">
           <div className="absolute -top-3 left-4 z-10">
-            <span className="bg-blue-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+            <span className="bg-gray-700 text-white text-sm font-bold px-3 py-1 rounded-full">
               Client A
             </span>
           </div>
-          <div className="border-2 border-blue-500 rounded-lg pt-4 bg-blue-50/30">
+          <div className="border rounded-lg pt-4 bg-card">
             <div className="px-4 pb-2 flex justify-between items-center">
-              <span className="text-sm text-blue-700 font-medium">
+              <span className="text-sm text-muted-foreground font-medium">
                 {clientA?.firstName && clientA?.lastName 
                   ? `${clientA.firstName} ${clientA.lastName}`
                   : 'No client data'}
@@ -306,7 +316,7 @@ export function ClientPage() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => handleClearClient('A')}
-                className="text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                className="text-muted-foreground hover:text-foreground"
               >
                 Clear
               </Button>
@@ -318,13 +328,13 @@ export function ClientPage() {
         {/* Client B */}
         <div className="relative">
           <div className="absolute -top-3 left-4 z-10">
-            <span className="bg-green-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+            <span className="bg-gray-700 text-white text-sm font-bold px-3 py-1 rounded-full">
               Client B
             </span>
           </div>
-          <div className="border-2 border-green-500 rounded-lg pt-4 bg-green-50/30">
+          <div className="border rounded-lg pt-4 bg-card">
             <div className="px-4 pb-2 flex justify-between items-center">
-              <span className="text-sm text-green-700 font-medium">
+              <span className="text-sm text-muted-foreground font-medium">
                 {clientB?.firstName && clientB?.lastName 
                   ? `${clientB.firstName} ${clientB.lastName}`
                   : 'No client data'}
@@ -333,7 +343,7 @@ export function ClientPage() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => handleClearClient('B')}
-                className="text-green-600 hover:text-green-800 hover:bg-green-100"
+                className="text-muted-foreground hover:text-foreground"
               >
                 Clear
               </Button>
