@@ -808,19 +808,43 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       const totalMonthlyRent = watchedProperties
         .reduce((sum: number, property: any) => {
           const weeklyRent = parseFloat(property.weeklyRent) || 0;
-          return sum + (weeklyRent * 52 / 12);
+          // Weekly rent * 52 weeks / 12 months = monthly rent
+          const monthlyRent = (weeklyRent * 52) / 12;
+          return sum + monthlyRent;
         }, 0);
       if (Math.abs(totalMonthlyRent - (form.getValues('monthlyRentalIncome') || 0)) > 0.01) {
         form.setValue('monthlyRentalIncome', Math.round(totalMonthlyRent * 100) / 100);
       }
     }
 
-    // Calculate monthly debt payments from liabilities
+    // Calculate monthly debt payments from liabilities (accounting for payment frequency)
     if (watchedLiabilities && Array.isArray(watchedLiabilities)) {
       const totalDebtPayments = watchedLiabilities
-        .reduce((sum: number, liability: any) => sum + (parseFloat(liability.monthlyPayment) || 0), 0);
-      if (totalDebtPayments !== form.getValues('monthlyDebtPayments')) {
-        form.setValue('monthlyDebtPayments', totalDebtPayments);
+        .reduce((sum: number, liability: any) => {
+          const payment = parseFloat(liability.monthlyPayment) || 0;
+          const frequency = liability.paymentFrequency || 'M';
+          
+          // Convert to monthly based on frequency
+          let monthlyPayment = 0;
+          switch (frequency) {
+            case 'W': // Weekly: payment * 52 weeks / 12 months
+              monthlyPayment = (payment * 52) / 12;
+              break;
+            case 'F': // Fortnightly: payment * 26 fortnights / 12 months
+              monthlyPayment = (payment * 26) / 12;
+              break;
+            case 'M': // Monthly: already monthly
+            default:
+              monthlyPayment = payment;
+              break;
+          }
+          
+          return sum + monthlyPayment;
+        }, 0);
+      
+      const roundedTotal = Math.round(totalDebtPayments * 100) / 100;
+      if (Math.abs(roundedTotal - (form.getValues('monthlyDebtPayments') || 0)) > 0.01) {
+        form.setValue('monthlyDebtPayments', roundedTotal);
       }
     }
     
@@ -2329,10 +2353,13 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="1"
                                 placeholder="0"
                                 {...field}
+                                readOnly
+                                className="bg-muted"
                                 value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
                               />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">Auto-calculated from Date of Birth</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -2369,10 +2396,13 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
+                                readOnly
+                                className="bg-muted"
                                 value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">Auto-calculated from Super assets</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -2429,10 +2459,13 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
+                                readOnly
+                                className="bg-muted"
                                 value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">Auto-calculated from Investment Properties</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -2449,10 +2482,13 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
+                                readOnly
+                                className="bg-muted"
                                 value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">Auto-calculated from Liabilities (adjusted for payment frequency)</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -2469,10 +2505,13 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
+                                readOnly
+                                className="bg-muted"
                                 value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">Auto-calculated from Weekly Rent (×52÷12)</p>
                             <FormMessage />
                           </FormItem>
                         )}
