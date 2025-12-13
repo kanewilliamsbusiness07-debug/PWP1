@@ -178,7 +178,15 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     hecsBalance: 0,
     privateHealthInsurance: false,
   } as any);
-  
+
+  // Helper function to get client display name
+  const getClientDisplayName = () => {
+    if (client?.firstName || client?.lastName) {
+      return `${client.firstName || ''} ${client.lastName || ''}`.trim();
+    }
+    return `Client ${clientSlot}`;
+  };
+
   // Tab order for navigation
   const TAB_ORDER = ['personal', 'financial', 'properties', 'projections', 'tax'];
   
@@ -974,8 +982,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Client {clientSlot}</CardTitle>
-            <CardDescription>Complete client information and financial data</CardDescription>
+            <CardTitle>{getClientDisplayName()}</CardTitle>
           </div>
         </div>
       </CardHeader>

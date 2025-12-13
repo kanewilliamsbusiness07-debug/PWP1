@@ -275,7 +275,7 @@ export function ClientPage() {
       if (savedCount > 0) {
         toast({
           title: 'Clients saved',
-          description: `Successfully saved ${savedCount} client${savedCount > 1 ? 's' : ''}`
+          description: `Successfully saved ${savedCount} client${savedCount > 1 ? 's' : ''}. View all clients in the Account Center.`
         });
       } else {
         toast({
