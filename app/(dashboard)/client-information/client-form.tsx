@@ -1375,12 +1375,10 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                       )}
                     />
                   </div>
-                </div>
 
-                {/* Address Section */}
-                <div className="border-t pt-6 mt-6">
-                  <h3 className="text-lg font-semibold mb-4">Address</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Address Section - Right Column */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-2">Address</h3>
                     <FormField
                       control={form.control}
                       name="addressLine1"
