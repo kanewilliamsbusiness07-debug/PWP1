@@ -114,7 +114,13 @@ interface ClientFormProps {
   clientSlot: 'A' | 'B';
 }
 
-export function ClientForm({ clientSlot }: ClientFormProps) {
+export interface ClientFormRef {
+  saveClient: () => Promise<void>;
+  resetClient: () => void;
+  deleteClient: () => Promise<boolean>;
+}
+
+export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ clientSlot }, ref) => {
   const financialStore = useFinancialStore();
   const { toast } = useToast();
   const { saveClient, deleteClient } = useClientStorage();
@@ -976,6 +982,38 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       }
     });
   }, [watchedAssets, watchedLiabilities, form, appendProperty]);
+
+  // Expose methods via ref
+  React.useImperativeHandle(ref, () => ({
+    saveClient: async () => {
+      const isValid = await form.trigger();
+      if (isValid) {
+        const data = form.getValues();
+        await onSubmitInternal(data);
+      } else {
+        throw new Error('Form validation failed');
+      }
+    },
+    resetClient: () => {
+      const emptyData = getEmptyClientData();
+      form.reset(emptyData);
+      financialStore.setClientData(clientSlot, emptyData as any);
+    },
+    deleteClient: async () => {
+      const currentClient = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
+      const clientId = (currentClient as any)?.id;
+      if (clientId) {
+        const success = await deleteClient(clientId);
+        if (success) {
+          const emptyData = getEmptyClientData();
+          form.reset(emptyData);
+          financialStore.setClientData(clientSlot, emptyData as any);
+        }
+        return success;
+      }
+      return false;
+    }
+  }));
 
   return (
     <Card>
@@ -2651,5 +2689,5 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       </CardContent>
     </Card>
   );
-}
+});
 
