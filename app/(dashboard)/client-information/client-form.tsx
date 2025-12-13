@@ -184,8 +184,9 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       frankedDividends: client?.frankedDividends || 0,
       capitalGains: client?.capitalGains || 0,
       otherIncome: client?.otherIncome || 0,
-      assets: client?.assets || [],
-      liabilities: client?.liabilities || [],
+      // Always have at least one asset (Home) and one liability
+      assets: client?.assets?.length ? client.assets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }],
+      liabilities: client?.liabilities?.length ? client.liabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }],
       properties: client?.properties || [],
       currentAge: client?.currentAge || 0,
       retirementAge: client?.retirementAge || 0,
@@ -463,8 +464,9 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         frankedDividends: client.frankedDividends || 0,
         capitalGains: client.capitalGains || 0,
         otherIncome: client.otherIncome || 0,
-        assets: client.assets || [],
-        liabilities: client.liabilities || [],
+        // Always have at least one asset (Home) and one liability
+        assets: client.assets?.length ? client.assets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }],
+        liabilities: client.liabilities?.length ? client.liabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }],
         properties: client.properties || [],
         currentAge: client.currentAge || 0,
         retirementAge: client.retirementAge || 0,
@@ -1788,155 +1790,220 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                     </div>
                   </div>
 
-                  {/* Assets and Liabilities Side by Side */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Assets Column - Left */}
-                    <div>
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold">Assets</h3>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            appendAsset({ id: `asset-${Date.now()}`, name: '', currentValue: 0, type: 'other' });
-                            appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, type: 'other' });
-                          }}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Asset
-                        </Button>
-                      </div>
-                      <div className="space-y-4">
-                        {assetFields.map((field, index) => (
-                          <Card key={field.id}>
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start mb-4">
-                                <h4 className="font-medium">Asset {index + 1}</h4>
+                  {/* Assets and Liabilities - Paired Layout */}
+                  <div className="space-y-0">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Assets & Liabilities</h3>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          appendAsset({ id: `asset-${Date.now()}`, name: '', currentValue: 0, type: 'other' });
+                          appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'other', lender: '', loanType: 'variable', paymentFrequency: 'M' });
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Asset & Liability
+                      </Button>
+                    </div>
+                    
+                    {/* Paired Asset/Liability rows */}
+                    {assetFields.map((field, index) => (
+                      <div key={field.id} className={`border-t-2 border-border ${index === assetFields.length - 1 ? 'border-b-2' : ''}`}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
+                          {/* Asset Card */}
+                          <div className="bg-muted/30 rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-4">
+                              <h4 className="font-medium text-base">
+                                {index === 0 ? 'Home (Owner Occupier)' : `Asset ${index + 1}`}
+                              </h4>
+                              {index > 0 && (
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => removeAsset(index)}
+                                  onClick={() => {
+                                    removeAsset(index);
+                                    if (liabilityFields[index]) {
+                                      removeLiability(index);
+                                    }
+                                  }}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
+                              )}
+                            </div>
+                            <div className="space-y-4">
+                              {index === 0 ? (
+                                <>
+                                  {/* First asset - Home with own/rent dropdown */}
+                                  <FormField
+                                    control={form.control}
+                                    name={`assets.${index}.ownerOccupied`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Ownership Status</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value || 'own'}>
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select status" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            <SelectItem value="own">Own</SelectItem>
+                                            <SelectItem value="rent">Rent</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name={`assets.${index}.currentValue`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Home Value</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            step="any"
+                                            placeholder="0"
+                                            {...field}
+                                            value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  {/* Hidden fields to set defaults for first asset */}
+                                  <input type="hidden" {...form.register(`assets.${index}.name`)} value="Home" />
+                                  <input type="hidden" {...form.register(`assets.${index}.type`)} value="property" />
+                                </>
+                              ) : (
+                                <>
+                                  {/* Other assets - full fields */}
+                                  <FormField
+                                    control={form.control}
+                                    name={`assets.${index}.name`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Name</FormLabel>
+                                        <FormControl>
+                                          <Input placeholder="Asset name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name={`assets.${index}.currentValue`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Value</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            step="any"
+                                            placeholder="0"
+                                            {...field}
+                                            value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name={`assets.${index}.type`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Type</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            <SelectItem value="property">Property</SelectItem>
+                                            <SelectItem value="vehicle">Vehicle</SelectItem>
+                                            <SelectItem value="savings">Savings</SelectItem>
+                                            <SelectItem value="shares">Shares</SelectItem>
+                                            <SelectItem value="super">Super</SelectItem>
+                                            <SelectItem value="other">Other</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Liability Card */}
+                          {liabilityFields[index] && (
+                            <div className="bg-muted/30 rounded-lg p-4">
+                              <div className="flex justify-between items-start mb-4">
+                                <h4 className="font-medium text-base">
+                                  {index === 0 ? 'Home Loan' : `Liability ${index + 1}`}
+                                </h4>
                               </div>
-                              <div className="grid grid-cols-1 gap-4">
+                              <div className="space-y-4">
+                                {/* Lender */}
                                 <FormField
                                   control={form.control}
-                                  name={`assets.${index}.name`}
+                                  name={`liabilities.${index}.lender`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>Name</FormLabel>
+                                      <FormLabel>Lender</FormLabel>
                                       <FormControl>
-                                        <Input placeholder="Asset name" {...field} />
+                                        <Input placeholder="e.g., Commonwealth Bank" {...field} value={field.value || ''} />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
                                   )}
                                 />
+                                
+                                {/* Type of Loan (Fixed/Split/Variable) */}
                                 <FormField
                                   control={form.control}
-                                  name={`assets.${index}.currentValue`}
+                                  name={`liabilities.${index}.loanType`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>Value</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          step="any"
-                                          placeholder="0"
-                                          {...field}
-                                          value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                          onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={form.control}
-                                  name={`assets.${index}.type`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Type</FormLabel>
-                                      <Select onValueChange={field.onChange} value={field.value}>
+                                      <FormLabel>Loan Type</FormLabel>
+                                      <Select onValueChange={field.onChange} value={field.value || 'variable'}>
                                         <FormControl>
                                           <SelectTrigger>
-                                            <SelectValue placeholder="Select type" />
+                                            <SelectValue placeholder="Select loan type" />
                                           </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                          <SelectItem value="property">Property</SelectItem>
-                                          <SelectItem value="vehicle">Vehicle</SelectItem>
-                                          <SelectItem value="savings">Savings</SelectItem>
-                                          <SelectItem value="shares">Shares</SelectItem>
-                                          <SelectItem value="super">Super</SelectItem>
-                                          <SelectItem value="other">Other</SelectItem>
+                                          <SelectItem value="fixed">Fixed Rate</SelectItem>
+                                          <SelectItem value="split">Split Rate</SelectItem>
+                                          <SelectItem value="variable">Variable Rate</SelectItem>
                                         </SelectContent>
                                       </Select>
                                       <FormMessage />
                                     </FormItem>
                                   )}
                                 />
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Liabilities Column - Right */}
-                    <div>
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold">Liabilities</h3>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, type: 'other' })}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Liability
-                        </Button>
-                      </div>
-                      <div className="space-y-4">
-                        {liabilityFields.map((field, index) => (
-                          <Card key={field.id}>
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start mb-4">
-                                <h4 className="font-medium">Liability {index + 1}</h4>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeLiability(index)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <div className="grid grid-cols-1 gap-4">
-                                <FormField
-                                  control={form.control}
-                                  name={`liabilities.${index}.name`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Name</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="Liability name" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
+                                
+                                {/* Liability Type */}
                                 <FormField
                                   control={form.control}
                                   name={`liabilities.${index}.type`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>Type</FormLabel>
+                                      <FormLabel>Liability Type</FormLabel>
                                       <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                           <SelectTrigger>
@@ -1955,12 +2022,14 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                     </FormItem>
                                   )}
                                 />
+                                
+                                {/* Balance */}
                                 <FormField
                                   control={form.control}
                                   name={`liabilities.${index}.balance`}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>Balance</FormLabel>
+                                      <FormLabel>Balance Owing</FormLabel>
                                       <FormControl>
                                         <Input
                                           type="number"
@@ -1975,26 +2044,56 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                     </FormItem>
                                   )}
                                 />
-                                <FormField
-                                  control={form.control}
-                                  name={`liabilities.${index}.monthlyPayment`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Monthly Payment</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          step="any"
-                                          placeholder="0"
-                                          {...field}
-                                          value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                          onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
+                                
+                                {/* Repayment Amount with Frequency Dropdown */}
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div className="col-span-2">
+                                    <FormField
+                                      control={form.control}
+                                      name={`liabilities.${index}.monthlyPayment`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Repayment Amount</FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              type="number"
+                                              step="any"
+                                              placeholder="0"
+                                              {...field}
+                                              value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                              onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+                                  <FormField
+                                    control={form.control}
+                                    name={`liabilities.${index}.paymentFrequency`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Freq</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value || 'M'}>
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="M" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            <SelectItem value="W">W</SelectItem>
+                                            <SelectItem value="F">F</SelectItem>
+                                            <SelectItem value="M">M</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                                
+                                {/* Interest Rate */}
                                 <FormField
                                   control={form.control}
                                   name={`liabilities.${index}.interestRate`}
@@ -2015,32 +2114,56 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                     </FormItem>
                                   )}
                                 />
-                                <FormField
-                                  control={form.control}
-                                  name={`liabilities.${index}.loanTerm`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Loan Term (Years)</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          step="1"
-                                          placeholder="30"
-                                          {...field}
-                                          value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                          onChange={(e) => field.onChange(e.target.value === '' ? 30 : parseInt(e.target.value))}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
+                                
+                                {/* Loan Term and Term Remaining side by side */}
+                                <div className="grid grid-cols-2 gap-4">
+                                  <FormField
+                                    control={form.control}
+                                    name={`liabilities.${index}.loanTerm`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Loan Term (Years)</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            step="1"
+                                            placeholder="30"
+                                            {...field}
+                                            value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name={`liabilities.${index}.termRemaining`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Term Remaining</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            step="1"
+                                            placeholder="25"
+                                            {...field}
+                                            value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </TabsContent>

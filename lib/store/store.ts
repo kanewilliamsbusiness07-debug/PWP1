@@ -148,6 +148,7 @@ interface ClientData {
     name: string;
     currentValue: number;
     type: 'property' | 'vehicle' | 'savings' | 'shares' | 'super' | 'other';
+    ownerOccupied?: 'own' | 'rent'; // Only used for first asset (home)
   }>;
 
   // Financial Position - Liabilities (dynamic)
@@ -158,7 +159,11 @@ interface ClientData {
     monthlyPayment: number;
     interestRate: number;
     loanTerm: number;
+    termRemaining?: number;
     type: 'mortgage' | 'personal-loan' | 'credit-card' | 'hecs' | 'other';
+    lender?: string;
+    loanType?: 'fixed' | 'split' | 'variable';
+    paymentFrequency?: 'W' | 'F' | 'M';
   }>;
 
   // Investment Properties
