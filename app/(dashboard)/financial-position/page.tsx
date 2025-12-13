@@ -271,9 +271,16 @@ export default function FinancialPositionPage() {
     switch (field) {
       case 'annualIncome':
         store.updateField('grossIncome' as const, value);
+        // Also sync to client data
+        if (store?.setClientData && activeClient) {
+          store.setClientData(activeClient, { annualIncome: value, grossSalary: value });
+        }
         break;
       case 'rentalIncome':
         store.updateField('rentalIncome' as const, value);
+        if (store?.setClientData && activeClient) {
+          store.setClientData(activeClient, { rentalIncome: value });
+        }
         break;
       case 'dividends':
       case 'capitalGains':
@@ -281,12 +288,24 @@ export default function FinancialPositionPage() {
           Number(incomeForm.getValues('dividends')) + 
           Number(incomeForm.getValues('capitalGains'));
         store.updateField('investmentIncome' as const, totalInvestmentIncome);
+        if (store?.setClientData && activeClient) {
+          store.setClientData(activeClient, { 
+            dividends: incomeForm.getValues('dividends'),
+            capitalGains: incomeForm.getValues('capitalGains')
+          });
+        }
         break;
       case 'otherIncome':
         store.updateField('otherIncome' as const, value);
+        if (store?.setClientData && activeClient) {
+          store.setClientData(activeClient, { otherIncome: value });
+        }
         break;
       case 'frankedDividends':
         store.updateField('frankedDividends' as const, value);
+        if (store?.setClientData && activeClient) {
+          store.setClientData(activeClient, { frankedDividends: value });
+        }
         break;
     }
   };
@@ -300,11 +319,42 @@ export default function FinancialPositionPage() {
       currentValue: 0,
       type: 'other'
     };
-    setAssets(prev => [...prev, newAsset]);
+    const updatedAssets = [...assets, newAsset];
+    setAssets(updatedAssets);
+    
+    // Sync to client data for cross-page synchronization
+    if (store?.setClientData && activeClient) {
+      store.setClientData(activeClient, { assets: updatedAssets });
+    }
   };
 
   const handleRemoveAsset = (id: string) => {
-    setAssets(prev => prev.filter(asset => asset.id !== id));
+    const updatedAssets = assets.filter(asset => asset.id !== id);
+    setAssets(updatedAssets);
+    
+    // Sync to client data for cross-page synchronization
+    if (store?.setClientData && activeClient) {
+      store.setClientData(activeClient, { assets: updatedAssets });
+    }
+    
+    // Update store totals
+    if (store?.updateField) {
+      store.updateField('cashSavings', 
+        updatedAssets
+          .filter(a => a.type === 'savings')
+          .reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0)
+      );
+      store.updateField('investments',
+        updatedAssets
+          .filter(a => a.type === 'shares')
+          .reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0)
+      );
+      store.updateField('superBalance',
+        updatedAssets
+          .filter(a => a.type === 'super')
+          .reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0)
+      );
+    }
   };
 
   const handleAddLiability = () => {
@@ -317,27 +367,42 @@ export default function FinancialPositionPage() {
       loanTerm: 30,
       type: 'other'
     };
-    setLiabilities(prev => [...prev, newLiability]);
+    const updatedLiabilities = [...liabilities, newLiability];
+    setLiabilities(updatedLiabilities);
+    
+    // Sync to client data for cross-page synchronization
+    if (store?.setClientData && activeClient) {
+      store.setClientData(activeClient, { liabilities: updatedLiabilities });
+    }
   };
 
   const handleRemoveLiability = (id: string) => {
-    setLiabilities(prev => prev.filter(liability => liability.id !== id));
+    const updatedLiabilities = liabilities.filter(liability => liability.id !== id);
+    setLiabilities(updatedLiabilities);
+    
+    // Sync to client data for cross-page synchronization
+    if (store?.setClientData && activeClient) {
+      store.setClientData(activeClient, { liabilities: updatedLiabilities });
+    }
+    
+    // Update store totals
+    if (store?.updateField) {
+      const totalDebt = updatedLiabilities.reduce((sum, l) => sum + (Number(l.balance) || 0), 0);
+      store.updateField('totalDebt', totalDebt);
+    }
   };
 
   const handleAssetChange = (id: string, field: keyof Asset, value: any) => {
-    setAssets(prev => prev.map(asset => {
+    const updatedAssets = assets.map(asset => {
       if (asset.id === id) {
         return { ...asset, [field]: value };
       }
       return asset;
-    }));
+    });
+    setAssets(updatedAssets);
 
-    // Update store totals
+    // Update store totals AND sync to client data
     if (store?.updateField) {
-      const updatedAssets = assets.map(asset => 
-        asset.id === id ? { ...asset, [field]: value } : asset
-      );
-
       store.updateField('cashSavings', 
         updatedAssets
           .filter(a => a.type === 'savings')
@@ -356,23 +421,33 @@ export default function FinancialPositionPage() {
           .reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0)
       );
     }
+    
+    // Sync assets to client data for cross-page synchronization
+    if (store?.setClientData && activeClient) {
+      store.setClientData(activeClient, { assets: updatedAssets });
+    }
   };
 
   const handleLiabilityChange = (id: string, field: keyof Liability, value: any) => {
-    setLiabilities(prev => prev.map(liability => {
+    const updatedLiabilities = liabilities.map(liability => {
       if (liability.id === id) {
         return { ...liability, [field]: value };
       }
       return liability;
-    }));
+    });
+    setLiabilities(updatedLiabilities);
 
     // Update store totals
     if (store?.updateField) {
-      const totalLiabilities = liabilities
-        .map(l => l.id === id ? { ...l, [field]: value } : l)
+      const totalLiabilities = updatedLiabilities
         .reduce((sum, l) => sum + (Number(l.balance) || 0), 0);
 
       store.updateField('totalDebt', totalLiabilities);
+    }
+    
+    // Sync liabilities to client data for cross-page synchronization
+    if (store?.setClientData && activeClient) {
+      store.setClientData(activeClient, { liabilities: updatedLiabilities });
     }
   };
 
