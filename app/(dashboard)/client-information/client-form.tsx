@@ -155,14 +155,13 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     // Trigger form validation and save
     const isValid = await form.trigger();
     if (isValid) {
-      await form.handleSubmit(async (data) => {
-        await onSubmitInternal(data);
-        // Move to next tab after successful save
-        const currentIndex = TAB_ORDER.indexOf(activeTab);
-        if (currentIndex < TAB_ORDER.length - 1) {
-          setActiveTab(TAB_ORDER[currentIndex + 1]);
-        }
-      })();
+      const data = form.getValues();
+      await onSubmitInternal(data);
+      // Move to next tab after successful save
+      const currentIndex = TAB_ORDER.indexOf(activeTab);
+      if (currentIndex < TAB_ORDER.length - 1) {
+        setActiveTab(TAB_ORDER[currentIndex + 1]);
+      }
     }
   };
   
@@ -176,8 +175,19 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
   const [partnerDobMonth, setPartnerDobMonth] = useState<string>('');
   const [partnerDobYear, setPartnerDobYear] = useState<string>('');
   
+  // Helper to parse DOB from various formats
+  const parseDob = (dob: Date | string | undefined | null): Date | null => {
+    if (!dob) return null;
+    if (dob instanceof Date) return isNaN(dob.getTime()) ? null : dob;
+    const parsed = new Date(dob);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+  
   // Check if this is a new client (no firstName or lastName)
   const isNewClient = !client?.firstName && !client?.lastName;
+  
+  // Parse client DOB from either 'dob' (API) or 'dateOfBirth' (store) field
+  const clientDob = parseDob(client?.dob) || parseDob(client?.dateOfBirth);
   
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
@@ -185,7 +195,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       firstName: client?.firstName || '',
       lastName: client?.lastName || '',
       middleName: client?.middleName || '',
-      dob: client?.dateOfBirth,
+      dob: clientDob,
       maritalStatus: (client?.maritalStatus as 'SINGLE' | 'MARRIED' | 'DEFACTO' | 'DIVORCED' | 'WIDOWED' | undefined) || 'SINGLE',
       numberOfDependants: client?.numberOfDependants || 0,
       agesOfDependants: client?.agesOfDependants || '',
@@ -423,8 +433,9 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       
       // Initialize date dropdowns from client data
       let dobValue: Date | null = null;
-      if (client.dateOfBirth) {
-        const dob = client.dateOfBirth instanceof Date ? client.dateOfBirth : new Date(client.dateOfBirth);
+      const clientDob = client.dob || client.dateOfBirth;
+      if (clientDob) {
+        const dob = clientDob instanceof Date ? clientDob : new Date(clientDob);
         if (!isNaN(dob.getTime())) {
           dobValue = dob;
           setDobDay(dob.getDate().toString());

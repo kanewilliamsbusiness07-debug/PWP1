@@ -31,41 +31,44 @@ async function getEmailTransporter(userId: string) {
     where: { userId }
   });
 
-  if (!emailIntegration || !emailIntegration.isActive) {
-    throw new Error('Email integration not configured or inactive');
+  // If user has an active email integration, use it
+  if (emailIntegration && emailIntegration.isActive) {
+    // For OAuth providers (Gmail, Outlook)
+    if (emailIntegration.provider === 'GMAIL' || emailIntegration.provider === 'OUTLOOK') {
+      // OAuth implementation would go here
+      // For now, fall back to SMTP settings from integration
+    }
+
+    // For IMAP/SMTP from integration
+    if (emailIntegration.smtpHost && emailIntegration.smtpPort) {
+      const password = emailIntegration.encryptedPassword
+        ? decryptField(emailIntegration.encryptedPassword)
+        : undefined;
+
+      return nodemailer.createTransport({
+        host: emailIntegration.smtpHost,
+        port: emailIntegration.smtpPort,
+        secure: emailIntegration.smtpPort === 465,
+        auth: {
+          user: emailIntegration.smtpUser || emailIntegration.email,
+          pass: password
+        }
+      });
+    }
   }
 
-  // For OAuth providers (Gmail, Outlook)
-  if (emailIntegration.provider === 'GMAIL' || emailIntegration.provider === 'OUTLOOK') {
-    // OAuth implementation would go here
-    // For now, fall back to SMTP
+  // Fallback to environment SMTP settings (no database integration needed)
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+    throw new Error('Email not configured. Please set SMTP_HOST, SMTP_USER, and SMTP_PASSWORD environment variables.');
   }
 
-  // For IMAP/SMTP
-  if (emailIntegration.smtpHost && emailIntegration.smtpPort) {
-    const password = emailIntegration.encryptedPassword
-      ? decryptField(emailIntegration.encryptedPassword)
-      : undefined;
-
-    return nodemailer.createTransport({
-      host: emailIntegration.smtpHost,
-      port: emailIntegration.smtpPort,
-      secure: emailIntegration.smtpPort === 465,
-      auth: {
-        user: emailIntegration.smtpUser || emailIntegration.email,
-        pass: password
-      }
-    });
-  }
-
-  // Fallback to environment SMTP settings
   const smtpPort = parseInt(process.env.SMTP_PORT || '587');
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.office365.com',
+    host: process.env.SMTP_HOST,
     port: smtpPort,
     secure: smtpPort === 465, // true for 465, false for other ports (587 uses STARTTLS)
     auth: {
-      user: process.env.SMTP_USER || 'admin@pwp2026.com.au',
+      user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASSWORD
     },
     tls: {
@@ -92,7 +95,9 @@ export async function sendEmail(
   }
 
   const transporter = await getEmailTransporter(userId);
-  const fromEmail = user.emailIntegration?.email || user.email || options.from || process.env.SMTP_FROM || 'admin@pwp2026.com.au';
+  
+  // Determine the from email: user integration > env var > default
+  const fromEmail = user.emailIntegration?.email || process.env.SMTP_FROM || process.env.SMTP_USER || 'admin@pwp2026.com.au';
   const fromName = user.name || process.env.SMTP_FROM_NAME || 'Perpetual Wealth Partners';
 
   const recipients = Array.isArray(options.to) ? options.to : [options.to];
