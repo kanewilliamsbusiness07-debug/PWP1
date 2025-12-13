@@ -386,37 +386,29 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
       const customEvent = event as CustomEvent;
       console.log('Account Center: Received client-saved event', customEvent.detail);
       console.log('Account Center: Refreshing client list after save...');
-      // Use ref to get the latest loadData function
-      setTimeout(() => {
-        loadDataRef.current();
-      }, 500); // Small delay to ensure database transaction is committed
+      // Refresh immediately when a client is saved
+      loadDataRef.current();
     };
 
     const handleClientDeleted = (event: Event) => {
       const customEvent = event as CustomEvent;
       console.log('Account Center: Received client-deleted event', customEvent.detail);
       console.log('Account Center: Refreshing client list after deletion...');
-      setTimeout(() => {
-        loadDataRef.current();
-      }, 500);
+      loadDataRef.current();
     };
 
     const handlePdfGenerated = (event: Event) => {
       const customEvent = event as CustomEvent;
       console.log('Account Center: Received pdf-generated event', customEvent.detail);
       console.log('Account Center: Refreshing PDF exports list...');
-      setTimeout(() => {
-        loadDataRef.current();
-      }, 500);
+      loadDataRef.current();
     };
 
     const handleAppointmentSaved = (event: Event) => {
       const customEvent = event as CustomEvent;
       console.log('Account Center: Received appointment-saved event', customEvent.detail);
       console.log('Account Center: Refreshing appointments list...');
-      setTimeout(() => {
-        loadDataRef.current();
-      }, 500);
+      loadDataRef.current();
     };
 
     // Listen for custom events - set up listeners once and keep them stable
