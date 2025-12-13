@@ -1011,7 +1011,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="John" {...field} />
+                            <Input placeholder="John" autoComplete="given-name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1025,7 +1025,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                         <FormItem>
                           <FormLabel>Last Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Doe" {...field} />
+                            <Input placeholder="Doe" autoComplete="family-name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1041,48 +1041,57 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Date of Birth</FormLabel>
                             <div className="grid grid-cols-3 gap-2">
                               <div>
-                                <Input
-                                  type="number"
-                                  placeholder="Day"
-                                  min="1"
-                                  max="31"
-                                  value={dobDay}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    setDobDay(value);
-                                    handleDateChange(value, dobMonth, dobYear);
-                                  }}
-                                />
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="Day"
+                                    min="1"
+                                    max="31"
+                                    value={dobDay}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setDobDay(value);
+                                      handleDateChange(value, dobMonth, dobYear);
+                                    }}
+                                    autoComplete="bday-day"
+                                  />
+                                </FormControl>
                               </div>
 
                               <div>
-                                <Input
-                                  type="number"
-                                  placeholder="Month"
-                                  min="1"
-                                  max="12"
-                                  value={dobMonth}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    setDobMonth(value);
-                                    handleDateChange(dobDay, value, dobYear);
-                                  }}
-                                />
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="Month"
+                                    min="1"
+                                    max="12"
+                                    value={dobMonth}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setDobMonth(value);
+                                      handleDateChange(dobDay, value, dobYear);
+                                    }}
+                                    autoComplete="bday-month"
+                                  />
+                                </FormControl>
                               </div>
 
                               <div>
-                                <Input
-                                  type="number"
-                                  placeholder="Year"
-                                  min="1900"
-                                  max={new Date().getFullYear()}
-                                  value={dobYear}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    setDobYear(value);
-                                    handleDateChange(dobDay, dobMonth, value);
-                                  }}
-                                />
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="Year"
+                                    min="1900"
+                                    max={new Date().getFullYear()}
+                                    value={dobYear}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setDobYear(value);
+                                      handleDateChange(dobDay, dobMonth, value);
+                                    }}
+                                    autoComplete="bday-year"
+                                  />
+                                </FormControl>
                               </div>
                             </div>
                             <FormMessage />
@@ -1098,7 +1107,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="john@example.com" {...field} />
+                            <Input type="email" placeholder="john@example.com" autoComplete="email" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1112,7 +1121,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                         <FormItem>
                           <FormLabel>Phone Number</FormLabel>
                           <FormControl>
-                            <Input type="tel" placeholder="0400 000 000" {...field} />
+                            <Input type="tel" placeholder="0400 000 000" autoComplete="tel" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1190,7 +1199,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                         <FormItem>
                           <FormLabel>Address Line 1</FormLabel>
                           <FormControl>
-                            <Input placeholder="123 Main St" {...field} />
+                            <Input placeholder="123 Main St" autoComplete="address-line1" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1204,7 +1213,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                         <FormItem>
                           <FormLabel>Address Line 2</FormLabel>
                           <FormControl>
-                            <Input placeholder="Unit 4" {...field} />
+                            <Input placeholder="Unit 4" autoComplete="address-line2" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1218,7 +1227,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                         <FormItem>
                           <FormLabel>Suburb</FormLabel>
                           <FormControl>
-                            <Input placeholder="Sydney" {...field} />
+                            <Input placeholder="Sydney" autoComplete="address-level2" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1258,7 +1267,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                           <FormItem>
                             <FormLabel>Postcode</FormLabel>
                             <FormControl>
-                              <Input placeholder="2000" maxLength={4} {...field} />
+                              <Input placeholder="2000" maxLength={4} autoComplete="postal-code" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
