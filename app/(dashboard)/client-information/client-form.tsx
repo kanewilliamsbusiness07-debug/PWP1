@@ -713,129 +713,139 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     name: 'properties',
   });
 
-  // Watch fields needed for projections auto-calculation
-  const watchedDob = form.watch('dob');
-  const watchedAssets = form.watch('assets');
-  const watchedProperties = form.watch('properties');
-  const watchedLiabilities = form.watch('liabilities');
-  const watchedAnnualIncome = form.watch('annualIncome');
-
   // Auto-calculate projections fields from other form data
   // IMPORTANT: This effect only handles read-only calculations, NOT property/liability syncing
   useEffect(() => {
-    // Calculate current age from DOB
-    if (watchedDob) {
-      const birthDate = new Date(watchedDob);
-      if (!isNaN(birthDate.getTime())) {
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
-        }
-        if (age >= 0 && age !== form.getValues('currentAge')) {
-          form.setValue('currentAge', age);
-        }
-      }
-    }
-
-    // Calculate current savings from assets with type 'savings'
-    if (watchedAssets && Array.isArray(watchedAssets)) {
-      const totalSavings = watchedAssets
-        .filter((asset: any) => asset.type === 'savings')
-        .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
-      if (totalSavings !== form.getValues('currentSavings')) {
-        form.setValue('currentSavings', totalSavings);
-      }
-    }
-
-    // Calculate current shares from assets with type 'shares'
-    if (watchedAssets && Array.isArray(watchedAssets)) {
-      const totalShares = watchedAssets
-        .filter((asset: any) => asset.type === 'shares')
-        .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
-      if (totalShares !== form.getValues('currentShares')) {
-        form.setValue('currentShares', totalShares);
-      }
-    }
-
-    // Calculate current super from assets with type 'super'
-    if (watchedAssets && Array.isArray(watchedAssets)) {
-      const totalSuper = watchedAssets
-        .filter((asset: any) => asset.type === 'super')
-        .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
-      if (totalSuper !== form.getValues('currentSuper')) {
-        form.setValue('currentSuper', totalSuper);
-      }
-    }
-
-    // Calculate property equity from investment properties (currentValue - loanAmount)
-    if (watchedProperties && Array.isArray(watchedProperties)) {
-      const totalEquity = watchedProperties
-        .reduce((sum: number, property: any) => {
-          const value = parseFloat(property.currentValue) || 0;
-          const loan = parseFloat(property.loanAmount) || 0;
-          return sum + (value - loan);
-        }, 0);
-      if (totalEquity !== form.getValues('propertyEquity')) {
-        form.setValue('propertyEquity', totalEquity);
-      }
-    }
-
-    // Calculate monthly rental income from investment properties (weeklyRent * 52 / 12)
-    if (watchedProperties && Array.isArray(watchedProperties)) {
-      const totalMonthlyRent = watchedProperties
-        .reduce((sum: number, property: any) => {
-          const weeklyRent = parseFloat(property.weeklyRent) || 0;
-          // Weekly rent * 52 weeks / 12 months = monthly rent
-          const monthlyRent = (weeklyRent * 52) / 12;
-          return sum + monthlyRent;
-        }, 0);
-      if (Math.abs(totalMonthlyRent - (form.getValues('monthlyRentalIncome') || 0)) > 0.01) {
-        form.setValue('monthlyRentalIncome', Math.round(totalMonthlyRent * 100) / 100);
-      }
-    }
-
-    // Calculate monthly debt payments from liabilities (accounting for payment frequency)
-    if (watchedLiabilities && Array.isArray(watchedLiabilities)) {
-      const totalDebtPayments = watchedLiabilities
-        .reduce((sum: number, liability: any) => {
-          const payment = parseFloat(liability.monthlyPayment) || 0;
-          const frequency = liability.paymentFrequency || 'M';
-          
-          // Convert to monthly based on frequency
-          let monthlyPayment = 0;
-          switch (frequency) {
-            case 'W': // Weekly: payment * 52 weeks / 12 months
-              monthlyPayment = (payment * 52) / 12;
-              break;
-            case 'F': // Fortnightly: payment * 26 fortnights / 12 months
-              monthlyPayment = (payment * 26) / 12;
-              break;
-            case 'M': // Monthly: already monthly
-            default:
-              monthlyPayment = payment;
-              break;
+    // Use a subscription to watch all form changes and run calculations
+    const subscription = form.watch(() => {
+      // Calculate current age from DOB
+      const dob = form.getValues('dob');
+      if (dob) {
+        const birthDate = new Date(dob);
+        if (!isNaN(birthDate.getTime())) {
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
           }
-          
-          return sum + monthlyPayment;
-        }, 0);
-      
-      const roundedTotal = Math.round(totalDebtPayments * 100) / 100;
-      if (Math.abs(roundedTotal - (form.getValues('monthlyDebtPayments') || 0)) > 0.01) {
-        form.setValue('monthlyDebtPayments', roundedTotal);
+          const currentAge = form.getValues('currentAge');
+          if (age >= 0 && age !== currentAge) {
+            form.setValue('currentAge', age, { shouldValidate: false, shouldDirty: false });
+          }
+        }
       }
-    }
 
-    // Sync annualIncome from Financials to employmentIncome in Tax section
-    if (watchedAnnualIncome !== undefined && watchedAnnualIncome !== null) {
-      const annualIncomeValue = parseFloat(String(watchedAnnualIncome)) || 0;
-      if (annualIncomeValue !== form.getValues('employmentIncome')) {
-        form.setValue('employmentIncome', annualIncomeValue);
+      // Calculate current savings from assets with type 'savings'
+      const assets = form.getValues('assets');
+      if (assets && Array.isArray(assets)) {
+        const totalSavings = assets
+          .filter((asset: any) => asset.type === 'savings')
+          .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+        const currentSavings = form.getValues('currentSavings');
+        if (totalSavings !== currentSavings) {
+          form.setValue('currentSavings', totalSavings, { shouldValidate: false, shouldDirty: false });
+        }
       }
-    }
-    
-  }, [watchedDob, watchedAssets, watchedProperties, watchedLiabilities, watchedAnnualIncome, form]);
+
+      // Calculate current shares from assets with type 'shares'
+      if (assets && Array.isArray(assets)) {
+        const totalShares = assets
+          .filter((asset: any) => asset.type === 'shares')
+          .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+        const currentShares = form.getValues('currentShares');
+        if (totalShares !== currentShares) {
+          form.setValue('currentShares', totalShares, { shouldValidate: false, shouldDirty: false });
+        }
+      }
+
+      // Calculate current super from assets with type 'super'
+      if (assets && Array.isArray(assets)) {
+        const totalSuper = assets
+          .filter((asset: any) => asset.type === 'super')
+          .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+        const currentSuper = form.getValues('currentSuper');
+        if (totalSuper !== currentSuper) {
+          form.setValue('currentSuper', totalSuper, { shouldValidate: false, shouldDirty: false });
+        }
+      }
+
+      // Calculate property equity from investment properties (currentValue - loanAmount)
+      const properties = form.getValues('properties');
+      if (properties && Array.isArray(properties)) {
+        const totalEquity = properties
+          .reduce((sum: number, property: any) => {
+            const value = parseFloat(property.currentValue) || 0;
+            const loan = parseFloat(property.loanAmount) || 0;
+            return sum + (value - loan);
+          }, 0);
+        const propertyEquity = form.getValues('propertyEquity');
+        if (totalEquity !== propertyEquity) {
+          form.setValue('propertyEquity', totalEquity, { shouldValidate: false, shouldDirty: false });
+        }
+      }
+
+      // Calculate monthly rental income from investment properties (weeklyRent * 52 / 12)
+      if (properties && Array.isArray(properties)) {
+        const totalMonthlyRent = properties
+          .reduce((sum: number, property: any) => {
+            const weeklyRent = parseFloat(property.weeklyRent) || 0;
+            // Weekly rent * 52 weeks / 12 months = monthly rent
+            const monthlyRent = (weeklyRent * 52) / 12;
+            return sum + monthlyRent;
+          }, 0);
+        const monthlyRentalIncome = form.getValues('monthlyRentalIncome') || 0;
+        if (Math.abs(totalMonthlyRent - monthlyRentalIncome) > 0.01) {
+          form.setValue('monthlyRentalIncome', Math.round(totalMonthlyRent * 100) / 100, { shouldValidate: false, shouldDirty: false });
+        }
+      }
+
+      // Calculate monthly debt payments from liabilities (accounting for payment frequency)
+      const liabilities = form.getValues('liabilities');
+      if (liabilities && Array.isArray(liabilities)) {
+        const totalDebtPayments = liabilities
+          .reduce((sum: number, liability: any) => {
+            const payment = parseFloat(liability.monthlyPayment) || 0;
+            const frequency = liability.paymentFrequency || 'M';
+
+            // Convert to monthly based on frequency
+            let monthlyPayment = 0;
+            switch (frequency) {
+              case 'W': // Weekly: payment * 52 weeks / 12 months
+                monthlyPayment = (payment * 52) / 12;
+                break;
+              case 'F': // Fortnightly: payment * 26 fortnights / 12 months
+                monthlyPayment = (payment * 26) / 12;
+                break;
+              case 'M': // Monthly: already monthly
+              default:
+                monthlyPayment = payment;
+                break;
+            }
+
+            return sum + monthlyPayment;
+          }, 0);
+
+        const monthlyDebtPayments = form.getValues('monthlyDebtPayments') || 0;
+        const roundedTotal = Math.round(totalDebtPayments * 100) / 100;
+        if (Math.abs(roundedTotal - monthlyDebtPayments) > 0.01) {
+          form.setValue('monthlyDebtPayments', roundedTotal, { shouldValidate: false, shouldDirty: false });
+        }
+      }
+
+      // Sync annualIncome from Financials to employmentIncome in Tax section
+      const annualIncome = form.getValues('annualIncome');
+      if (annualIncome !== undefined && annualIncome !== null) {
+        const annualIncomeValue = parseFloat(String(annualIncome)) || 0;
+        const employmentIncome = form.getValues('employmentIncome');
+        if (annualIncomeValue !== employmentIncome) {
+          form.setValue('employmentIncome', annualIncomeValue, { shouldValidate: false, shouldDirty: false });
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   // Track which asset IDs have already been synced to properties
   const syncedAssetIdsRef = React.useRef<Set<string>>(new Set());
