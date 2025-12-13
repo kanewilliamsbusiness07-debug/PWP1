@@ -1283,92 +1283,54 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                       control={form.control}
                       name="dob"
                       render={({ field }) => {
-                        const availableDays = dobMonth && dobYear 
-                          ? generateDays(parseInt(dobMonth), parseInt(dobYear))
-                          : [];
-                        
                         return (
                           <FormItem>
                             <FormLabel>Date of Birth</FormLabel>
                             <div className="grid grid-cols-3 gap-2">
-                              <Select
-                                value={dobDay}
-                                onValueChange={(value) => {
-                                  setDobDay(value);
-                                  handleDateChange(value, dobMonth, dobYear);
-                                }}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Day" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {availableDays.map((day) => (
-                                    <SelectItem key={day.value} value={day.value}>
-                                      {day.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              
-                              <Select
-                                value={dobMonth}
-                                onValueChange={(value) => {
-                                  setDobMonth(value);
-                                  // Reset day if it's invalid for the new month
-                                  const daysInMonth = getDaysInMonth(parseInt(value), dobYear ? parseInt(dobYear) : new Date().getFullYear());
-                                  const currentDay = dobDay ? parseInt(dobDay) : 0;
-                                  if (currentDay > daysInMonth) {
-                                    setDobDay('');
-                                    handleDateChange('', value, dobYear);
-                                  } else {
+                              <div>
+                                <Input
+                                  type="number"
+                                  placeholder="Day"
+                                  min="1"
+                                  max="31"
+                                  value={dobDay}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setDobDay(value);
+                                    handleDateChange(value, dobMonth, dobYear);
+                                  }}
+                                />
+                              </div>
+
+                              <div>
+                                <Input
+                                  type="number"
+                                  placeholder="Month"
+                                  min="1"
+                                  max="12"
+                                  value={dobMonth}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setDobMonth(value);
                                     handleDateChange(dobDay, value, dobYear);
-                                  }
-                                }}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Month" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {MONTHS.map((month) => (
-                                    <SelectItem key={month.value} value={month.value}>
-                                      {month.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              
-                              <Select
-                                value={dobYear}
-                                onValueChange={(value) => {
-                                  setDobYear(value);
-                                  // Reset day if it's invalid for the new year (leap year)
-                                  const daysInMonth = dobMonth ? getDaysInMonth(parseInt(dobMonth), parseInt(value)) : 31;
-                                  const currentDay = dobDay ? parseInt(dobDay) : 0;
-                                  if (currentDay > daysInMonth) {
-                                    setDobDay('');
-                                    handleDateChange('', dobMonth, value);
-                                  } else {
+                                  }}
+                                />
+                              </div>
+
+                              <div>
+                                <Input
+                                  type="number"
+                                  placeholder="Year"
+                                  min="1900"
+                                  max={new Date().getFullYear()}
+                                  value={dobYear}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setDobYear(value);
                                     handleDateChange(dobDay, dobMonth, value);
-                                  }
-                                }}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Year" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="max-h-[200px]">
-                                  {generateYears().map((year) => (
-                                    <SelectItem key={year.value} value={year.value}>
-                                      {year.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                  }}
+                                />
+                              </div>
                             </div>
                             <FormMessage />
                           </FormItem>

@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useFinancialStore } from '@/lib/store/store';
 import { useAuth } from '@/hooks/use-auth';
 import { useClientStorage } from '@/lib/hooks/use-client-storage';
-import { ClientSelector } from '@/components/client-selector';
 import { ClientForm } from './client-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -286,9 +285,6 @@ export function ClientPage() {
           New Clients
         </Button>
       </div>
-
-      {/* Client Selector for loading saved clients */}
-      <ClientSelector />
 
       {/* Shared Assumptions */}
       <SharedAssumptionsSection />
