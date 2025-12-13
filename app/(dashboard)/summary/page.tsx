@@ -1378,9 +1378,12 @@ export default function SummaryPage() {
         
         // Recursively clean all props to ensure proper object prototypes
         const cleanedProps = {
-          summary: recursivelyEnsureObjects(finalSummary),
+          data: {
+            clientA: recursivelyEnsureObjects({}),
+            clientB: recursivelyEnsureObjects({}),
+            combined: recursivelyEnsureObjects(finalSummary),
+          },
           chartImages: recursivelyEnsureObjects(finalChartImages),
-          clientData: recursivelyEnsureObjects(finalClientData),
         };
         
         // CRITICAL FIX: The library may be accessing React element internals that don't exist
@@ -1436,9 +1439,8 @@ export default function SummaryPage() {
           // First attempt: Use JSX to create element with all React internals
           const pdfDocument = (
             <PDFReport
-              summary={cleanedProps.summary}
+              data={cleanedProps.data}
               chartImages={cleanedProps.chartImages}
-              clientData={cleanedProps.clientData}
             />
           );
           pdfInstance = pdf(pdfDocument as any);
@@ -1450,9 +1452,8 @@ export default function SummaryPage() {
             // Alternative: Create element using React.createElement with explicit structure
             // Ensure all props are plain objects with no undefined values
             const altProps = {
-              summary: JSON.parse(JSON.stringify(cleanedProps.summary)),
+              data: JSON.parse(JSON.stringify(cleanedProps.data)),
               chartImages: JSON.parse(JSON.stringify(cleanedProps.chartImages)),
-              clientData: JSON.parse(JSON.stringify(cleanedProps.clientData)),
             };
             
             // Create a wrapper function component to ensure proper React structure

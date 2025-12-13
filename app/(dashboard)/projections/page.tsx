@@ -20,8 +20,345 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { calculateDebtPaymentsAtRetirement } from '@/lib/finance/calculations';
+
+// Shared Assumptions Component
+function SharedAssumptionsSection() {
+  const financialStore = useFinancialStore();
+  const sharedAssumptions = useFinancialStore((state) => state.sharedAssumptions);
+  
+  const handleChange = (field: string, value: string) => {
+    const numValue = value === '' ? 0 : parseFloat(value);
+    if (!isNaN(numValue)) {
+      financialStore.setSharedAssumptions({ [field]: numValue });
+    }
+  };
+  
+  return (
+    <Card className="border bg-card">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Shared Assumptions (Apply to Both Clients)
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          <div>
+            <Label className="text-sm text-muted-foreground">Inflation Rate (%)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              defaultValue={sharedAssumptions?.inflationRate ?? 2.5}
+              onChange={(e) => handleChange('inflationRate', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Salary Growth (%)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              defaultValue={sharedAssumptions?.salaryGrowthRate ?? 3.0}
+              onChange={(e) => handleChange('salaryGrowthRate', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Super Return (%)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              defaultValue={sharedAssumptions?.superReturn ?? 7.0}
+              onChange={(e) => handleChange('superReturn', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Share Return (%)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              defaultValue={sharedAssumptions?.shareReturn ?? 7.0}
+              onChange={(e) => handleChange('shareReturn', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Property Growth (%)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              defaultValue={sharedAssumptions?.propertyGrowthRate ?? 4.0}
+              onChange={(e) => handleChange('propertyGrowthRate', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Withdrawal Rate (%)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              defaultValue={sharedAssumptions?.withdrawalRate ?? 4.0}
+              onChange={(e) => handleChange('withdrawalRate', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Rent Growth (%)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              defaultValue={sharedAssumptions?.rentGrowthRate ?? 3.0}
+              onChange={(e) => handleChange('rentGrowthRate', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Projection Form Component for individual clients
+function ProjectionForm({ clientSlot, clientData, onFormChange }: {
+  clientSlot: 'A' | 'B';
+  clientData: any;
+  onFormChange: (slot: 'A' | 'B', data: ProjectionData) => void;
+}) {
+  const form = useForm<ProjectionData>({
+    resolver: zodResolver(projectionSchema),
+    defaultValues: {
+      currentAge: clientData?.currentAge ?? 0,
+      retirementAge: clientData?.retirementAge ?? 65,
+      annualIncome: clientData?.annualIncome ?? clientData?.grossSalary ?? 0,
+      currentSuper: clientData?.superFundValue ?? 0,
+      currentSavings: clientData?.savingsValue ?? 0,
+      currentShares: clientData?.sharesValue ?? 0,
+      propertyEquity: clientData?.propertyEquity ?? 0,
+      monthlyDebtPayments: clientData?.monthlyDebtPayments ?? 0,
+      monthlyRentalIncome: clientData?.monthlyRentalIncome ?? (clientData?.rentalIncome ? clientData.rentalIncome / 12 : 0),
+      monthlyExpenses: clientData?.monthlyExpenses ?? 0
+    }
+  });
+
+  // Watch form changes and notify parent
+  useEffect(() => {
+    const subscription = form.watch((data) => {
+      onFormChange(clientSlot, data as ProjectionData);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, clientSlot, onFormChange]);
+
+  const clientName = clientSlot === 'A' ? 'Client A' : 'Client B';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-foreground">{clientName} - Current Financial Position</CardTitle>
+        <CardDescription className="text-muted-foreground">
+          Enter {clientName.toLowerCase()}'s current age, retirement plans, and financial position
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="currentAge"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Current Age</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="35"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="retirementAge"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Retirement Age</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="65"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 65)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="annualIncome"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Annual Income ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="80000"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="currentSuper"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Superannuation Balance ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="150000"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="currentSavings"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Savings Balance ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="50000"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="currentShares"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Shares/Investments ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="100000"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="propertyEquity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Property Equity ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="300000"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="monthlyDebtPayments"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Monthly Debt Payments ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="2000"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="monthlyRentalIncome"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Monthly Rental Income ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="1500"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="monthlyExpenses"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Monthly Expenses ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="4000"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}
 
 const projectionSchema = z.object({
   currentAge: z.number().min(18).max(100),
@@ -736,16 +1073,23 @@ export default function ProjectionsPage() {
     }
   };
 
-  const projectionData = projectionForm.watch();
-  const progressToRetirement = projectionData.retirementAge > projectionData.currentAge 
-    ? ((projectionData.retirementAge - projectionData.currentAge) / (projectionData.retirementAge - 25)) * 100
-    : 100;
+  // State for dual forms
+  const [clientAFormData, setClientAFormData] = useState<ProjectionData | null>(null);
+  const [clientBFormData, setClientBFormData] = useState<ProjectionData | null>(null);
+
+  const handleFormChange = (slot: 'A' | 'B', data: ProjectionData) => {
+    if (slot === 'A') {
+      setClientAFormData(data);
+    } else {
+      setClientBFormData(data);
+    }
+  };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 bg-background min-h-screen">
+    <div className="container mx-auto py-4 sm:py-6 px-4 sm:px-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Financial Projections</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Financial Projections</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Plan your retirement and analyze future financial position</p>
         </div>
         {/* Client Selector */}
@@ -772,403 +1116,36 @@ export default function ProjectionsPage() {
             </Select>
           </div>
         )}
-        {/* Button removed for auto-calc */}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Input Forms */}
-        <div className="lg:col-span-2 space-y-6">
-          <Tabs defaultValue="current" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="current" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
-                Current Position
-              </TabsTrigger>
-              <TabsTrigger value="assumptions" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
-                Assumptions
-              </TabsTrigger>
-            </TabsList>
+      {/* Shared Assumptions */}
+      <SharedAssumptionsSection />
 
-            <TabsContent value="current">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-foreground">Current Financial Position</CardTitle>
-                  <CardDescription className="text-muted-foreground">
-                    Enter your current age, retirement plans, and financial position
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...projectionForm}>
-                    <form className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={projectionForm.control}
-                          name="currentAge"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Current Age</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={projectionForm.control}
-                          name="retirementAge"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Target Retirement Age</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={projectionForm.control}
-                          name="annualIncome"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Annual Income</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="100000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={projectionForm.control}
-                          name="currentSuper"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Current Superannuation</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="150000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={projectionForm.control}
-                          name="currentSavings"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Current Savings</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="50000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={projectionForm.control}
-                          name="currentShares"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Current Shares/Investments</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="100000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={projectionForm.control}
-                          name="propertyEquity"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Property Equity</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="300000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={projectionForm.control}
-                          name="monthlyDebtPayments"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Monthly Debt Payments</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="2500"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={projectionForm.control}
-                          name="monthlyRentalIncome"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Monthly Rental Income</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="3000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={projectionForm.control}
-                          name="monthlyExpenses"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Monthly Expenses</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="5000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                              <p className="text-xs text-muted-foreground">
-                                Total monthly living expenses (after tax)
-                              </p>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="assumptions">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Settings className="h-5 w-5 mr-2" />
-                    Projection Assumptions
-                  </CardTitle>
-                  <CardDescription>
-                    Adjust the assumptions used in your retirement projections
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...assumptionsForm}>
-                    <form className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={assumptionsForm.control}
-                          name="inflationRate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Inflation Rate (%)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="2.5"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={assumptionsForm.control}
-                          name="salaryGrowthRate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Salary Growth Rate (%)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="3"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={assumptionsForm.control}
-                          name="superReturn"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Super Return (%)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="7"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={assumptionsForm.control}
-                          name="shareReturn"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Share Market Return (%)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="8"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={assumptionsForm.control}
-                          name="propertyGrowthRate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Property Growth Rate (%)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="4"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={assumptionsForm.control}
-                          name="withdrawalRate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Safe Withdrawal Rate (%)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="4"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={assumptionsForm.control}
-                          name="rentGrowthRate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Rent Growth Rate (%)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  placeholder="3"
-                                  {...field}
-                                  onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+      {/* Dual Client Forms - Side by Side */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Client A */}
+        <div>
+          <ProjectionForm
+            clientSlot="A"
+            clientData={clientA}
+            onFormChange={handleFormChange}
+          />
         </div>
 
-        {/* Results Panel */}
+        {/* Client B */}
+        {clientB && (
+          <div>
+            <ProjectionForm
+              clientSlot="B"
+              clientData={clientB}
+              onFormChange={handleFormChange}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Results Panel */}
+      <div className="grid grid-cols-1 xl:grid-cols-1 gap-6">
         <div className="space-y-6">
           {/* Retirement Progress */}
           <Card>
@@ -1178,13 +1155,13 @@ export default function ProjectionsPage() {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Age {projectionData.currentAge}</span>
-                  <span className="text-muted-foreground">Age {projectionData.retirementAge}</span>
+                  <span className="text-muted-foreground">Age {activeClient === 'A' ? (clientA?.currentAge ?? 30) : (clientB?.currentAge ?? 30)}</span>
+                  <span className="text-muted-foreground">Age {activeClient === 'A' ? (clientA?.retirementAge ?? 65) : (clientB?.retirementAge ?? 65)}</span>
                 </div>
-                <Progress value={100 - progressToRetirement} className="h-2" />
+                <Progress value={Math.min(100, Math.max(0, ((activeClient === 'A' ? (clientA?.currentAge ?? 30) : (clientB?.currentAge ?? 30)) / (activeClient === 'A' ? (clientA?.retirementAge ?? 65) : (clientB?.retirementAge ?? 65))) * 100))} className="h-2" />
                 <div className="text-center">
                   <p className="text-2xl font-bold">
-                    {projectionData.retirementAge - projectionData.currentAge} years
+                    {(activeClient === 'A' ? (clientA?.retirementAge ?? 65) : (clientB?.retirementAge ?? 65)) - (activeClient === 'A' ? (clientA?.currentAge ?? 30) : (clientB?.currentAge ?? 30))} years
                   </p>
                   <p className="text-sm text-muted-foreground">until retirement</p>
                 </div>
@@ -1192,207 +1169,7 @@ export default function ProjectionsPage() {
             </CardContent>
           </Card>
 
-          {/* Results */}
-          {results && (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-foreground flex items-center">
-                    <TrendingUp className="h-5 w-5 mr-2" />
-                    Projection Results
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Per-client results */}
-                  {(viewMode === 'combined' || (showCombined && !viewMode)) && (
-                    <div className="space-y-4">
-                      {/* Client A Results */}
-                      {clientAResults && (
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{clientAName}</p>
-                          <div className="space-y-1 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Lump Sum:</span>
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientAResults.projectedLumpSum || 0).toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Passive Income:</span>
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientAResults.projectedPassiveIncome || 0).toLocaleString()}/yr</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">{clientAResults.isDeficit ? 'Deficit:' : 'Surplus:'}</span>
-                              <span className={`font-semibold ${clientAResults.isDeficit ? 'text-red-600' : 'text-yellow-600 dark:text-yellow-400'}`}>
-                                ${(clientAResults.monthlyDeficitSurplus || 0).toLocaleString()}/mo
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Client B Results */}
-                      {clientBResults && (
-                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{clientBName}</p>
-                          <div className="space-y-1 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Lump Sum:</span>
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientBResults.projectedLumpSum || 0).toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Passive Income:</span>
-                              <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientBResults.projectedPassiveIncome || 0).toLocaleString()}/yr</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">{clientBResults.isDeficit ? 'Deficit:' : 'Surplus:'}</span>
-                              <span className={`font-semibold ${clientBResults.isDeficit ? 'text-red-600' : 'text-yellow-600 dark:text-yellow-400'}`}>
-                                ${(clientBResults.monthlyDeficitSurplus || 0).toLocaleString()}/mo
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Combined Results - Yellow */}
-                      {combinedProjections && (
-                        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                          <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-2">Combined Household</p>
-                          <div className="space-y-1 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Lump Sum:</span>
-                              <span className="font-bold text-yellow-700 dark:text-yellow-400">${combinedProjections.projectedLumpSum.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Passive Income:</span>
-                              <span className="font-bold text-yellow-700 dark:text-yellow-400">${combinedProjections.projectedPassiveIncome.toLocaleString()}/yr</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Required Income:</span>
-                              <span className="font-semibold">${combinedProjections.requiredIncome.toLocaleString()}/yr</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Single client results (when viewing individual client) */}
-                  {(viewMode === 'A' || viewMode === 'B' || (!showCombined && !viewMode)) && results && (
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Projected Lump Sum:</span>
-                        <span className="font-semibold text-yellow-600 dark:text-yellow-400">
-                          ${results.projectedLumpSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Annual Passive Income:</span>
-                        <span className="font-semibold text-gray-700 dark:text-gray-300">
-                          ${results.projectedPassiveIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Required Income (70%):</span>
-                        <span className="font-semibold">
-                          ${results.requiredIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Deficit/Surplus Cards */}
-              {viewMode === 'combined' && combinedProjections && (
-                <Card className={`border-2 ${combinedProjections.isDeficit ? 'border-red-200 bg-red-50 dark:bg-red-900/20' : 'border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20'}`}>
-                  <CardHeader>
-                    <CardTitle className={`flex items-center ${combinedProjections.isDeficit ? 'text-red-800 dark:text-red-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
-                      {combinedProjections.isDeficit ? (
-                        <AlertTriangle className="h-5 w-5 mr-2" />
-                      ) : (
-                        <CheckCircle className="h-5 w-5 mr-2" />
-                      )}
-                      Combined Household {combinedProjections.isDeficit ? 'Deficit' : 'Surplus'}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="text-center">
-                        <p className={`text-3xl font-bold ${combinedProjections.isDeficit ? 'text-red-600' : 'text-yellow-600 dark:text-yellow-400'}`}>
-                          ${combinedProjections.monthlyDeficitSurplus.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/month
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Combined household {combinedProjections.isDeficit ? 'shortfall' : 'surplus'} in retirement
-                        </p>
-                      </div>
-
-                      {combinedProjections.isDeficit && (
-                        <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                          <p className="text-sm text-yellow-800 dark:text-yellow-400">
-                            <strong>Warning:</strong> Your combined household retirement income may not cover your target retirement needs.
-                          </p>
-                        </div>
-                      )}
-
-                      {!combinedProjections.isDeficit && (
-                        <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                          <p className="text-sm text-yellow-800 dark:text-yellow-400">
-                            <strong>Great news!</strong> Your combined household is on track for a comfortable retirement.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* {(viewMode === 'A' || viewMode === 'B' || (!showCombined && !viewMode)) && results && (
-                <Card className={`border-2 ${results.isDeficit ? 'border-red-200 bg-red-50' : 'border-yellow-200 bg-yellow-50'}`}>
-                  <CardHeader>
-                    <CardTitle className={`flex items-center ${results.isDeficit ? 'text-red-800' : 'text-yellow-700'}`}>
-                      {results.isDeficit ? (
-                        <AlertTriangle className="h-5 w-5 mr-2" />
-                      ) : (
-                        <CheckCircle className="h-5 w-5 mr-2" />
-                      )}
-                      {results.isDeficit ? 'Retirement Deficit' : 'Retirement Surplus'}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="text-center">
-                        <p className={`text-3xl font-bold ${results.isDeficit ? 'text-red-600' : 'text-yellow-600'}`}>
-                          ${results.monthlyDeficitSurplus.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/month
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {results.isDeficit ? 'Shortfall' : 'Surplus'} in retirement
-                        </p>
-                      </div>
-
-                      {results.isDeficit && results.savingsDepletionYears && (
-                        <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
-                          <p className="text-sm text-yellow-800">
-                            <strong>Warning:</strong> At this rate, your savings could be depleted in approximately{' '}
-                            <strong>{Math.round(results.savingsDepletionYears)} years</strong> after retirement.
-                          </p>
-                        </div>
-                      )}
-
-                      {!results.isDeficit && (
-                        <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
-                          <p className="text-sm text-yellow-800">
-                            <strong>Great news!</strong> You're on track for a comfortable retirement with a monthly surplus.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )} */}
-            </>
-          )}
-
+          {/* Placeholder for results */}
           {!results && (
             <Card>
               <CardContent className="text-center p-12">

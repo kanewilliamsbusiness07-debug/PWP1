@@ -10,7 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Calculator, TrendingDown, DollarSign, FileText, Lightbulb, CircleAlert as AlertCircle, PieChart, Clock } from 'lucide-react';
+import { Calculator, TrendingDown, DollarSign, FileText, Lightbulb, CircleAlert as AlertCircle, PieChart, Clock, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useTaxForm } from '@/lib/hooks/use-tax-form';
 import { useClientFinancials } from '@/lib/hooks/use-client-financials';
@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
 
 const taxFormSchema = z.object({
   // Income
@@ -59,6 +60,388 @@ const taxFormSchema = z.object({
 });
 
 type TaxFormData = z.infer<typeof taxFormSchema>;
+
+// Shared Assumptions Component for Tax Optimization
+function SharedAssumptionsSection() {
+  const financialStore = useFinancialStore();
+  const sharedAssumptions = useFinancialStore((state) => state.sharedAssumptions);
+
+  const handleChange = (field: string, value: string) => {
+    const numValue = value === '' ? 0 : parseFloat(value);
+    if (!isNaN(numValue)) {
+      financialStore.setSharedAssumptions({ [field]: numValue });
+    }
+  };
+
+  return (
+    <Card className="border bg-card">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Tax Assumptions (Apply to Both Clients)
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div>
+            <Label className="text-sm text-muted-foreground">Tax Year</Label>
+            <Input
+              type="number"
+              min="2020"
+              max="2030"
+              defaultValue={sharedAssumptions?.taxYear ?? new Date().getFullYear()}
+              onChange={(e) => handleChange('taxYear', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Medicare Levy (%)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              max="5"
+              defaultValue={sharedAssumptions?.medicareLevyRate ?? 2.0}
+              onChange={(e) => handleChange('medicareLevyRate', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">HECS Threshold ($)</Label>
+            <Input
+              type="number"
+              min="0"
+              defaultValue={sharedAssumptions?.hecsThreshold ?? 51550}
+              onChange={(e) => handleChange('hecsThreshold', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Tax Form Component for Individual Clients
+function TaxForm({ clientSlot, clientData, onFormChange }: {
+  clientSlot: 'A' | 'B';
+  clientData: any;
+  onFormChange: (slot: 'A' | 'B', data: TaxFormData) => void;
+}) {
+  const form = useForm<TaxFormData>({
+    resolver: zodResolver(taxFormSchema),
+    defaultValues: {
+      annualIncome: clientData?.annualIncome ?? clientData?.grossSalary ?? 0,
+      employmentIncome: clientData?.employmentIncome ?? 0,
+      investmentIncome: clientData?.investmentIncome ?? 0,
+      rentalIncome: clientData?.rentalIncome ?? 0,
+      otherIncome: clientData?.otherIncome ?? 0,
+      frankedDividends: clientData?.frankedDividends ?? 0,
+      capitalGains: clientData?.capitalGains ?? 0,
+      workRelatedExpenses: clientData?.workRelatedExpenses ?? 0,
+      vehicleExpenses: clientData?.vehicleExpenses ?? 0,
+      uniformsAndLaundry: clientData?.uniformsAndLaundry ?? 0,
+      homeOfficeExpenses: clientData?.homeOfficeExpenses ?? 0,
+      selfEducationExpenses: clientData?.selfEducationExpenses ?? 0,
+      investmentExpenses: clientData?.investmentExpenses ?? 0,
+      charityDonations: clientData?.charityDonations ?? 0,
+      accountingFees: clientData?.accountingFees ?? 0,
+      otherDeductions: clientData?.otherDeductions ?? 0,
+      rentalExpenses: clientData?.rentalExpenses ?? 0,
+      superContributions: clientData?.superContributions ?? 0,
+      healthInsurance: clientData?.healthInsurance ?? false,
+      hecs: clientData?.hecs ?? false,
+      helpDebt: clientData?.helpDebt ?? 0,
+      hecsBalance: clientData?.hecsBalance ?? 0,
+      privateHealthInsurance: clientData?.privateHealthInsurance ?? false
+    }
+  });
+
+  // Watch form changes and notify parent
+  useEffect(() => {
+    const subscription = form.watch((data) => {
+      onFormChange(clientSlot, data as TaxFormData);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, clientSlot, onFormChange]);
+
+  const clientName = clientSlot === 'A' ? 'Client A' : 'Client B';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-foreground">{clientName} - Tax Information</CardTitle>
+        <CardDescription className="text-muted-foreground">
+          Enter {clientName.toLowerCase()}'s income and tax details for analysis
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <div className="space-y-6">
+            {/* Income Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Income</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="annualIncome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Annual Income ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="100000"
+                          {...field}
+                          value={field.value === 0 ? "" : field.value}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const numVal = val === "" ? 0 : parseFloat(val);
+                            field.onChange(numVal);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="investmentIncome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Investment Income ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="2000"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="capitalGains"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Capital Gains ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="otherIncome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Other Income ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="rentalIncome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rental Income ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="24000"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="rentalExpenses"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rental Expenses ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="5000"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Deductions Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Deductions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="workRelatedExpenses"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Work-Related Expenses ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="2500"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="investmentExpenses"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Investment Expenses ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="1000"
+                          {...field}
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            field.onChange(val === '' ? '' : parseFloat(val));
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="charityDonations"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Charitable Donations ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="500"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="otherDeductions"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Other Deductions ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Other Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Other</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="hecsBalance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>HECS/HELP Balance ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="25000"
+                          className="bg-white border-gray-300 text-gray-900"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="privateHealthInsurance"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 text-primary border rounded"
+                          checked={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Private Health Insurance
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+          </div>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}
 
 interface ChartDataItem {
   category: string;
@@ -887,6 +1270,123 @@ export default function TaxOptimizationPage() {
     watchedPrivateHealthInsurance
   ]);
 
+  // State for dual forms
+  const [clientAFormData, setClientAFormData] = useState<TaxFormData | null>(null);
+  const [clientBFormData, setClientBFormData] = useState<TaxFormData | null>(null);
+
+  // Handle form changes from individual TaxForm components
+  const handleFormChange = (slot: 'A' | 'B', data: TaxFormData) => {
+    if (slot === 'A') {
+      setClientAFormData(data);
+    } else {
+      setClientBFormData(data);
+    }
+
+    // Update client data in store
+    setClientData(slot, {
+      annualIncome: data.annualIncome,
+      grossSalary: data.annualIncome,
+      employmentIncome: data.employmentIncome,
+      investmentIncome: data.investmentIncome,
+      rentalIncome: data.rentalIncome,
+      otherIncome: data.otherIncome,
+      frankedDividends: data.frankedDividends,
+      capitalGains: data.capitalGains,
+      workRelatedExpenses: data.workRelatedExpenses,
+      vehicleExpenses: data.vehicleExpenses,
+      uniformsAndLaundry: data.uniformsAndLaundry,
+      homeOfficeExpenses: data.homeOfficeExpenses,
+      selfEducationExpenses: data.selfEducationExpenses,
+      investmentExpenses: data.investmentExpenses,
+      charityDonations: data.charityDonations,
+      accountingFees: data.accountingFees,
+      otherDeductions: data.otherDeductions,
+      rentalExpenses: data.rentalExpenses,
+      superContributions: data.superContributions,
+      healthInsurance: data.healthInsurance,
+      hecs: data.hecs,
+      helpDebt: data.helpDebt,
+      hecsBalance: data.hecsBalance,
+      privateHealthInsurance: data.privateHealthInsurance,
+    });
+  };
+
+  // Calculate optimizations for both clients
+  const handleCalculateOptimizations = () => {
+    setIsCalculating(true);
+
+    // Calculate for Client A if data exists
+    if (clientAFormData && clientA) {
+      calculateOptimizations(clientAFormData, 'A');
+    }
+
+    // Calculate for Client B if data exists
+    if (clientBFormData && clientB) {
+      calculateOptimizations(clientBFormData, 'B');
+    }
+
+    // If no form data, use existing client data
+    if (!clientAFormData && clientA) {
+      const aData: TaxFormData = {
+        annualIncome: clientA.annualIncome ?? clientA.grossSalary ?? 0,
+        employmentIncome: clientA.employmentIncome ?? 0,
+        investmentIncome: clientA.investmentIncome ?? 0,
+        rentalIncome: clientA.rentalIncome ?? 0,
+        otherIncome: clientA.otherIncome ?? 0,
+        frankedDividends: clientA.frankedDividends ?? 0,
+        capitalGains: clientA.capitalGains ?? 0,
+        workRelatedExpenses: clientA.workRelatedExpenses ?? 0,
+        vehicleExpenses: clientA.vehicleExpenses ?? 0,
+        uniformsAndLaundry: clientA.uniformsAndLaundry ?? 0,
+        homeOfficeExpenses: clientA.homeOfficeExpenses ?? 0,
+        selfEducationExpenses: clientA.selfEducationExpenses ?? 0,
+        investmentExpenses: clientA.investmentExpenses ?? 0,
+        charityDonations: clientA.charityDonations ?? 0,
+        accountingFees: clientA.accountingFees ?? 0,
+        otherDeductions: 0,
+        rentalExpenses: clientA.rentalExpenses ?? 0,
+        superContributions: clientA.superContributions ?? 0,
+        healthInsurance: clientA.healthInsurance ?? false,
+        hecs: clientA.hecs ?? false,
+        helpDebt: clientA.helpDebt ?? 0,
+        hecsBalance: clientA.hecsBalance ?? 0,
+        privateHealthInsurance: clientA.privateHealthInsurance ?? false
+      };
+      calculateOptimizations(aData, 'A');
+    }
+
+    if (!clientBFormData && clientB) {
+      const bData: TaxFormData = {
+        annualIncome: clientB.annualIncome ?? clientB.grossSalary ?? 0,
+        employmentIncome: clientB.employmentIncome ?? 0,
+        investmentIncome: clientB.investmentIncome ?? 0,
+        rentalIncome: clientB.rentalIncome ?? 0,
+        otherIncome: clientB.otherIncome ?? 0,
+        frankedDividends: clientB.frankedDividends ?? 0,
+        capitalGains: clientB.capitalGains ?? 0,
+        workRelatedExpenses: clientB.workRelatedExpenses ?? 0,
+        vehicleExpenses: clientB.vehicleExpenses ?? 0,
+        uniformsAndLaundry: clientB.uniformsAndLaundry ?? 0,
+        homeOfficeExpenses: clientB.homeOfficeExpenses ?? 0,
+        selfEducationExpenses: clientB.selfEducationExpenses ?? 0,
+        investmentExpenses: clientB.investmentExpenses ?? 0,
+        charityDonations: clientB.charityDonations ?? 0,
+        accountingFees: clientB.accountingFees ?? 0,
+        otherDeductions: 0,
+        rentalExpenses: clientB.rentalExpenses ?? 0,
+        superContributions: clientB.superContributions ?? 0,
+        healthInsurance: clientB.healthInsurance ?? false,
+        hecs: clientB.hecs ?? false,
+        helpDebt: clientB.helpDebt ?? 0,
+        hecsBalance: clientB.hecsBalance ?? 0,
+        privateHealthInsurance: clientB.privateHealthInsurance ?? false
+      };
+      calculateOptimizations(bData, 'B');
+    }
+
+    setTimeout(() => setIsCalculating(false), 1500);
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6 bg-background min-h-screen">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -919,8 +1419,8 @@ export default function TaxOptimizationPage() {
               </Select>
             </div>
           )}
-          <Button 
-            onClick={taxForm.handleSubmit((data) => calculateOptimizations(data))}
+          <Button
+            onClick={handleCalculateOptimizations}
             disabled={isCalculating}
             className="bg-yellow-500 text-white hover:bg-yellow-600"
           >
@@ -929,297 +1429,40 @@ export default function TaxOptimizationPage() {
         </div>
       </div>
 
+      {/* Shared Assumptions */}
+      <SharedAssumptionsSection />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Tax Input Form */}
-        <div className="lg:col-span-2">
-                    <Card>
-            <CardHeader>
-              <CardTitle className="text-foreground">Tax Information</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Enter your income and tax details for analysis
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...taxForm}>
-                <form onSubmit={taxForm.handleSubmit((data) => calculateOptimizations(data))} className="space-y-6">
-                  <Tabs defaultValue="income" className="space-y-4">
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="income" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
-                        Income
-                      </TabsTrigger>
-                      <TabsTrigger value="deductions" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
-                        Deductions
-                      </TabsTrigger>
-                      <TabsTrigger value="other" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white">
-                        Other
-                      </TabsTrigger>
-                    </TabsList>
+        {/* Tax Input Forms */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Client A Form */}
+          {clientA && (
+            <TaxForm
+              clientSlot="A"
+              clientData={clientA}
+              onFormChange={handleFormChange}
+            />
+          )}
 
-                    <TabsContent value="income" className="space-y-4">
-                      <FormField
-                        control={taxForm.control}
-                        name="annualIncome"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Annual Income</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="text"
-                                placeholder="100000"
-                                {...field}
-                                value={field.value === 0 ? "" : field.value}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  const numVal = val === "" ? 0 : parseFloat(val);
-                                  field.onChange(numVal);
-                                  financialStore.updateField('grossIncome', numVal);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+          {/* Client B Form */}
+          {clientB && (
+            <TaxForm
+              clientSlot="B"
+              clientData={clientB}
+              onFormChange={handleFormChange}
+            />
+          )}
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={taxForm.control}
-                          name="investmentIncome"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Investment Income</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  placeholder="2000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={taxForm.control}
-                          name="capitalGains"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Capital Gains</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  placeholder="0"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={taxForm.control}
-                          name="otherIncome"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Other Income</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  placeholder="0"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={taxForm.control}
-                          name="rentalIncome"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Rental Income</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  placeholder="24000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={taxForm.control}
-                          name="rentalExpenses"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Rental Expenses</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  placeholder="5000"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="deductions" className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={taxForm.control}
-                          name="workRelatedExpenses"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Work-Related Deductions</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  placeholder="2500"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={taxForm.control}
-                          name="investmentExpenses"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Investment Deductions</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  placeholder="1000"
-                                  {...field}
-                                  value={field.value || ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    field.onChange(val === '' ? '' : parseFloat(val));
-                                  }}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={taxForm.control}
-                          name="charityDonations"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Charitable Donations</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  placeholder="500"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={taxForm.control}
-                          name="otherDeductions"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Other Deductions</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  placeholder="0"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="other" className="space-y-4">
-                      <FormField
-                        control={taxForm.control}
-                          name="hecsBalance"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>HECS/HELP Balance</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="text"
-                                placeholder="25000"
-                                className="bg-white border-gray-300 text-gray-900"
-                                {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={taxForm.control}
-                          name="healthInsurance"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 text-primary border rounded"
-                                checked={field.value}
-                                onChange={field.onChange}
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>
-                                I have private health insurance
-                              </FormLabel>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </TabsContent>
-                  </Tabs>
-                  <div className="flex justify-end pt-4">
-                    <Button
-                      type="submit"
-                      disabled={isCalculating}
-                      className="bg-yellow-500 text-white hover:bg-yellow-600"
-                    >
-                      {isCalculating ? 'Calculating...' : 'Calculate & Optimize'}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+          {/* Show message if no clients */}
+          {!clientA && !clientB && (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-center text-muted-foreground">
+                  Please add client information first to use tax optimization.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Results Panel */}
