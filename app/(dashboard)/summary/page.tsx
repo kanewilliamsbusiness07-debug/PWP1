@@ -167,6 +167,10 @@ export default function SummaryPage() {
   const [summary, setSummary] = useState<FinancialSummary>(defaultSummary);
   const [summaryA, setSummaryA] = useState<FinancialSummary>(defaultSummary);
   const [summaryB, setSummaryB] = useState<FinancialSummary>(defaultSummary);
+  const [summaryCombined, setSummaryCombined] = useState<FinancialSummary>(defaultSummary);
+  
+  // Check if we have both clients for combined view
+  const showCombined = hasClientA && hasClientB;
   
   const calculateSummaryForClient = (client: any): FinancialSummary => {
     
@@ -546,16 +550,44 @@ export default function SummaryPage() {
     setSummary(calculateSummary());
     
     // Calculate for both clients
-    if (hasClientA) {
-      setSummaryA(calculateSummaryForClient(clientA));
-    } else {
-      setSummaryA(defaultSummary);
-    }
+    const calcA = hasClientA ? calculateSummaryForClient(clientA) : defaultSummary;
+    const calcB = hasClientB ? calculateSummaryForClient(clientB) : defaultSummary;
     
-    if (hasClientB) {
-      setSummaryB(calculateSummaryForClient(clientB));
+    setSummaryA(calcA);
+    setSummaryB(calcB);
+    
+    // Calculate combined summary (aggregate both clients)
+    if (hasClientA && hasClientB) {
+      const combined: FinancialSummary = {
+        clientName: 'Combined Household',
+        totalAssets: calcA.totalAssets + calcB.totalAssets,
+        totalLiabilities: calcA.totalLiabilities + calcB.totalLiabilities,
+        netWorth: calcA.netWorth + calcB.netWorth,
+        monthlyIncome: calcA.monthlyIncome + calcB.monthlyIncome,
+        monthlyExpenses: calcA.monthlyExpenses + calcB.monthlyExpenses,
+        monthlyCashFlow: calcA.monthlyCashFlow + calcB.monthlyCashFlow,
+        projectedRetirementLumpSum: calcA.projectedRetirementLumpSum + calcB.projectedRetirementLumpSum,
+        projectedRetirementMonthlyCashFlow: calcA.projectedRetirementMonthlyCashFlow + calcB.projectedRetirementMonthlyCashFlow,
+        projectedRetirementSurplus: calcA.projectedRetirementSurplus + calcB.projectedRetirementSurplus,
+        retirementDeficitSurplus: calcA.retirementDeficitSurplus + calcB.retirementDeficitSurplus,
+        isRetirementDeficit: (calcA.retirementDeficitSurplus + calcB.retirementDeficitSurplus) < 0,
+        yearsToRetirement: Math.min(calcA.yearsToRetirement || 99, calcB.yearsToRetirement || 99),
+        currentTax: calcA.currentTax + calcB.currentTax,
+        optimizedTax: calcA.optimizedTax + calcB.optimizedTax,
+        taxSavings: calcA.taxSavings + calcB.taxSavings,
+        investmentProperties: calcA.investmentProperties + calcB.investmentProperties,
+        totalPropertyValue: calcA.totalPropertyValue + calcB.totalPropertyValue,
+        totalPropertyDebt: calcA.totalPropertyDebt + calcB.totalPropertyDebt,
+        propertyEquity: calcA.propertyEquity + calcB.propertyEquity,
+        recommendations: [...calcA.recommendations, ...calcB.recommendations]
+      };
+      setSummaryCombined(combined);
+    } else if (hasClientA) {
+      setSummaryCombined(calcA);
+    } else if (hasClientB) {
+      setSummaryCombined(calcB);
     } else {
-      setSummaryB(defaultSummary);
+      setSummaryCombined(defaultSummary);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -1725,6 +1757,12 @@ export default function SummaryPage() {
                     <p className="text-lg font-bold text-yellow-600">{formatCurrency(summaryB.netWorth)}</p>
                   </div>
                 )}
+                {showCombined && (
+                  <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded p-2 border border-yellow-300 dark:border-yellow-700">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">Combined</p>
+                    <p className="text-lg font-bold text-yellow-700 dark:text-yellow-400">{formatCurrency(summaryCombined.netWorth)}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1751,6 +1789,14 @@ export default function SummaryPage() {
                     </p>
                   </div>
                 )}
+                {showCombined && (
+                  <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded p-2 border border-yellow-300 dark:border-yellow-700">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">Combined</p>
+                    <p className={`text-lg font-bold ${summaryCombined.monthlyCashFlow >= 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-red-600'}`}>
+                      {formatCurrency(summaryCombined.monthlyCashFlow)}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -1771,6 +1817,12 @@ export default function SummaryPage() {
                   <div className="bg-gray-100 dark:bg-gray-800 rounded p-2">
                     <p className="text-xs text-gray-500">{clientBName}</p>
                     <p className="text-lg font-bold text-yellow-600">{formatCurrency(summaryB.taxSavings)}</p>
+                  </div>
+                )}
+                {showCombined && (
+                  <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded p-2 border border-yellow-300 dark:border-yellow-700">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">Combined</p>
+                    <p className="text-lg font-bold text-yellow-700 dark:text-yellow-400">{formatCurrency(summaryCombined.taxSavings)}</p>
                   </div>
                 )}
               </div>
@@ -1796,6 +1848,14 @@ export default function SummaryPage() {
                     <p className="text-xs text-gray-500">{clientBName}</p>
                     <p className={`text-lg font-bold ${summaryB.isRetirementDeficit ? 'text-red-600' : 'text-yellow-600'}`}>
                       {summaryB.isRetirementDeficit ? 'Deficit' : 'Surplus'}
+                    </p>
+                  </div>
+                )}
+                {showCombined && (
+                  <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded p-2 border border-yellow-300 dark:border-yellow-700">
+                    <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">Combined</p>
+                    <p className={`text-lg font-bold ${summaryCombined.isRetirementDeficit ? 'text-red-600' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                      {summaryCombined.isRetirementDeficit ? 'Deficit' : 'Surplus'}
                     </p>
                   </div>
                 )}
@@ -1859,6 +1919,27 @@ export default function SummaryPage() {
                   </div>
                 )}
               </div>
+              
+              {/* Combined Household Totals */}
+              {showCombined && (
+                <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-3">Combined Household</p>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <span className="text-muted-foreground text-xs">Total Assets</span>
+                      <p className="font-bold text-yellow-700 dark:text-yellow-400">${summaryCombined.totalAssets.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Total Liabilities</span>
+                      <p className="font-bold text-red-600">${summaryCombined.totalLiabilities.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Net Worth</span>
+                      <p className="font-bold text-lg text-yellow-700 dark:text-yellow-400">${summaryCombined.netWorth.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1949,6 +2030,29 @@ export default function SummaryPage() {
                   </div>
                 )}
               </div>
+              
+              {/* Combined Cash Flow */}
+              {showCombined && (
+                <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-3">Combined Household</p>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <span className="text-muted-foreground text-xs">Monthly Income</span>
+                      <p className="font-bold text-yellow-700 dark:text-yellow-400">${summaryCombined.monthlyIncome.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Monthly Expenses</span>
+                      <p className="font-bold text-red-600">${summaryCombined.monthlyExpenses.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Net Cash Flow</span>
+                      <p className={`font-bold text-lg ${summaryCombined.monthlyCashFlow >= 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-red-600'}`}>
+                        ${summaryCombined.monthlyCashFlow.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -2011,6 +2115,31 @@ export default function SummaryPage() {
                   </div>
                 )}
               </div>
+              
+              {/* Combined Properties */}
+              {showCombined && (
+                <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-3">Combined Portfolio</p>
+                  <div className="grid grid-cols-4 gap-4 text-center">
+                    <div>
+                      <span className="text-muted-foreground text-xs">Properties</span>
+                      <p className="font-bold text-yellow-700 dark:text-yellow-400">{summaryCombined.investmentProperties}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Total Value</span>
+                      <p className="font-bold text-yellow-700 dark:text-yellow-400">${summaryCombined.totalPropertyValue.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Total Debt</span>
+                      <p className="font-bold text-red-600">${summaryCombined.totalPropertyDebt.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Equity</span>
+                      <p className="font-bold text-lg text-yellow-700 dark:text-yellow-400">${summaryCombined.propertyEquity.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -2081,6 +2210,33 @@ export default function SummaryPage() {
                   </div>
                 )}
               </div>
+              
+              {/* Combined Retirement */}
+              {showCombined && (
+                <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-3">Combined Household</p>
+                  <div className="grid grid-cols-4 gap-4 text-center">
+                    <div>
+                      <span className="text-muted-foreground text-xs">Earliest Retirement</span>
+                      <p className="font-bold text-yellow-700 dark:text-yellow-400">{summaryCombined.yearsToRetirement} years</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Combined Net Worth</span>
+                      <p className="font-bold text-yellow-700 dark:text-yellow-400">${summaryCombined.projectedRetirementLumpSum.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Passive Income</span>
+                      <p className="font-bold text-yellow-700 dark:text-yellow-400">${summaryCombined.projectedRetirementMonthlyCashFlow.toLocaleString()}/mo</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">{summaryCombined.isRetirementDeficit ? 'Deficit' : 'Surplus'}</span>
+                      <p className={`font-bold text-lg ${summaryCombined.isRetirementDeficit ? 'text-red-600' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                        ${Math.abs(summaryCombined.retirementDeficitSurplus).toLocaleString()}/mo
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -2135,6 +2291,27 @@ export default function SummaryPage() {
                   </div>
                 )}
               </div>
+              
+              {/* Combined Tax */}
+              {showCombined && (
+                <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-3">Combined Household</p>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <span className="text-muted-foreground text-xs">Current Tax</span>
+                      <p className="font-bold text-red-600">${summaryCombined.currentTax.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Optimized Tax</span>
+                      <p className="font-bold text-gray-600">${summaryCombined.optimizedTax.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Total Savings</span>
+                      <p className="font-bold text-lg text-yellow-700 dark:text-yellow-400">${summaryCombined.taxSavings.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -2209,6 +2386,35 @@ export default function SummaryPage() {
                     </div>
                   )}
                 </div>
+                
+                {/* Combined Household Snapshot */}
+                {showCombined && (
+                  <div className="mt-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                    <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-3">Combined Household</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                      <div>
+                        <span className="text-muted-foreground text-xs">Net Worth</span>
+                        <p className="font-bold text-yellow-700 dark:text-yellow-400">${summaryCombined.netWorth.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-xs">Monthly Surplus</span>
+                        <p className={`font-bold ${summaryCombined.monthlyCashFlow >= 0 ? 'text-yellow-700 dark:text-yellow-400' : 'text-red-600'}`}>
+                          ${summaryCombined.monthlyCashFlow.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-xs">Retirement Status</span>
+                        <p className={`font-bold ${summaryCombined.isRetirementDeficit ? 'text-red-600' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                          {summaryCombined.isRetirementDeficit ? 'Action Needed' : 'On Track'}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-xs">Tax Savings</span>
+                        <p className="font-bold text-yellow-700 dark:text-yellow-400">${summaryCombined.taxSavings.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

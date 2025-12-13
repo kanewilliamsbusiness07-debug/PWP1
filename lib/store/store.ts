@@ -225,6 +225,23 @@ interface ClientData {
     averageTaxRate: number;
     calculatedAt: string; // ISO timestamp
   };
+  
+  // Tax Results (for combined display across clients)
+  taxResults?: {
+    annualIncome: number;
+    totalTax: number;
+    afterTaxIncome: number;
+    totalDeductions: number;
+    taxableIncome: number;
+    marginalTaxRate: number;
+    averageTaxRate: number;
+  };
+  
+  // Optimized Tax Results (for combined display)
+  optimizedTaxResults?: {
+    totalTax: number;
+    afterTaxIncome: number;
+  };
 
   // Tax Optimization
   employmentIncome?: number;

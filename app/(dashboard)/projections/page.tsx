@@ -82,6 +82,34 @@ export default function ProjectionsPage() {
   
   const clientData = activeClient ? (activeClient === 'A' ? clientA : clientB) : null;
 
+  // For combined results display
+  const hasClientA = clientA && (clientA.firstName || clientA.grossSalary || clientA.annualIncome);
+  const hasClientB = clientB && (clientB.firstName || clientB.grossSalary || clientB.annualIncome);
+  const showCombined = hasClientA && hasClientB;
+  const clientAName = clientA ? `${clientA.firstName || ''} ${clientA.lastName || ''}`.trim() || 'Client A' : 'Client A';
+  const clientBName = clientB ? `${clientB.firstName || ''} ${clientB.lastName || ''}`.trim() || 'Client B' : 'Client B';
+  
+  // Get projection results from both clients
+  const clientAResults = clientA?.projectionResults;
+  const clientBResults = clientB?.projectionResults;
+  
+  // Calculate combined projections if both clients have results
+  const combinedProjections = (showCombined && clientAResults && clientBResults) ? {
+    projectedLumpSum: (clientAResults.projectedLumpSum || 0) + (clientBResults.projectedLumpSum || 0),
+    projectedPassiveIncome: (clientAResults.projectedPassiveIncome || 0) + (clientBResults.projectedPassiveIncome || 0),
+    requiredIncome: (clientAResults.requiredIncome || 0) + (clientBResults.requiredIncome || 0),
+    monthlyDeficitSurplus: 0, // Will be calculated below
+    isDeficit: false, // Will be calculated below
+    averageYearsToRetirement: Math.round(((clientAResults.yearsToRetirement || 0) + (clientBResults.yearsToRetirement || 0)) / 2)
+  } : null;
+  
+  // Calculate combined deficit/surplus
+  if (combinedProjections) {
+    const surplus = combinedProjections.projectedPassiveIncome - combinedProjections.requiredIncome;
+    combinedProjections.monthlyDeficitSurplus = Math.abs(surplus) / 12;
+    combinedProjections.isDeficit = surplus < 0;
+  }
+
   const projectionForm = useForm<ProjectionData>({
     resolver: zodResolver(projectionSchema),
     defaultValues: {
@@ -1086,72 +1114,191 @@ export default function ProjectionsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Projected Lump Sum:</span>
-                      <span className="font-semibold text-green-600">
-                        ${results.projectedLumpSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
+                  {/* Per-client results */}
+                  {showCombined && (
+                    <div className="space-y-4">
+                      {/* Client A Results */}
+                      {clientAResults && (
+                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{clientAName}</p>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Lump Sum:</span>
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientAResults.projectedLumpSum || 0).toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Passive Income:</span>
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientAResults.projectedPassiveIncome || 0).toLocaleString()}/yr</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">{clientAResults.isDeficit ? 'Deficit:' : 'Surplus:'}</span>
+                              <span className={`font-semibold ${clientAResults.isDeficit ? 'text-red-600' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                                ${(clientAResults.monthlyDeficitSurplus || 0).toLocaleString()}/mo
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Client B Results */}
+                      {clientBResults && (
+                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{clientBName}</p>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Lump Sum:</span>
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientBResults.projectedLumpSum || 0).toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Passive Income:</span>
+                              <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientBResults.projectedPassiveIncome || 0).toLocaleString()}/yr</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">{clientBResults.isDeficit ? 'Deficit:' : 'Surplus:'}</span>
+                              <span className={`font-semibold ${clientBResults.isDeficit ? 'text-red-600' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                                ${(clientBResults.monthlyDeficitSurplus || 0).toLocaleString()}/mo
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Combined Results - Yellow */}
+                      {combinedProjections && (
+                        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                          <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-2">Combined Household</p>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Lump Sum:</span>
+                              <span className="font-bold text-yellow-700 dark:text-yellow-400">${combinedProjections.projectedLumpSum.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Passive Income:</span>
+                              <span className="font-bold text-yellow-700 dark:text-yellow-400">${combinedProjections.projectedPassiveIncome.toLocaleString()}/yr</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Required Income:</span>
+                              <span className="font-semibold">${combinedProjections.requiredIncome.toLocaleString()}/yr</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Annual Passive Income:</span>
-                      <span className="font-semibold text-blue-600">
-                        ${results.projectedPassiveIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
+                  )}
+                  
+                  {/* Single client results (when not showing combined) */}
+                  {!showCombined && (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Projected Lump Sum:</span>
+                        <span className="font-semibold text-yellow-600 dark:text-yellow-400">
+                          ${results.projectedLumpSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Annual Passive Income:</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">
+                          ${results.projectedPassiveIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Required Income (70%):</span>
+                        <span className="font-semibold">
+                          ${results.requiredIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
                     </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Required Income (70%):</span>
-                      <span className="font-semibold">
-                        ${results.requiredIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
 
-              <Card className={`border-2 ${results.isDeficit ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
-                <CardHeader>
-                  <CardTitle className={`flex items-center ${results.isDeficit ? 'text-red-800' : 'text-green-800'}`}>
-                    {results.isDeficit ? (
-                      <AlertTriangle className="h-5 w-5 mr-2" />
-                    ) : (
-                      <CheckCircle className="h-5 w-5 mr-2" />
-                    )}
-                    {results.isDeficit ? 'Retirement Deficit' : 'Retirement Surplus'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="text-center">
-                      <p className={`text-3xl font-bold ${results.isDeficit ? 'text-red-600' : 'text-green-600'}`}>
-                        ${results.monthlyDeficitSurplus.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/month
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {results.isDeficit ? 'Shortfall' : 'Surplus'} in retirement
-                      </p>
+              {/* Deficit/Surplus Cards */}
+              {showCombined && combinedProjections ? (
+                <Card className={`border-2 ${combinedProjections.isDeficit ? 'border-red-200 bg-red-50 dark:bg-red-900/20' : 'border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20'}`}>
+                  <CardHeader>
+                    <CardTitle className={`flex items-center ${combinedProjections.isDeficit ? 'text-red-800 dark:text-red-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                      {combinedProjections.isDeficit ? (
+                        <AlertTriangle className="h-5 w-5 mr-2" />
+                      ) : (
+                        <CheckCircle className="h-5 w-5 mr-2" />
+                      )}
+                      Combined Household {combinedProjections.isDeficit ? 'Deficit' : 'Surplus'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="text-center">
+                        <p className={`text-3xl font-bold ${combinedProjections.isDeficit ? 'text-red-600' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                          ${combinedProjections.monthlyDeficitSurplus.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/month
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Combined household {combinedProjections.isDeficit ? 'shortfall' : 'surplus'} in retirement
+                        </p>
+                      </div>
+
+                      {combinedProjections.isDeficit && (
+                        <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                          <p className="text-sm text-yellow-800 dark:text-yellow-400">
+                            <strong>Warning:</strong> Your combined household retirement income may not cover your target retirement needs.
+                          </p>
+                        </div>
+                      )}
+
+                      {!combinedProjections.isDeficit && (
+                        <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                          <p className="text-sm text-yellow-800 dark:text-yellow-400">
+                            <strong>Great news!</strong> Your combined household is on track for a comfortable retirement.
+                          </p>
+                        </div>
+                      )}
                     </div>
-
-                    {results.isDeficit && results.savingsDepletionYears && (
-                      <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
-                        <p className="text-sm text-yellow-800">
-                          <strong>Warning:</strong> At this rate, your savings could be depleted in approximately{' '}
-                          <strong>{Math.round(results.savingsDepletionYears)} years</strong> after retirement.
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className={`border-2 ${results.isDeficit ? 'border-red-200 bg-red-50' : 'border-yellow-200 bg-yellow-50'}`}>
+                  <CardHeader>
+                    <CardTitle className={`flex items-center ${results.isDeficit ? 'text-red-800' : 'text-yellow-700'}`}>
+                      {results.isDeficit ? (
+                        <AlertTriangle className="h-5 w-5 mr-2" />
+                      ) : (
+                        <CheckCircle className="h-5 w-5 mr-2" />
+                      )}
+                      {results.isDeficit ? 'Retirement Deficit' : 'Retirement Surplus'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="text-center">
+                        <p className={`text-3xl font-bold ${results.isDeficit ? 'text-red-600' : 'text-yellow-600'}`}>
+                          ${results.monthlyDeficitSurplus.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/month
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {results.isDeficit ? 'Shortfall' : 'Surplus'} in retirement
                         </p>
                       </div>
-                    )}
 
-                    {!results.isDeficit && (
-                      <div className="mt-4 p-3 bg-green-100 rounded-lg">
-                        <p className="text-sm text-green-800">
-                          <strong>Great news!</strong> You're on track for a comfortable retirement with a monthly surplus.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      {results.isDeficit && results.savingsDepletionYears && (
+                        <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
+                          <p className="text-sm text-yellow-800">
+                            <strong>Warning:</strong> At this rate, your savings could be depleted in approximately{' '}
+                            <strong>{Math.round(results.savingsDepletionYears)} years</strong> after retirement.
+                          </p>
+                        </div>
+                      )}
+
+                      {!results.isDeficit && (
+                        <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
+                          <p className="text-sm text-yellow-800">
+                            <strong>Great news!</strong> You're on track for a comfortable retirement with a monthly surplus.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
 

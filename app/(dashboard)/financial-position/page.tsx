@@ -71,6 +71,35 @@ export default function FinancialPositionPage() {
   // Get current client data
   const currentClient = activeClient ? (activeClient === 'A' ? clientA : clientB) : null;
   
+  // Check if we have data in each client slot for combined view
+  const hasClientA = clientA && (clientA.firstName || clientA.lastName || (clientA.assets?.length ?? 0) > 0);
+  const hasClientB = clientB && (clientB.firstName || clientB.lastName || (clientB.assets?.length ?? 0) > 0);
+  const showCombined = hasClientA && hasClientB;
+  
+  // Get client names
+  const clientAName = clientA ? `${clientA.firstName || ''} ${clientA.lastName || ''}`.trim() || 'Client A' : 'Client A';
+  const clientBName = clientB ? `${clientB.firstName || ''} ${clientB.lastName || ''}`.trim() || 'Client B' : 'Client B';
+  
+  // Calculate totals for each client
+  const clientAAssets = (clientA?.assets as Asset[]) || [];
+  const clientBAssets = (clientB?.assets as Asset[]) || [];
+  const clientALiabilities = (clientA?.liabilities as Liability[]) || [];
+  const clientBLiabilities = (clientB?.liabilities as Liability[]) || [];
+  
+  const clientATotalAssets = clientAAssets.reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0);
+  const clientBTotalAssets = clientBAssets.reduce((sum, a) => sum + (Number(a.currentValue) || 0), 0);
+  const clientATotalLiabilities = clientALiabilities.reduce((sum, l) => sum + (Number(l.balance) || 0), 0);
+  const clientBTotalLiabilities = clientBLiabilities.reduce((sum, l) => sum + (Number(l.balance) || 0), 0);
+  
+  const combinedTotalAssets = clientATotalAssets + clientBTotalAssets;
+  const combinedTotalLiabilities = clientATotalLiabilities + clientBTotalLiabilities;
+  const combinedNetPosition = combinedTotalAssets - combinedTotalLiabilities;
+  
+  // Combined income
+  const clientAIncome = (clientA?.annualIncome || clientA?.grossSalary || 0) + (clientA?.rentalIncome || 0) + (clientA?.dividends || 0) + (clientA?.otherIncome || 0);
+  const clientBIncome = (clientB?.annualIncome || clientB?.grossSalary || 0) + (clientB?.rentalIncome || 0) + (clientB?.dividends || 0) + (clientB?.otherIncome || 0);
+  const combinedIncome = clientAIncome + clientBIncome;
+  
   type AssetsFormValues = {
     [key: string]: {
       name: string;
@@ -466,57 +495,146 @@ export default function FinancialPositionPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center text-lg">
-              <Wallet className="mr-2 h-5 w-5 text-green-500" />
+              <Wallet className="mr-2 h-5 w-5 text-yellow-600" />
               Total Assets
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              ${assets.reduce((sum, asset) => sum + (Number(asset.currentValue) || 0), 0).toLocaleString()}
+            <div className="space-y-2">
+              {hasClientA && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{clientAName}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">${clientATotalAssets.toLocaleString()}</span>
+                </div>
+              )}
+              {hasClientB && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{clientBName}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">${clientBTotalAssets.toLocaleString()}</span>
+                </div>
+              )}
+              {showCombined && (
+                <div className="flex justify-between items-center pt-2 border-t border-yellow-300 dark:border-yellow-700">
+                  <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Combined</span>
+                  <span className="text-lg font-bold text-yellow-700 dark:text-yellow-400">${combinedTotalAssets.toLocaleString()}</span>
+                </div>
+              )}
+              {!showCombined && (
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  ${assets.reduce((sum, asset) => sum + (Number(asset.currentValue) || 0), 0).toLocaleString()}
+                </div>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Across {assets.length} accounts
-            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center text-lg">
-              <CreditCard className="mr-2 h-5 w-5 text-red-500" />
+              <CreditCard className="mr-2 h-5 w-5 text-gray-500" />
               Total Liabilities
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              ${liabilities.reduce((sum, liability) => sum + (Number(liability.balance) || 0), 0).toLocaleString()}
+            <div className="space-y-2">
+              {hasClientA && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{clientAName}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">${clientATotalLiabilities.toLocaleString()}</span>
+                </div>
+              )}
+              {hasClientB && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{clientBName}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">${clientBTotalLiabilities.toLocaleString()}</span>
+                </div>
+              )}
+              {showCombined && (
+                <div className="flex justify-between items-center pt-2 border-t border-yellow-300 dark:border-yellow-700">
+                  <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Combined</span>
+                  <span className="text-lg font-bold text-gray-700 dark:text-gray-300">${combinedTotalLiabilities.toLocaleString()}</span>
+                </div>
+              )}
+              {!showCombined && (
+                <div className="text-2xl font-bold text-gray-700 dark:text-gray-300">
+                  ${liabilities.reduce((sum, liability) => sum + (Number(liability.balance) || 0), 0).toLocaleString()}
+                </div>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Across {liabilities.length} accounts
-            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center text-lg">
-              <Calculator className="mr-2 h-5 w-5 text-blue-500" />
+              <Calculator className="mr-2 h-5 w-5 text-yellow-600" />
               Net Position
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              ${(
-                assets.reduce((sum, asset) => sum + (Number(asset.currentValue) || 0), 0) -
-                liabilities.reduce((sum, liability) => sum + (Number(liability.balance) || 0), 0)
-              ).toLocaleString()}
+            <div className="space-y-2">
+              {hasClientA && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{clientAName}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientATotalAssets - clientATotalLiabilities).toLocaleString()}</span>
+                </div>
+              )}
+              {hasClientB && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{clientBName}</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientBTotalAssets - clientBTotalLiabilities).toLocaleString()}</span>
+                </div>
+              )}
+              {showCombined && (
+                <div className="flex justify-between items-center pt-2 border-t border-yellow-300 dark:border-yellow-700">
+                  <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Combined</span>
+                  <span className="text-lg font-bold text-yellow-700 dark:text-yellow-400">${combinedNetPosition.toLocaleString()}</span>
+                </div>
+              )}
+              {!showCombined && (
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  ${(
+                    assets.reduce((sum, asset) => sum + (Number(asset.currentValue) || 0), 0) -
+                    liabilities.reduce((sum, liability) => sum + (Number(liability.balance) || 0), 0)
+                  ).toLocaleString()}
+                </div>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Overall financial position
-            </p>
           </CardContent>
         </Card>
       </div>
+      
+      {/* Combined Household Summary Banner */}
+      {showCombined && (
+        <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">Combined Household Financial Position</p>
+                <p className="text-xs text-muted-foreground">Aggregated totals for {clientAName} & {clientBName}</p>
+              </div>
+              <div className="grid grid-cols-4 gap-6 text-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Assets</p>
+                  <p className="font-bold text-yellow-700 dark:text-yellow-400">${combinedTotalAssets.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Liabilities</p>
+                  <p className="font-bold text-gray-700 dark:text-gray-300">${combinedTotalLiabilities.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Net Position</p>
+                  <p className="font-bold text-lg text-yellow-700 dark:text-yellow-400">${combinedNetPosition.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Combined Income</p>
+                  <p className="font-bold text-yellow-700 dark:text-yellow-400">${combinedIncome.toLocaleString()}/yr</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main content */}
       <Card className="mt-6">
