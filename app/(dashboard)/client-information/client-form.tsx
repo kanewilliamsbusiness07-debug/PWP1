@@ -801,13 +801,78 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         form.setValue('monthlyDebtPayments', totalDebtPayments);
       }
     }
-
-    // NOTE: Auto-creation of investment properties from assets/liabilities has been REMOVED
-    // to prevent ghost properties and circular update issues. Properties should be managed
-    // explicitly on the Properties tab. The linking between properties and liabilities
-    // is preserved when saving/loading clients.
     
   }, [watchedDob, watchedAssets, watchedProperties, watchedLiabilities, form]);
+
+  // Track which asset IDs have already been synced to properties
+  const syncedAssetIdsRef = React.useRef<Set<string>>(new Set());
+  
+  // Initialize the ref with existing property-linked assets on mount
+  useEffect(() => {
+    if (watchedProperties && Array.isArray(watchedProperties)) {
+      const linkedIds = new Set<string>();
+      watchedProperties.forEach((prop: any) => {
+        if (prop.linkedAssetId) {
+          linkedIds.add(prop.linkedAssetId);
+        }
+      });
+      syncedAssetIdsRef.current = linkedIds;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+  
+  // Auto-create investment properties when asset type is changed to "property"
+  // This is a one-way sync: assets → properties (NOT bi-directional)
+  useEffect(() => {
+    if (!watchedAssets || !Array.isArray(watchedAssets)) return;
+    
+    const currentProperties = form.getValues('properties') || [];
+    const propertyAssets = watchedAssets.filter((asset: any) => asset.type === 'property');
+    
+    // Find property assets that don't have a corresponding property entry yet
+    const newPropertyAssets = propertyAssets.filter((asset: any) => {
+      // Skip if already synced
+      if (syncedAssetIdsRef.current.has(asset.id)) return false;
+      
+      // Skip if a property with this linkedAssetId already exists
+      const alreadyExists = currentProperties.some(
+        (prop: any) => prop.linkedAssetId === asset.id
+      );
+      return !alreadyExists;
+    });
+    
+    // Create new properties for each new property-type asset
+    newPropertyAssets.forEach((asset: any) => {
+      // Find matching mortgage liability by name
+      const matchingMortgage = watchedLiabilities?.find((liability: any) => 
+        liability.type === 'mortgage' && 
+        liability.name && 
+        asset.name && 
+        liability.name.toLowerCase().includes(asset.name.toLowerCase())
+      );
+      
+      // Create the new property entry
+      const newProperty = {
+        id: `property-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        address: asset.name || '',
+        purchasePrice: parseFloat(asset.currentValue) || 0,
+        currentValue: parseFloat(asset.currentValue) || 0,
+        loanAmount: matchingMortgage ? parseFloat(matchingMortgage.balance) || 0 : 0,
+        interestRate: matchingMortgage ? parseFloat(matchingMortgage.interestRate) || 0 : 0,
+        loanTerm: matchingMortgage ? parseInt(matchingMortgage.loanTerm) || 30 : 30,
+        weeklyRent: 0,
+        annualExpenses: 0,
+        linkedAssetId: asset.id,
+        linkedLiabilityId: matchingMortgage?.id || undefined,
+      };
+      
+      // Mark this asset as synced BEFORE appending to prevent re-triggering
+      syncedAssetIdsRef.current.add(asset.id);
+      
+      // Append the new property
+      appendProperty(newProperty);
+    });
+  }, [watchedAssets, watchedLiabilities, form, appendProperty]);
 
   return (
     <Card>
