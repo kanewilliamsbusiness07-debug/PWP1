@@ -988,7 +988,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmitInternal)} className="space-y-6">
+          <form id={`client-form-${clientSlot}`} onSubmit={form.handleSubmit(onSubmitInternal)} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="personal">Personal</TabsTrigger>
@@ -1041,57 +1041,54 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                             <FormLabel>Date of Birth</FormLabel>
                             <div className="grid grid-cols-3 gap-2">
                               <div>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="Day"
-                                    min="1"
-                                    max="31"
-                                    value={dobDay}
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      setDobDay(value);
-                                      handleDateChange(value, dobMonth, dobYear);
-                                    }}
-                                    autoComplete="bday-day"
-                                  />
-                                </FormControl>
+                                <Input
+                                  id={`${field.name}-day`}
+                                  type="number"
+                                  placeholder="Day"
+                                  min="1"
+                                  max="31"
+                                  value={dobDay}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setDobDay(value);
+                                    handleDateChange(value, dobMonth, dobYear);
+                                  }}
+                                  autoComplete="bday-day"
+                                />
                               </div>
 
                               <div>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="Month"
-                                    min="1"
-                                    max="12"
-                                    value={dobMonth}
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      setDobMonth(value);
-                                      handleDateChange(dobDay, value, dobYear);
-                                    }}
-                                    autoComplete="bday-month"
-                                  />
-                                </FormControl>
+                                <Input
+                                  id={`${field.name}-month`}
+                                  type="number"
+                                  placeholder="Month"
+                                  min="1"
+                                  max="12"
+                                  value={dobMonth}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setDobMonth(value);
+                                    handleDateChange(dobDay, value, dobYear);
+                                  }}
+                                  autoComplete="bday-month"
+                                />
                               </div>
 
                               <div>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="Year"
-                                    min="1900"
-                                    max={new Date().getFullYear()}
-                                    value={dobYear}
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      setDobYear(value);
-                                      handleDateChange(dobDay, dobMonth, value);
-                                    }}
-                                    autoComplete="bday-year"
-                                  />
-                                </FormControl>
+                                <Input
+                                  id={`${field.name}-year`}
+                                  type="number"
+                                  placeholder="Year"
+                                  min="1900"
+                                  max={new Date().getFullYear()}
+                                  value={dobYear}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setDobYear(value);
+                                    handleDateChange(dobDay, dobMonth, value);
+                                  }}
+                                  autoComplete="bday-year"
+                                />
                               </div>
                             </div>
                             <FormMessage />
