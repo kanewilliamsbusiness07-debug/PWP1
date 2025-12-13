@@ -231,6 +231,61 @@ export default function ProjectionsPage() {
   // Watch form values outside useEffect to avoid infinite loops
   const watchedProjectionData = projectionForm.watch();
   const watchedAssumptionsData = assumptionsForm.watch();
+  
+  // Sync projection form values back to client data for cross-page synchronization
+  useEffect(() => {
+    if (!activeClient) return;
+    
+    const syncTimeoutId = setTimeout(() => {
+      // Only sync if we have valid data
+      if (watchedProjectionData.currentAge > 0 || watchedProjectionData.retirementAge > 0 ||
+          watchedProjectionData.annualIncome > 0 || watchedProjectionData.currentSuper > 0) {
+        setClientData(activeClient, {
+          currentAge: watchedProjectionData.currentAge,
+          retirementAge: watchedProjectionData.retirementAge,
+          annualIncome: watchedProjectionData.annualIncome,
+          grossSalary: watchedProjectionData.annualIncome,
+          currentSuper: watchedProjectionData.currentSuper,
+          currentSavings: watchedProjectionData.currentSavings,
+          currentShares: watchedProjectionData.currentShares,
+          propertyEquity: watchedProjectionData.propertyEquity,
+          monthlyDebtPayments: watchedProjectionData.monthlyDebtPayments,
+          monthlyRentalIncome: watchedProjectionData.monthlyRentalIncome,
+          monthlyExpenses: watchedProjectionData.monthlyExpenses,
+          // Also sync assumptions
+          inflationRate: watchedAssumptionsData.inflationRate,
+          salaryGrowthRate: watchedAssumptionsData.salaryGrowthRate,
+          superReturn: watchedAssumptionsData.superReturn,
+          shareReturn: watchedAssumptionsData.shareReturn,
+          propertyGrowthRate: watchedAssumptionsData.propertyGrowthRate,
+          withdrawalRate: watchedAssumptionsData.withdrawalRate,
+          rentGrowthRate: watchedAssumptionsData.rentGrowthRate,
+        });
+      }
+    }, 500); // Debounce to prevent excessive updates
+    
+    return () => clearTimeout(syncTimeoutId);
+  }, [
+    activeClient,
+    setClientData,
+    watchedProjectionData.currentAge,
+    watchedProjectionData.retirementAge,
+    watchedProjectionData.annualIncome,
+    watchedProjectionData.currentSuper,
+    watchedProjectionData.currentSavings,
+    watchedProjectionData.currentShares,
+    watchedProjectionData.propertyEquity,
+    watchedProjectionData.monthlyDebtPayments,
+    watchedProjectionData.monthlyRentalIncome,
+    watchedProjectionData.monthlyExpenses,
+    watchedAssumptionsData.inflationRate,
+    watchedAssumptionsData.salaryGrowthRate,
+    watchedAssumptionsData.superReturn,
+    watchedAssumptionsData.shareReturn,
+    watchedAssumptionsData.propertyGrowthRate,
+    watchedAssumptionsData.withdrawalRate,
+    watchedAssumptionsData.rentGrowthRate,
+  ]);
 
   // Auto-calculate projections when form data changes (forms are declared above)
   useEffect(() => {

@@ -271,6 +271,71 @@ export default function TaxOptimizationPage() {
     { min: 140000, max: Infinity, rate: 0.10 }
   ];
 
+  // Watch form values and sync to client data for cross-page synchronization
+  const watchedTaxData = taxForm.watch();
+  
+  useEffect(() => {
+    if (!activeClient) return;
+    
+    const syncTimeoutId = setTimeout(() => {
+      // Only sync if we have valid data
+      if (watchedTaxData.annualIncome > 0) {
+        setClientData(activeClient, {
+          annualIncome: watchedTaxData.annualIncome,
+          grossSalary: watchedTaxData.annualIncome,
+          employmentIncome: watchedTaxData.employmentIncome,
+          investmentIncome: watchedTaxData.investmentIncome,
+          rentalIncome: watchedTaxData.rentalIncome,
+          otherIncome: watchedTaxData.otherIncome,
+          frankedDividends: watchedTaxData.frankedDividends,
+          capitalGains: watchedTaxData.capitalGains,
+          workRelatedExpenses: watchedTaxData.workRelatedExpenses,
+          vehicleExpenses: watchedTaxData.vehicleExpenses,
+          uniformsAndLaundry: watchedTaxData.uniformsAndLaundry,
+          homeOfficeExpenses: watchedTaxData.homeOfficeExpenses,
+          selfEducationExpenses: watchedTaxData.selfEducationExpenses,
+          investmentExpenses: watchedTaxData.investmentExpenses,
+          charityDonations: watchedTaxData.charityDonations,
+          accountingFees: watchedTaxData.accountingFees,
+          rentalExpenses: watchedTaxData.rentalExpenses,
+          superContributions: watchedTaxData.superContributions,
+          healthInsurance: watchedTaxData.healthInsurance,
+          hecs: watchedTaxData.hecs,
+          helpDebt: watchedTaxData.helpDebt,
+          hecsBalance: watchedTaxData.hecsBalance,
+          privateHealthInsurance: watchedTaxData.privateHealthInsurance,
+        });
+      }
+    }, 500); // Debounce to prevent excessive updates
+    
+    return () => clearTimeout(syncTimeoutId);
+  }, [
+    activeClient,
+    setClientData,
+    watchedTaxData.annualIncome,
+    watchedTaxData.employmentIncome,
+    watchedTaxData.investmentIncome,
+    watchedTaxData.rentalIncome,
+    watchedTaxData.otherIncome,
+    watchedTaxData.frankedDividends,
+    watchedTaxData.capitalGains,
+    watchedTaxData.workRelatedExpenses,
+    watchedTaxData.vehicleExpenses,
+    watchedTaxData.uniformsAndLaundry,
+    watchedTaxData.homeOfficeExpenses,
+    watchedTaxData.selfEducationExpenses,
+    watchedTaxData.investmentExpenses,
+    watchedTaxData.charityDonations,
+    watchedTaxData.accountingFees,
+    watchedTaxData.rentalExpenses,
+    watchedTaxData.superContributions,
+    watchedTaxData.healthInsurance,
+    watchedTaxData.hecs,
+    watchedTaxData.helpDebt,
+    watchedTaxData.hecsBalance,
+    watchedTaxData.privateHealthInsurance,
+  ]);
+
   const calculateIncomeTax = (taxableIncome: number): number => {
     if (taxableIncome <= 0) return 0;
     
