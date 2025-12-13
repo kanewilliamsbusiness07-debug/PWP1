@@ -720,6 +720,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
   const watchedLiabilities = form.watch('liabilities');
 
   // Auto-calculate projections fields from other form data
+  // IMPORTANT: This effect only handles read-only calculations, NOT property/liability syncing
   useEffect(() => {
     // Calculate current age from DOB
     if (watchedDob) {
@@ -801,126 +802,12 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
       }
     }
 
-    // Auto-create investment properties from property assets matched with mortgage liabilities
-    if (watchedAssets && watchedLiabilities && Array.isArray(watchedAssets) && Array.isArray(watchedLiabilities)) {
-      const propertyAssets = watchedAssets.filter((asset: any) => asset.type === 'property' && asset.name && asset.currentValue > 0);
-      const mortgageLiabilities = watchedLiabilities.filter((liability: any) => liability.type === 'mortgage' && liability.name);
-      
-      // Get current properties to avoid duplicates
-      const currentProperties = form.getValues('properties') || [];
-      
-      // For each property asset, try to find a matching mortgage and create/update an investment property
-      propertyAssets.forEach((propertyAsset: any) => {
-        const assetName = (propertyAsset.name || '').toLowerCase().trim();
-        
-        // Check if an investment property already exists for this asset (by matching address/name)
-        const existingPropertyIndex = currentProperties.findIndex((prop: any) => 
-          (prop.address || '').toLowerCase().trim() === assetName ||
-          (prop.linkedAssetId === propertyAsset.id)
-        );
-        
-        // Try to find a matching mortgage by name similarity
-        const matchingMortgage = mortgageLiabilities.find((mortgage: any) => {
-          const mortgageName = (mortgage.name || '').toLowerCase().trim();
-          // Match if names are similar or if both contain common property identifiers
-          return mortgageName === assetName || 
-                 mortgageName.includes(assetName) || 
-                 assetName.includes(mortgageName) ||
-                 (assetName.length > 3 && mortgageName.length > 3 && 
-                  (assetName.split(' ').some((word: string) => word.length > 3 && mortgageName.includes(word)) ||
-                   mortgageName.split(' ').some((word: string) => word.length > 3 && assetName.includes(word))));
-        });
-        
-        if (existingPropertyIndex === -1 && assetName) {
-          // Create new investment property from asset + mortgage data
-          const newProperty = {
-            id: `property-auto-${propertyAsset.id}`,
-            linkedAssetId: propertyAsset.id,
-            linkedLiabilityId: matchingMortgage?.id || undefined,
-            address: propertyAsset.name || '',
-            purchasePrice: Number(propertyAsset.currentValue) || 0,
-            currentValue: Number(propertyAsset.currentValue) || 0,
-            loanAmount: matchingMortgage ? (Number(matchingMortgage.balance) || 0) : 0,
-            interestRate: matchingMortgage ? (Number(matchingMortgage.interestRate) || 0) : 0,
-            loanTerm: matchingMortgage ? (Number(matchingMortgage.loanTerm) || 30) : 30,
-            weeklyRent: 0,
-            annualExpenses: 0,
-          };
-          
-          // Append the new property
-          appendProperty(newProperty);
-        } else if (existingPropertyIndex !== -1 && matchingMortgage) {
-          // Update existing property with new mortgage values (loanAmount, interestRate, loanTerm)
-          const existingProperty = currentProperties[existingPropertyIndex];
-          const newLoanAmount = Number(matchingMortgage.balance) || 0;
-          const newInterestRate = Number(matchingMortgage.interestRate) || 0;
-          const newLoanTerm = Number(matchingMortgage.loanTerm) || 30;
-          
-          // Only update if values have actually changed
-          if (existingProperty.loanAmount !== newLoanAmount) {
-            form.setValue(`properties.${existingPropertyIndex}.loanAmount`, newLoanAmount);
-          }
-          if (existingProperty.interestRate !== newInterestRate) {
-            form.setValue(`properties.${existingPropertyIndex}.interestRate`, newInterestRate);
-          }
-          if (existingProperty.loanTerm !== newLoanTerm) {
-            form.setValue(`properties.${existingPropertyIndex}.loanTerm`, newLoanTerm);
-          }
-          // Also update linkedLiabilityId if not already set
-          if (!existingProperty.linkedLiabilityId && matchingMortgage.id) {
-            form.setValue(`properties.${existingPropertyIndex}.linkedLiabilityId`, matchingMortgage.id);
-          }
-        }
-      });
-    }
+    // NOTE: Auto-creation of investment properties from assets/liabilities has been REMOVED
+    // to prevent ghost properties and circular update issues. Properties should be managed
+    // explicitly on the Properties tab. The linking between properties and liabilities
+    // is preserved when saving/loading clients.
     
-    // Reverse sync: Update liabilities from investment properties
-    // When a property's loan details change on the Investment Properties page,
-    // sync those changes back to the corresponding liability
-    if (watchedProperties && watchedLiabilities && Array.isArray(watchedProperties) && Array.isArray(watchedLiabilities)) {
-      watchedProperties.forEach((property: any) => {
-        if (!property.linkedLiabilityId) return;
-        
-        // Find the linked liability
-        const liabilityIndex = watchedLiabilities.findIndex((liability: any) => 
-          liability.id === property.linkedLiabilityId
-        );
-        
-        if (liabilityIndex === -1) return;
-        
-        const liability = watchedLiabilities[liabilityIndex];
-        const propertyLoanAmount = Number(property.loanAmount) || 0;
-        const propertyInterestRate = Number(property.interestRate) || 0;
-        const propertyLoanTerm = Number(property.loanTerm) || 30;
-        
-        // Calculate monthly payment from property loan details
-        const calculateMonthlyPayment = (principal: number, rate: number, years: number): number => {
-          if (principal <= 0 || years <= 0) return 0;
-          if (rate === 0) return principal / (years * 12);
-          const monthlyRate = rate / 100 / 12;
-          const numPayments = years * 12;
-          return principal * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
-        };
-        
-        const calculatedMonthlyPayment = calculateMonthlyPayment(propertyLoanAmount, propertyInterestRate, propertyLoanTerm);
-        
-        // Update liability if values differ
-        if (Number(liability.balance) !== propertyLoanAmount) {
-          form.setValue(`liabilities.${liabilityIndex}.balance`, propertyLoanAmount);
-        }
-        if (Number(liability.interestRate) !== propertyInterestRate) {
-          form.setValue(`liabilities.${liabilityIndex}.interestRate`, propertyInterestRate);
-        }
-        if (Number(liability.loanTerm) !== propertyLoanTerm) {
-          form.setValue(`liabilities.${liabilityIndex}.loanTerm`, propertyLoanTerm);
-        }
-        // Update monthly payment if it differs significantly (>$1 difference to avoid floating point issues)
-        if (Math.abs(Number(liability.monthlyPayment) - calculatedMonthlyPayment) > 1) {
-          form.setValue(`liabilities.${liabilityIndex}.monthlyPayment`, Math.round(calculatedMonthlyPayment * 100) / 100);
-        }
-      });
-    }
-  }, [watchedDob, watchedAssets, watchedProperties, watchedLiabilities, form, appendProperty]);
+  }, [watchedDob, watchedAssets, watchedProperties, watchedLiabilities, form]);
 
   return (
     <Card>
