@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { calculateDebtPaymentsAtRetirement } from '@/lib/finance/calculations';
 
@@ -64,6 +65,7 @@ interface ProjectionResults {
 export default function ProjectionsPage() {
   const [results, setResults] = useState<ProjectionResults | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [viewMode, setViewMode] = useState<'A' | 'B' | 'combined'>('A');
   const { toast } = useToast();
 
   // Auto-calculate projections when form data changes
@@ -74,6 +76,7 @@ export default function ProjectionsPage() {
   const clientA = useFinancialStore((state) => state.clientA);
   const clientB = useFinancialStore((state) => state.clientB);
   const setClientData = useFinancialStore((state) => state.setClientData);
+  const setActiveClient = useFinancialStore((state) => state.setActiveClient);
   const grossIncome = useFinancialStore((state) => state.grossIncome);
   const superBalance = useFinancialStore((state) => state.superBalance);
   const cashSavings = useFinancialStore((state) => state.cashSavings);
@@ -109,6 +112,13 @@ export default function ProjectionsPage() {
     combinedProjections.monthlyDeficitSurplus = Math.abs(surplus) / 12;
     combinedProjections.isDeficit = surplus < 0;
   }
+
+  // Set viewMode to combined when both clients exist
+  useEffect(() => {
+    if (showCombined && viewMode !== 'combined') {
+      setViewMode('combined');
+    }
+  }, [showCombined, viewMode]);
 
   const projectionForm = useForm<ProjectionData>({
     resolver: zodResolver(projectionSchema),
@@ -333,6 +343,57 @@ export default function ProjectionsPage() {
           watchedProjectionData.monthlyExpenses >= 0
         ) {
           calculateProjections();
+          
+          // Also calculate for the other client if both exist
+          if (showCombined) {
+            if (activeClient === 'A' && clientB) {
+              const bProjectionData: ProjectionData = {
+                currentAge: clientB.currentAge ?? 0,
+                retirementAge: clientB.retirementAge ?? 65,
+                annualIncome: clientB.annualIncome ?? clientB.grossSalary ?? 0,
+                currentSuper: clientB.superFundValue ?? 0,
+                currentSavings: clientB.savingsValue ?? 0,
+                currentShares: clientB.sharesValue ?? 0,
+                propertyEquity: clientB.propertyEquity ?? 0,
+                monthlyDebtPayments: clientB.monthlyDebtPayments ?? 0,
+                monthlyRentalIncome: clientB.monthlyRentalIncome ?? (clientB.rentalIncome ? clientB.rentalIncome / 12 : 0),
+                monthlyExpenses: clientB.monthlyExpenses ?? 0
+              };
+              const bAssumptionsData: AssumptionsData = {
+                inflationRate: clientB.inflationRate ?? DEFAULT_ASSUMPTIONS.inflationRate,
+                salaryGrowthRate: clientB.salaryGrowthRate ?? DEFAULT_ASSUMPTIONS.salaryGrowthRate,
+                superReturn: clientB.superReturn ?? DEFAULT_ASSUMPTIONS.superReturn,
+                shareReturn: clientB.shareReturn ?? DEFAULT_ASSUMPTIONS.shareReturn,
+                propertyGrowthRate: clientB.propertyGrowthRate ?? DEFAULT_ASSUMPTIONS.propertyGrowthRate,
+                withdrawalRate: clientB.withdrawalRate ?? DEFAULT_ASSUMPTIONS.withdrawalRate,
+                rentGrowthRate: clientB.rentGrowthRate ?? DEFAULT_ASSUMPTIONS.rentGrowthRate
+              };
+              calculateProjections(bProjectionData, bAssumptionsData, 'B');
+            } else if (activeClient === 'B' && clientA) {
+              const aProjectionData: ProjectionData = {
+                currentAge: clientA.currentAge ?? 0,
+                retirementAge: clientA.retirementAge ?? 65,
+                annualIncome: clientA.annualIncome ?? clientA.grossSalary ?? 0,
+                currentSuper: clientA.superFundValue ?? 0,
+                currentSavings: clientA.savingsValue ?? 0,
+                currentShares: clientA.sharesValue ?? 0,
+                propertyEquity: clientA.propertyEquity ?? 0,
+                monthlyDebtPayments: clientA.monthlyDebtPayments ?? 0,
+                monthlyRentalIncome: clientA.monthlyRentalIncome ?? (clientA.rentalIncome ? clientA.rentalIncome / 12 : 0),
+                monthlyExpenses: clientA.monthlyExpenses ?? 0
+              };
+              const aAssumptionsData: AssumptionsData = {
+                inflationRate: clientA.inflationRate ?? DEFAULT_ASSUMPTIONS.inflationRate,
+                salaryGrowthRate: clientA.salaryGrowthRate ?? DEFAULT_ASSUMPTIONS.salaryGrowthRate,
+                superReturn: clientA.superReturn ?? DEFAULT_ASSUMPTIONS.superReturn,
+                shareReturn: clientA.shareReturn ?? DEFAULT_ASSUMPTIONS.shareReturn,
+                propertyGrowthRate: clientA.propertyGrowthRate ?? DEFAULT_ASSUMPTIONS.propertyGrowthRate,
+                withdrawalRate: clientA.withdrawalRate ?? DEFAULT_ASSUMPTIONS.withdrawalRate,
+                rentGrowthRate: clientA.rentGrowthRate ?? DEFAULT_ASSUMPTIONS.rentGrowthRate
+              };
+              calculateProjections(aProjectionData, aAssumptionsData, 'A');
+            }
+          }
         }
       } catch (err) {
         // safe-guard during initial render
@@ -395,15 +456,17 @@ export default function ProjectionsPage() {
     return { incomeTax, medicareLevy, totalTax, afterTaxIncome };
   };
 
-  const calculateProjections = () => {
+  const calculateProjections = (inputProjectionData?: ProjectionData, inputAssumptionsData?: AssumptionsData, client?: 'A' | 'B') => {
     // ========================================
     // ASIC MONEYSMART VERIFIED CALCULATOR
     // Based on ASIC Regulatory Guide 276
     // ========================================
     
-    const projectionData = projectionForm.getValues();
-    const assumptions = assumptionsForm.getValues();
-    setIsCalculating(true);
+    const projectionData = inputProjectionData || projectionForm.getValues();
+    const assumptions = inputAssumptionsData || assumptionsForm.getValues();
+    const targetClient = client || activeClient;
+    
+    if (!inputProjectionData) setIsCalculating(true);
 
     try {
       // CONSTANTS
@@ -413,8 +476,8 @@ export default function ProjectionsPage() {
       // Convert to decimals
       const years = Math.max(0, projectionData.retirementAge - projectionData.currentAge);
       if (years <= 0) {
-        toast({ title: 'Invalid Input', description: 'Retirement age must be greater than current age', variant: 'destructive' });
-        setIsCalculating(false);
+        if (!inputProjectionData) toast({ title: 'Invalid Input', description: 'Retirement age must be greater than current age', variant: 'destructive' });
+        if (!inputProjectionData) setIsCalculating(false);
         return;
       }
 
@@ -644,8 +707,8 @@ export default function ProjectionsPage() {
       };
 
       // Store projection results in client data for Summary page to use
-      if (activeClient) {
-        setClientData(activeClient, {
+      if (targetClient) {
+        setClientData(targetClient, {
           projectionResults: {
             yearsToRetirement: years,
             projectedLumpSum,
@@ -660,14 +723,16 @@ export default function ProjectionsPage() {
       }
 
       setTimeout(() => {
-        setResults(calculatedResults);
-        setIsCalculating(false);
-        toast({ title: 'Projections calculated', description: `Your retirement projection has been updated` });
+        if (!inputProjectionData) setResults(calculatedResults);
+        if (!inputProjectionData) setIsCalculating(false);
+        if (!inputProjectionData) toast({ title: 'Projections calculated', description: `Your retirement projection has been updated` });
       }, 300);
     } catch (err) {
       console.error('Projection calculation error', err);
-      toast({ title: 'Calculation Error', description: 'An error occurred while calculating projections', variant: 'destructive' });
-      setIsCalculating(false);
+      if (!inputProjectionData) {
+        toast({ title: 'Calculation Error', description: 'An error occurred while calculating projections', variant: 'destructive' });
+        setIsCalculating(false);
+      }
     }
   };
 
@@ -683,6 +748,30 @@ export default function ProjectionsPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Financial Projections</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Plan your retirement and analyze future financial position</p>
         </div>
+        {/* Client Selector */}
+        {showCombined && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">View:</span>
+            <Select
+              value={viewMode}
+              onValueChange={(value: 'A' | 'B' | 'combined') => {
+                setViewMode(value);
+                if (value !== 'combined') {
+                  setActiveClient(value);
+                }
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A">{clientAName}</SelectItem>
+                <SelectItem value="B">{clientBName}</SelectItem>
+                <SelectItem value="combined">Combined</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         {/* Button removed for auto-calc */}
       </div>
 
@@ -1115,7 +1204,7 @@ export default function ProjectionsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Per-client results */}
-                  {showCombined && (
+                  {(viewMode === 'combined' || (showCombined && !viewMode)) && (
                     <div className="space-y-4">
                       {/* Client A Results */}
                       {clientAResults && (
@@ -1186,8 +1275,8 @@ export default function ProjectionsPage() {
                     </div>
                   )}
                   
-                  {/* Single client results (when not showing combined) */}
-                  {!showCombined && (
+                  {/* Single client results (when viewing individual client) */}
+                  {(viewMode === 'A' || viewMode === 'B' || (!showCombined && !viewMode)) && results && (
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Projected Lump Sum:</span>
@@ -1215,7 +1304,7 @@ export default function ProjectionsPage() {
               </Card>
 
               {/* Deficit/Surplus Cards */}
-              {showCombined && combinedProjections ? (
+              {viewMode === 'combined' && combinedProjections && (
                 <Card className={`border-2 ${combinedProjections.isDeficit ? 'border-red-200 bg-red-50 dark:bg-red-900/20' : 'border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20'}`}>
                   <CardHeader>
                     <CardTitle className={`flex items-center ${combinedProjections.isDeficit ? 'text-red-800 dark:text-red-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
@@ -1256,7 +1345,9 @@ export default function ProjectionsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ) : (
+              )}
+
+              {/* {(viewMode === 'A' || viewMode === 'B' || (!showCombined && !viewMode)) && results && (
                 <Card className={`border-2 ${results.isDeficit ? 'border-red-200 bg-red-50' : 'border-yellow-200 bg-yellow-50'}`}>
                   <CardHeader>
                     <CardTitle className={`flex items-center ${results.isDeficit ? 'text-red-800' : 'text-yellow-700'}`}>
@@ -1298,7 +1389,7 @@ export default function ProjectionsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              )} */}
             </>
           )}
 
