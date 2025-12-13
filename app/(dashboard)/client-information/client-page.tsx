@@ -9,7 +9,7 @@ import { useClientStorage } from '@/lib/hooks/use-client-storage';
 import { ClientForm } from './client-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Users, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -124,7 +124,7 @@ export function ClientPage() {
   const searchParams = useSearchParams();
   const { user, loading } = useAuth();
   const financialStore = useFinancialStore();
-  const { loadClient } = useClientStorage();
+  const { saveClient, loadClient } = useClientStorage();
   const { toast } = useToast();
   const [isLoadingClient, setIsLoadingClient] = useState(false);
   const [formKeyA, setFormKeyA] = useState(0);
@@ -255,6 +255,61 @@ export function ClientPage() {
     setFormKeyB(prev => prev + 1);
   };
 
+  const handleSaveClients = async () => {
+    try {
+      let savedCount = 0;
+      
+      // Save Client A if it has data
+      if (clientA && (clientA.firstName || clientA.lastName || clientA.email)) {
+        const savedClientA = await saveClient({
+          ...clientA,
+          dob: clientA.dateOfBirth,
+        });
+        if (savedClientA) {
+          financialStore.setClientData('A', {
+            ...clientA,
+            id: savedClientA.id,
+          } as any);
+          savedCount++;
+        }
+      }
+      
+      // Save Client B if it has data
+      if (clientB && (clientB.firstName || clientB.lastName || clientB.email)) {
+        const savedClientB = await saveClient({
+          ...clientB,
+          dob: clientB.dateOfBirth,
+        });
+        if (savedClientB) {
+          financialStore.setClientData('B', {
+            ...clientB,
+            id: savedClientB.id,
+          } as any);
+          savedCount++;
+        }
+      }
+      
+      if (savedCount > 0) {
+        toast({
+          title: 'Clients saved',
+          description: `Successfully saved ${savedCount} client${savedCount > 1 ? 's' : ''}`
+        });
+      } else {
+        toast({
+          title: 'No clients to save',
+          description: 'Please fill in client information before saving'
+        });
+      }
+    } catch (error) {
+      console.error('Error saving clients:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save clients. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleClearClient = (slot: 'A' | 'B') => {
     const emptyClientData = getEmptyClientData();
     financialStore.setClientData(slot, emptyClientData);
@@ -280,10 +335,16 @@ export function ClientPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Client Information</h1>
         </div>
-        <Button onClick={handleNewClients} className="bg-yellow-500 text-white hover:bg-yellow-600 w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          New Clients
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleSaveClients} className="bg-green-600 text-white hover:bg-green-700 w-full sm:w-auto">
+            <Save className="h-4 w-4 mr-2" />
+            Save Clients
+          </Button>
+          <Button onClick={handleNewClients} className="bg-yellow-500 text-white hover:bg-yellow-600 w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            New Clients
+          </Button>
+        </div>
       </div>
 
       {/* Shared Assumptions */}
