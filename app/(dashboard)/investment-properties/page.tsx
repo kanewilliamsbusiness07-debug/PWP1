@@ -108,6 +108,17 @@ export default function InvestmentPropertiesPage() {
   const clientData = activeClient === 'A' ? clientA : clientB;
   const properties: Property[] = (clientData?.properties as Property[]) || [];
   
+  // For combined results display
+  const hasClientA = clientA && (clientA.firstName || clientA.grossSalary || clientA.annualIncome || (clientA.properties as Property[])?.length > 0);
+  const hasClientB = clientB && (clientB.firstName || clientB.grossSalary || clientB.annualIncome || (clientB.properties as Property[])?.length > 0);
+  const showCombined = hasClientA && hasClientB;
+  const clientAName = clientA ? `${clientA.firstName || ''} ${clientA.lastName || ''}`.trim() || 'Client A' : 'Client A';
+  const clientBName = clientB ? `${clientB.firstName || ''} ${clientB.lastName || ''}`.trim() || 'Client B' : 'Client B';
+  
+  // Get properties from both clients
+  const clientAProperties: Property[] = (clientA?.properties as Property[]) || [];
+  const clientBProperties: Property[] = (clientB?.properties as Property[]) || [];
+  
   // Function to update properties in the store
   const updatePropertiesInStore = (newProperties: Property[]) => {
     setClientData(activeClient || 'A', { properties: newProperties });
@@ -378,6 +389,40 @@ export default function InvestmentPropertiesPage() {
     totalTaxBenefit: 0
   });
 
+  // Calculate per-client and combined portfolio totals
+  const calculatePortfolioForClient = (clientProperties: Property[]) => {
+    return clientProperties.reduce((totals, property) => {
+      const analysis = analyzeProperty(property);
+      return {
+        propertyCount: totals.propertyCount + 1,
+        totalValue: totals.totalValue + property.currentValue,
+        totalDebt: totals.totalDebt + property.loanAmount,
+        totalEquity: totals.totalEquity + (property.currentValue - property.loanAmount),
+        totalRent: totals.totalRent + analysis.monthlyRent,
+        totalCashFlow: totals.totalCashFlow + analysis.monthlyCashFlow,
+      };
+    }, {
+      propertyCount: 0,
+      totalValue: 0,
+      totalDebt: 0,
+      totalEquity: 0,
+      totalRent: 0,
+      totalCashFlow: 0,
+    });
+  };
+  
+  const clientAPortfolio = calculatePortfolioForClient(clientAProperties);
+  const clientBPortfolio = calculatePortfolioForClient(clientBProperties);
+  
+  const combinedPortfolio = showCombined ? {
+    propertyCount: clientAPortfolio.propertyCount + clientBPortfolio.propertyCount,
+    totalValue: clientAPortfolio.totalValue + clientBPortfolio.totalValue,
+    totalDebt: clientAPortfolio.totalDebt + clientBPortfolio.totalDebt,
+    totalEquity: clientAPortfolio.totalEquity + clientBPortfolio.totalEquity,
+    totalRent: clientAPortfolio.totalRent + clientBPortfolio.totalRent,
+    totalCashFlow: clientAPortfolio.totalCashFlow + clientBPortfolio.totalCashFlow,
+  } : null;
+
   return (
     <div className="p-4 sm:p-6 space-y-6 bg-background min-h-screen">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -387,13 +432,110 @@ export default function InvestmentPropertiesPage() {
         </div>
       </div>
 
+      {/* Combined Household Portfolio Summary */}
+      {showCombined && combinedPortfolio && combinedPortfolio.propertyCount > 0 && (
+        <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-yellow-700 dark:text-yellow-400">
+              <Home className="h-5 w-5 mr-2" />
+              Combined Household Property Portfolio
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Per-client breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {clientAProperties.length > 0 && (
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{clientAName} ({clientAPortfolio.propertyCount} properties)</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Value:</span>
+                        <span className="ml-1 font-semibold">${clientAPortfolio.totalValue.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Equity:</span>
+                        <span className="ml-1 font-semibold text-gray-700 dark:text-gray-300">${clientAPortfolio.totalEquity.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Rent:</span>
+                        <span className="ml-1 font-semibold text-gray-700 dark:text-gray-300">${Math.round(clientAPortfolio.totalRent).toLocaleString()}/mo</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Cash Flow:</span>
+                        <span className={`ml-1 font-semibold ${clientAPortfolio.totalCashFlow >= 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600'}`}>
+                          ${Math.round(clientAPortfolio.totalCashFlow).toLocaleString()}/mo
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {clientBProperties.length > 0 && (
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{clientBName} ({clientBPortfolio.propertyCount} properties)</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Value:</span>
+                        <span className="ml-1 font-semibold">${clientBPortfolio.totalValue.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Equity:</span>
+                        <span className="ml-1 font-semibold text-gray-700 dark:text-gray-300">${clientBPortfolio.totalEquity.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Rent:</span>
+                        <span className="ml-1 font-semibold text-gray-700 dark:text-gray-300">${Math.round(clientBPortfolio.totalRent).toLocaleString()}/mo</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Cash Flow:</span>
+                        <span className={`ml-1 font-semibold ${clientBPortfolio.totalCashFlow >= 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600'}`}>
+                          ${Math.round(clientBPortfolio.totalCashFlow).toLocaleString()}/mo
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Combined totals */}
+              <div className="pt-3 border-t border-yellow-300 dark:border-yellow-700">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Properties</p>
+                    <p className="text-lg font-bold text-yellow-700 dark:text-yellow-400">{combinedPortfolio.propertyCount}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Total Value</p>
+                    <p className="text-lg font-bold text-yellow-700 dark:text-yellow-400">${combinedPortfolio.totalValue.toLocaleString()}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Total Equity</p>
+                    <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">${combinedPortfolio.totalEquity.toLocaleString()}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Total Rent</p>
+                    <p className="text-lg font-bold text-gray-700 dark:text-gray-300">${Math.round(combinedPortfolio.totalRent).toLocaleString()}/mo</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Net Cash Flow</p>
+                    <p className={`text-lg font-bold ${combinedPortfolio.totalCashFlow >= 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600'}`}>
+                      ${Math.round(combinedPortfolio.totalCashFlow).toLocaleString()}/mo
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Portfolio Summary */}
       {properties.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center">
-                <Home className="h-6 w-6 text-primary" />
+                <Home className="h-6 w-6 text-yellow-600" />
                 <div className="ml-3">
                   <p className="text-xs font-medium text-muted-foreground">Total Value</p>
                   <p className="text-lg font-bold text-foreground">${portfolioTotals.totalValue.toLocaleString()}</p>
@@ -405,10 +547,10 @@ export default function InvestmentPropertiesPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center">
-                <TrendingUp className="h-6 w-6 text-emerald-500" />
+                <TrendingUp className="h-6 w-6 text-yellow-600" />
                 <div className="ml-3">
                   <p className="text-xs font-medium text-muted-foreground">Total Equity</p>
-                  <p className="text-lg font-bold text-emerald-500">${portfolioTotals.totalEquity.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">${portfolioTotals.totalEquity.toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -417,10 +559,10 @@ export default function InvestmentPropertiesPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center">
-                <DollarSign className="h-6 w-6 text-blue-500" />
+                <DollarSign className="h-6 w-6 text-gray-500" />
                 <div className="ml-3">
                   <p className="text-xs font-medium text-muted-foreground">Monthly Rent</p>
-                  <p className="text-lg font-bold text-blue-500">${Math.round(portfolioTotals.totalRent).toLocaleString()}</p>
+                  <p className="text-lg font-bold text-gray-700 dark:text-gray-300">${Math.round(portfolioTotals.totalRent).toLocaleString()}</p>
                 </div>
               </div>
             </CardContent>
@@ -429,10 +571,10 @@ export default function InvestmentPropertiesPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center">
-                <Calculator className="h-6 w-6 text-amber-500" />
+                <Calculator className="h-6 w-6 text-gray-500" />
                 <div className="ml-3">
                   <p className="text-xs font-medium text-muted-foreground">Loan Payments</p>
-                  <p className="text-lg font-bold text-amber-500">${Math.round(portfolioTotals.totalLoanPayments).toLocaleString()}/mo</p>
+                  <p className="text-lg font-bold text-gray-700 dark:text-gray-300">${Math.round(portfolioTotals.totalLoanPayments).toLocaleString()}/mo</p>
                 </div>
               </div>
             </CardContent>
@@ -442,13 +584,13 @@ export default function InvestmentPropertiesPage() {
             <CardContent className="p-4">
               <div className="flex items-center">
                 {portfolioTotals.totalCashFlow >= 0 ? (
-                  <TrendingUp className="h-6 w-6 text-emerald-500" />
+                  <TrendingUp className="h-6 w-6 text-yellow-600" />
                 ) : (
-                  <TrendingDown className="h-6 w-6 text-destructive" />
+                  <TrendingDown className="h-6 w-6 text-red-500" />
                 )}
                 <div className="ml-3">
                   <p className="text-xs font-medium text-muted-foreground">Net Cash Flow</p>
-                  <p className={`text-lg font-bold ${portfolioTotals.totalCashFlow >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
+                  <p className={`text-lg font-bold ${portfolioTotals.totalCashFlow >= 0 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-500'}`}>
                     ${Math.round(portfolioTotals.totalCashFlow).toLocaleString()}/mo
                   </p>
                 </div>

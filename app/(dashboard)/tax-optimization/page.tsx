@@ -112,6 +112,32 @@ export default function TaxOptimizationPage() {
   const clientA = useFinancialStore((state) => state.clientA);
   const clientB = useFinancialStore((state) => state.clientB);
   
+  // For combined results display
+  const hasClientA = clientA && (clientA.firstName || clientA.grossSalary || clientA.annualIncome);
+  const hasClientB = clientB && (clientB.firstName || clientB.grossSalary || clientB.annualIncome);
+  const showCombined = hasClientA && hasClientB;
+  const clientAName = clientA ? `${clientA.firstName || ''} ${clientA.lastName || ''}`.trim() || 'Client A' : 'Client A';
+  const clientBName = clientB ? `${clientB.firstName || ''} ${clientB.lastName || ''}`.trim() || 'Client B' : 'Client B';
+  
+  // Get tax results from both clients 
+  const clientATaxResults = clientA?.taxResults;
+  const clientBTaxResults = clientB?.taxResults;
+  
+  // Calculate combined tax results
+  const combinedTaxResults = (showCombined && clientATaxResults && clientBTaxResults) ? {
+    annualIncome: (clientATaxResults.annualIncome || 0) + (clientBTaxResults.annualIncome || 0),
+    totalTax: (clientATaxResults.totalTax || 0) + (clientBTaxResults.totalTax || 0),
+    afterTaxIncome: (clientATaxResults.afterTaxIncome || 0) + (clientBTaxResults.afterTaxIncome || 0),
+    totalDeductions: (clientATaxResults.totalDeductions || 0) + (clientBTaxResults.totalDeductions || 0),
+    optimizedTotalTax: ((clientA?.optimizedTaxResults?.totalTax || clientATaxResults.totalTax || 0) + 
+                        (clientB?.optimizedTaxResults?.totalTax || clientBTaxResults.totalTax || 0)),
+    potentialSavings: 0 // Will be calculated below
+  } : null;
+  
+  if (combinedTaxResults) {
+    combinedTaxResults.potentialSavings = combinedTaxResults.totalTax - combinedTaxResults.optimizedTotalTax;
+  }
+  
   const taxForm = useForm<TaxFormData>({
     resolver: zodResolver(taxFormSchema),
     defaultValues: {
@@ -635,6 +661,19 @@ export default function TaxOptimizationPage() {
       const activeClientData = clientSlot === 'A' ? clientA : clientB;
       if (activeClientData) {
         setClientData(clientSlot, {
+          taxResults: {
+            annualIncome: current.annualIncome,
+            totalTax: current.totalTax,
+            afterTaxIncome: current.afterTaxIncome,
+            totalDeductions: current.totalDeductions,
+            taxableIncome: current.taxableIncome,
+            marginalTaxRate: current.marginalTaxRate,
+            averageTaxRate: current.averageTaxRate,
+          },
+          optimizedTaxResults: {
+            totalTax: optimized.totalTax,
+            afterTaxIncome: optimized.afterTaxIncome,
+          },
           taxOptimizationResults: {
             currentTax: current.totalTax,
             optimizedTax: optimized.totalTax,
@@ -1044,6 +1083,87 @@ export default function TaxOptimizationPage() {
 
         {/* Results Panel */}
         <div className="space-y-6">
+          {/* Combined Household Tax Summary */}
+          {showCombined && combinedTaxResults && (
+            <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+              <CardHeader>
+                <CardTitle className="flex items-center text-yellow-700 dark:text-yellow-400">
+                  <Calculator className="h-5 w-5 mr-2" />
+                  Combined Household Tax
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Per-client breakdown */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {clientATaxResults && (
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{clientAName}</p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Income:</span>
+                            <span className="font-semibold">${(clientATaxResults.annualIncome || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Tax:</span>
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientATaxResults.totalTax || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">After Tax:</span>
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientATaxResults.afterTaxIncome || 0).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {clientBTaxResults && (
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{clientBName}</p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Income:</span>
+                            <span className="font-semibold">${(clientBTaxResults.annualIncome || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Tax:</span>
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientBTaxResults.totalTax || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">After Tax:</span>
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">${(clientBTaxResults.afterTaxIncome || 0).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Combined totals */}
+                  <div className="pt-3 border-t border-yellow-300 dark:border-yellow-700">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-yellow-700 dark:text-yellow-400">Combined Income:</span>
+                        <span className="text-lg font-bold text-yellow-700 dark:text-yellow-400">${combinedTaxResults.annualIncome.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-yellow-700 dark:text-yellow-400">Combined Tax:</span>
+                        <span className="text-lg font-bold text-gray-700 dark:text-gray-300">${combinedTaxResults.totalTax.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-yellow-700 dark:text-yellow-400">Combined After-Tax:</span>
+                        <span className="text-lg font-bold text-yellow-700 dark:text-yellow-400">${combinedTaxResults.afterTaxIncome.toLocaleString()}</span>
+                      </div>
+                      {combinedTaxResults.potentialSavings > 0 && (
+                        <div className="flex justify-between items-center pt-2">
+                          <span className="font-medium text-yellow-700 dark:text-yellow-400">Potential Savings:</span>
+                          <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">${combinedTaxResults.potentialSavings.toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
           {currentTax && (
             <>
               {/* Current Tax Calculation */}
@@ -1062,7 +1182,7 @@ export default function TaxOptimizationPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Total Deductions:</span>
-                      <span className="font-semibold text-green-600">-${currentTax.totalDeductions.toLocaleString()}</span>
+                      <span className="font-semibold text-yellow-600 dark:text-yellow-400">-${currentTax.totalDeductions.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Taxable Income:</span>
@@ -1071,24 +1191,24 @@ export default function TaxOptimizationPage() {
                     <hr className="border-gray-200" />
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Income Tax:</span>
-                      <span className="font-semibold text-red-600">${currentTax.incomeTax.toLocaleString()}</span>
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">${currentTax.incomeTax.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Medicare Levy:</span>
-                      <span className="font-semibold text-red-600">${currentTax.medicareLevy.toLocaleString()}</span>
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">${currentTax.medicareLevy.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">HECS Repayment:</span>
-                      <span className="font-semibold text-red-600">${currentTax.hecsRepayment.toLocaleString()}</span>
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">${currentTax.hecsRepayment.toLocaleString()}</span>
                     </div>
                     <hr className="border" />
                     <div className="flex justify-between">
                       <span className="font-medium text-foreground">Total Tax:</span>
-                      <span className="text-xl font-bold text-red-600">${currentTax.totalTax.toLocaleString()}</span>
+                      <span className="text-xl font-bold text-gray-700 dark:text-gray-300">${currentTax.totalTax.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium text-foreground">After-Tax Income:</span>
-                      <span className="text-xl font-bold text-green-600">${currentTax.afterTaxIncome.toLocaleString()}</span>
+                      <span className="text-xl font-bold text-yellow-600 dark:text-yellow-400">${currentTax.afterTaxIncome.toLocaleString()}</span>
                     </div>
                   </div>
 
