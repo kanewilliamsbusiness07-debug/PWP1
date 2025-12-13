@@ -740,6 +740,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
   const watchedAssets = form.watch('assets');
   const watchedProperties = form.watch('properties');
   const watchedLiabilities = form.watch('liabilities');
+  const watchedAnnualIncome = form.watch('annualIncome');
 
   // Auto-calculate projections fields from other form data
   // IMPORTANT: This effect only handles read-only calculations, NOT property/liability syncing
@@ -847,8 +848,16 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         form.setValue('monthlyDebtPayments', roundedTotal);
       }
     }
+
+    // Sync annualIncome from Financials to employmentIncome in Tax section
+    if (watchedAnnualIncome !== undefined && watchedAnnualIncome !== null) {
+      const annualIncomeValue = parseFloat(String(watchedAnnualIncome)) || 0;
+      if (annualIncomeValue !== form.getValues('employmentIncome')) {
+        form.setValue('employmentIncome', annualIncomeValue);
+      }
+    }
     
-  }, [watchedDob, watchedAssets, watchedProperties, watchedLiabilities, form]);
+  }, [watchedDob, watchedAssets, watchedProperties, watchedLiabilities, watchedAnnualIncome, form]);
 
   // Track which asset IDs have already been synced to properties
   const syncedAssetIdsRef = React.useRef<Set<string>>(new Set());
@@ -2697,10 +2706,13 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
+                                readOnly
+                                className="bg-muted"
                                 value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">Auto-synced from Annual Income (Financials)</p>
                             <FormMessage />
                           </FormItem>
                         )}
