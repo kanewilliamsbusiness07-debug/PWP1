@@ -245,6 +245,17 @@ interface ClientData {
   privateHealthInsurance?: boolean;
 }
 
+// Shared Assumptions that apply to both clients
+interface SharedAssumptions {
+  inflationRate: number;
+  salaryGrowthRate: number;
+  superReturn: number;
+  shareReturn: number;
+  propertyGrowthRate: number;
+  withdrawalRate: number;
+  rentGrowthRate: number;
+}
+
 // Financial data structure
 type FinancialFields = {
   // Income
@@ -279,6 +290,9 @@ type FinancialFields = {
   clientA?: ClientData;
   clientB?: ClientData;
   activeClient?: "A" | "B";
+  
+  // Shared Assumptions (apply to both clients)
+  sharedAssumptions: SharedAssumptions;
 
   // Computed Values
   totalIncome: number;
@@ -316,6 +330,9 @@ interface FinancialStore extends FinancialFields {
   loadClientByName: (name: string, clientSlot: "A" | "B") => void;
   deleteClientByName: (name: string) => void;
   getAllSavedClientNames: () => string[];
+  
+  // Shared assumptions actions
+  setSharedAssumptions: (data: Partial<SharedAssumptions>) => void;
 
   // Additional computed fields
   investmentDeductions?: number;
@@ -342,7 +359,16 @@ const initialState: FinancialFields = {
   superBalance: 0,
   totalDebt: 0,
   totalIncome: 0,
-  netIncome: 0
+  netIncome: 0,
+  sharedAssumptions: {
+    inflationRate: 2.5,
+    salaryGrowthRate: 3.0,
+    superReturn: 7.0,
+    shareReturn: 7.0,
+    propertyGrowthRate: 4.0,
+    withdrawalRate: 4.0,
+    rentGrowthRate: 3.0,
+  }
 };
 
 // Create the store
@@ -599,6 +625,13 @@ export const useFinancialStore = create<FinancialStore>()(
       getAllSavedClientNames: () => {
         const state = get();
         return Object.keys(state.savedClients).sort();
+      },
+      
+      setSharedAssumptions: (data) => {
+        set((state) => ({
+          ...state,
+          sharedAssumptions: { ...state.sharedAssumptions, ...data }
+        }));
       },
       
       investmentDeductions: 0
