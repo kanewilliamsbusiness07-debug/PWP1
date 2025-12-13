@@ -8,8 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useClientStorage } from '@/lib/hooks/use-client-storage';
 import { ClientForm } from './client-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus, Users, Save } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -124,7 +123,7 @@ export function ClientPage() {
   const searchParams = useSearchParams();
   const { user, loading } = useAuth();
   const financialStore = useFinancialStore();
-  const { saveClient, loadClient } = useClientStorage();
+  const { loadClient } = useClientStorage();
   const { toast } = useToast();
   const [isLoadingClient, setIsLoadingClient] = useState(false);
   const [formKeyA, setFormKeyA] = useState(0);
@@ -181,149 +180,6 @@ export function ClientPage() {
     }
   }, [searchParams, user, loadClient, financialStore, router, toast, isLoadingClient]);
 
-  // Helper function to create empty client data
-  const getEmptyClientData = () => ({
-    firstName: '',
-    lastName: '',
-    middleName: '',
-    email: '',
-    mobile: '',
-    phoneNumber: '',
-    addressLine1: '',
-    addressLine2: '',
-    suburb: '',
-    state: undefined,
-    postcode: '',
-    maritalStatus: 'SINGLE',
-    numberOfDependants: 0,
-    agesOfDependants: '',
-    ownOrRent: undefined,
-    annualIncome: 0,
-    grossIncome: 0,
-    grossSalary: 0,
-    rentalIncome: 0,
-    dividends: 0,
-    frankedDividends: 0,
-    capitalGains: 0,
-    otherIncome: 0,
-    assets: [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }],
-    liabilities: [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }],
-    properties: [],
-    currentAge: 0,
-    retirementAge: 65,
-    currentSuper: 0,
-    currentSavings: 0,
-    currentShares: 0,
-    propertyEquity: 0,
-    monthlyDebtPayments: 0,
-    monthlyRentalIncome: 0,
-    monthlyExpenses: 0,
-    employmentIncome: 0,
-    investmentIncome: 0,
-    workRelatedExpenses: 0,
-    vehicleExpenses: 0,
-    uniformsAndLaundry: 0,
-    homeOfficeExpenses: 0,
-    selfEducationExpenses: 0,
-    investmentExpenses: 0,
-    charityDonations: 0,
-    accountingFees: 0,
-    rentalExpenses: 0,
-    superContributions: 0,
-    healthInsurance: false,
-    hecs: false,
-    helpDebt: 0,
-    hecsBalance: 0,
-    privateHealthInsurance: false,
-  } as any);
-
-  // Handle creating new clients
-  const handleNewClients = () => {
-    const emptyClientData = getEmptyClientData();
-    financialStore.setClientData('A', emptyClientData);
-    financialStore.setClientData('B', emptyClientData);
-    financialStore.setIncomeData({
-      grossIncome: 0,
-      employmentIncome: 0,
-      investmentIncome: 0,
-      rentalIncome: 0,
-      frankedDividends: 0,
-      otherIncome: 0
-    });
-    financialStore.setActiveClient('A');
-    setFormKeyA(prev => prev + 1);
-    setFormKeyB(prev => prev + 1);
-  };
-
-  const handleSaveClients = async () => {
-    try {
-      let savedCount = 0;
-      
-      // Save Client A if it has data
-      if (clientA && (clientA.firstName || clientA.lastName || clientA.email)) {
-        const savedClientA = await saveClient({
-          ...clientA,
-          dob: clientA.dateOfBirth,
-        });
-        if (savedClientA) {
-          financialStore.setClientData('A', {
-            ...clientA,
-            id: savedClientA.id,
-          } as any);
-          savedCount++;
-        }
-      }
-      
-      // Save Client B if it has data
-      if (clientB && (clientB.firstName || clientB.lastName || clientB.email)) {
-        const savedClientB = await saveClient({
-          ...clientB,
-          dob: clientB.dateOfBirth,
-        });
-        if (savedClientB) {
-          financialStore.setClientData('B', {
-            ...clientB,
-            id: savedClientB.id,
-          } as any);
-          savedCount++;
-        }
-      }
-      
-      if (savedCount > 0) {
-        toast({
-          title: 'Clients saved',
-          description: `Successfully saved ${savedCount} client${savedCount > 1 ? 's' : ''}`
-        });
-      } else {
-        toast({
-          title: 'No clients to save',
-          description: 'Please fill in client information before saving'
-        });
-      }
-    } catch (error) {
-      console.error('Error saving clients:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save clients. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const handleClearClient = (slot: 'A' | 'B') => {
-    const emptyClientData = getEmptyClientData();
-    financialStore.setClientData(slot, emptyClientData);
-    if (slot === 'A') {
-      setFormKeyA(prev => prev + 1);
-    } else {
-      setFormKeyB(prev => prev + 1);
-    }
-    toast({
-      title: 'Client cleared',
-      description: `Client ${slot} has been reset`
-    });
-  };
-
   // Get client data
   const clientA = useFinancialStore((state) => state.clientA);
   const clientB = useFinancialStore((state) => state.clientB);
@@ -334,16 +190,6 @@ export function ClientPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Client Information</h1>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={handleSaveClients} className="bg-green-600 text-white hover:bg-green-700 w-full sm:w-auto">
-            <Save className="h-4 w-4 mr-2" />
-            Save Clients
-          </Button>
-          <Button onClick={handleNewClients} className="bg-yellow-500 text-white hover:bg-yellow-600 w-full sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            New Clients
-          </Button>
         </div>
       </div>
 
