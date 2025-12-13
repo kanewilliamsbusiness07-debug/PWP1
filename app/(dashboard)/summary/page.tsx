@@ -125,11 +125,16 @@ export default function SummaryPage() {
   const activeClientSlot = useFinancialStore((state) => state.activeClient);
   const clientA = useFinancialStore((state) => state.clientA);
   const clientB = useFinancialStore((state) => state.clientB);
+  const sharedAssumptions = useFinancialStore((state) => state.sharedAssumptions);
   
   // Get active client data with proper subscription
   const activeClient = activeClientSlot 
     ? (activeClientSlot === 'A' ? clientA : clientB) as any
     : null;
+    
+  // Check if we have data in each client slot
+  const hasClientA = clientA && (clientA.firstName || clientA.lastName || (clientA.assets?.length ?? 0) > 0);
+  const hasClientB = clientB && (clientB.firstName || clientB.lastName || (clientB.assets?.length ?? 0) > 0);
 
   // Calculate totals from store and client data
   const defaultSummary: FinancialSummary = {
@@ -157,8 +162,10 @@ export default function SummaryPage() {
   };
 
   const [summary, setSummary] = useState<FinancialSummary>(defaultSummary);
-  const calculateSummary = (): FinancialSummary => {
-    const client = activeClient;
+  const [summaryA, setSummaryA] = useState<FinancialSummary>(defaultSummary);
+  const [summaryB, setSummaryB] = useState<FinancialSummary>(defaultSummary);
+  
+  const calculateSummaryForClient = (client: any): FinancialSummary => {
     
     // Debug logging to help track data flow
     console.log('=== SUMMARY PAGE: calculateSummary called ===');
@@ -527,13 +534,34 @@ export default function SummaryPage() {
     };
   };
 
+  // Wrapper for backward compatibility
+  const calculateSummary = (): FinancialSummary => {
+    return calculateSummaryForClient(activeClient);
+  };
+
   useEffect(() => {
+    // Calculate for active client (for backward compatibility)
     setSummary(calculateSummary());
+    
+    // Calculate for both clients A and B
+    if (hasClientA) {
+      setSummaryA(calculateSummaryForClient(clientA));
+    } else {
+      setSummaryA(defaultSummary);
+    }
+    
+    if (hasClientB) {
+      setSummaryB(calculateSummaryForClient(clientB));
+    } else {
+      setSummaryB(defaultSummary);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activeClientSlot,
     clientA,
     clientB,
+    hasClientA,
+    hasClientB,
     // Also watch specific nested results that we care about
     clientA?.projectionResults,
     clientB?.projectionResults,
@@ -1596,7 +1624,7 @@ export default function SummaryPage() {
   };
 
   // Show message if no client is selected
-  if (!activeClient && !isLoadingClient) {
+  if (!hasClientA && !hasClientB && !isLoadingClient) {
     return (
       <div className="p-6 space-y-6 bg-background min-h-screen flex items-center justify-center">
         <Card className="max-w-md">
@@ -1642,7 +1670,9 @@ export default function SummaryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Financial Planning Summary</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Comprehensive overview and export options for {summary?.clientName || ''}</p>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Dual Client Comparison - {hasClientA ? summaryA.clientName || 'Client A' : ''} {hasClientA && hasClientB ? '&' : ''} {hasClientB ? summaryB.clientName || 'Client B' : ''}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={shareReport}>
@@ -1664,12 +1694,135 @@ export default function SummaryPage() {
         </div>
       </div>
 
-      {/* Client Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-foreground">Client Overview</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Financial planning report for {summary.clientName}
+      {/* DUAL CLIENT OVERVIEW - Side by Side Cards */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Client A Overview */}
+        {hasClientA && (
+          <Card className="border-2 border-blue-200">
+            <CardHeader className="bg-blue-50/50">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-blue-500 text-white">Client A</Badge>
+                <CardTitle className="text-foreground">{summaryA.clientName || 'Client A'}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-3 bg-blue-50/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Net Worth</p>
+                  <p className="text-lg font-bold text-emerald-600">{formatCurrency(summaryA.netWorth)}</p>
+                </div>
+                <div className="text-center p-3 bg-blue-50/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Monthly Surplus</p>
+                  <p className={`text-lg font-bold ${summaryA.monthlyCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {formatCurrency(summaryA.monthlyCashFlow)}
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-blue-50/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Retirement Lump Sum</p>
+                  <p className="text-lg font-bold text-blue-600">{formatCurrency(summaryA.projectedRetirementLumpSum)}</p>
+                </div>
+                <div className="text-center p-3 bg-blue-50/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Retirement Status</p>
+                  <p className={`text-lg font-bold ${summaryA.isRetirementDeficit ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {summaryA.isRetirementDeficit ? 'Deficit' : 'Surplus'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Client B Overview */}
+        {hasClientB && (
+          <Card className="border-2 border-green-200">
+            <CardHeader className="bg-green-50/50">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-green-500 text-white">Client B</Badge>
+                <CardTitle className="text-foreground">{summaryB.clientName || 'Client B'}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-3 bg-green-50/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Net Worth</p>
+                  <p className="text-lg font-bold text-emerald-600">{formatCurrency(summaryB.netWorth)}</p>
+                </div>
+                <div className="text-center p-3 bg-green-50/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Monthly Surplus</p>
+                  <p className={`text-lg font-bold ${summaryB.monthlyCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {formatCurrency(summaryB.monthlyCashFlow)}
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-green-50/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Retirement Lump Sum</p>
+                  <p className="text-lg font-bold text-green-600">{formatCurrency(summaryB.projectedRetirementLumpSum)}</p>
+                </div>
+                <div className="text-center p-3 bg-green-50/30 rounded-lg">
+                  <p className="text-xs text-muted-foreground">Retirement Status</p>
+                  <p className={`text-lg font-bold ${summaryB.isRetirementDeficit ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {summaryB.isRetirementDeficit ? 'Deficit' : 'Surplus'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      
+      {/* Combined Household Summary (if both clients exist) */}
+      {hasClientA && hasClientB && (
+        <Card className="border-2 border-purple-200">
+          <CardHeader className="bg-purple-50/50">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-purple-500 text-white">Combined</Badge>
+              <CardTitle className="text-foreground">Household Summary</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="text-center p-3 bg-purple-50/30 rounded-lg">
+                <p className="text-xs text-muted-foreground">Combined Net Worth</p>
+                <p className="text-xl font-bold text-purple-600">
+                  {formatCurrency(summaryA.netWorth + summaryB.netWorth)}
+                </p>
+              </div>
+              <div className="text-center p-3 bg-purple-50/30 rounded-lg">
+                <p className="text-xs text-muted-foreground">Combined Monthly Surplus</p>
+                <p className={`text-xl font-bold ${(summaryA.monthlyCashFlow + summaryB.monthlyCashFlow) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {formatCurrency(summaryA.monthlyCashFlow + summaryB.monthlyCashFlow)}
+                </p>
+              </div>
+              <div className="text-center p-3 bg-purple-50/30 rounded-lg">
+                <p className="text-xs text-muted-foreground">Combined Retirement Fund</p>
+                <p className="text-xl font-bold text-purple-600">
+                  {formatCurrency(summaryA.projectedRetirementLumpSum + summaryB.projectedRetirementLumpSum)}
+                </p>
+              </div>
+              <div className="text-center p-3 bg-purple-50/30 rounded-lg">
+                <p className="text-xs text-muted-foreground">Combined Tax Savings</p>
+                <p className="text-xl font-bold text-purple-600">
+                  {formatCurrency(summaryA.taxSavings + summaryB.taxSavings)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Detailed sections for each client - Stacked */}
+      {hasClientA && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-blue-500 text-white text-sm px-3 py-1">Client A</Badge>
+            <h2 className="text-xl font-bold text-foreground">{summaryA.clientName || 'Client A'} - Detailed Analysis</h2>
+          </div>
+          
+          {/* Client A Detailed Cards - using summary variable temporarily for backward compat */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-foreground">Client Overview</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Financial planning report for {summaryA.clientName}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -2037,6 +2190,170 @@ export default function SummaryPage() {
           </div>
         </div>
       </div>
+      
+      {/* Close Client A section */}
+      </div>
+      )}
+
+      {/* CLIENT B DETAILED SECTION */}
+      {hasClientB && (
+        <div className="space-y-6 border-t-4 border-green-300 pt-6">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-green-500 text-white text-sm px-3 py-1">Client B</Badge>
+            <h2 className="text-xl font-bold text-foreground">{summaryB.clientName || 'Client B'} - Detailed Analysis</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Financial Position */}
+              <Card className="border-green-200">
+                <CardHeader>
+                  <CardTitle className="text-foreground">Financial Position</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total Assets</span>
+                      <span className="text-lg font-semibold text-green-600">${summaryB.totalAssets.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total Liabilities</span>
+                      <span className="text-lg font-semibold text-red-600">${summaryB.totalLiabilities.toLocaleString()}</span>
+                    </div>
+                    <hr className="border" />
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-foreground">Net Worth</span>
+                      <span className="text-xl font-bold text-green-600">${summaryB.netWorth.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Cash Flow Analysis */}
+              <Card className="border-green-200">
+                <CardHeader>
+                  <CardTitle className="text-foreground">Cash Flow Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Monthly Income</span>
+                      <span className="text-lg font-semibold text-green-600">${summaryB.monthlyIncome.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Monthly Expenses</span>
+                      <span className="text-lg font-semibold text-red-600">${summaryB.monthlyExpenses.toLocaleString()}</span>
+                    </div>
+                    <hr className="border" />
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-foreground">Net Cash Flow</span>
+                      <span className={`text-xl font-bold ${summaryB.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${summaryB.monthlyCashFlow.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Retirement Projection */}
+              <Card className={`border-2 ${summaryB.isRetirementDeficit ? 'border-destructive/20' : 'border-emerald-500/20'}`}>
+                <CardHeader>
+                  <CardTitle className={`flex items-center ${summaryB.isRetirementDeficit ? 'text-destructive' : 'text-emerald-500'}`}>
+                    {summaryB.isRetirementDeficit ? (
+                      <AlertTriangle className="h-5 w-5 mr-2" />
+                    ) : (
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                    )}
+                    Retirement Projection
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Years to Retirement</span>
+                      <span className="text-lg font-semibold text-foreground">{summaryB.yearsToRetirement} years</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Projected Net Worth</span>
+                      <span className="text-lg font-semibold text-green-600">${summaryB.projectedRetirementLumpSum.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Projected Passive Income</span>
+                      <span className="text-lg font-semibold text-green-600">${summaryB.projectedRetirementMonthlyCashFlow.toLocaleString()}/month</span>
+                    </div>
+                    <hr className="border" />
+                    <div className="text-center">
+                      <p className={`text-3xl font-bold ${summaryB.isRetirementDeficit ? 'text-red-600' : 'text-green-600'}`}>
+                        ${Math.abs(summaryB.retirementDeficitSurplus).toLocaleString()}/month
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {summaryB.isRetirementDeficit ? 'Retirement Deficit' : 'Retirement Surplus'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tax Optimization */}
+              <Card className="border-green-200">
+                <CardHeader>
+                  <CardTitle className="text-foreground">Tax Optimization</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Current Annual Tax</span>
+                      <span className="text-lg font-semibold text-destructive">${summaryB.currentTax.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Optimized Annual Tax</span>
+                      <span className="text-lg font-semibold text-orange-500">${summaryB.optimizedTax.toLocaleString()}</span>
+                    </div>
+                    <hr className="border" />
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-foreground">Potential Savings</span>
+                      <span className="text-xl font-bold text-emerald-500">${summaryB.taxSavings.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Client B Sidebar */}
+            <div className="space-y-6">
+              <Card className="border-green-200">
+                <CardHeader>
+                  <CardTitle className="text-foreground">Financial Snapshot</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="bg-green-50/50 p-3 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Net Worth</p>
+                      <p className="text-xl font-bold text-foreground">${summaryB.netWorth.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-green-50/50 p-3 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Monthly Surplus</p>
+                      <p className={`text-xl font-bold ${summaryB.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${summaryB.monthlyCashFlow.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-green-50/50 p-3 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Retirement Status</p>
+                      <p className={`text-lg font-bold ${summaryB.isRetirementDeficit ? 'text-red-600' : 'text-green-600'}`}>
+                        {summaryB.isRetirementDeficit ? 'Action Required' : 'On Track'}
+                      </p>
+                    </div>
+                    <div className="bg-green-50/50 p-3 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Potential Tax Savings</p>
+                      <p className="text-xl font-bold text-emerald-600">${summaryB.taxSavings.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
