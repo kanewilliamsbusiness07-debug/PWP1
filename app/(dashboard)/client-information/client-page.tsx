@@ -194,6 +194,7 @@ export function ClientPage() {
     suburb: '',
     state: undefined,
     postcode: '',
+    dateOfBirth: undefined,
     maritalStatus: 'SINGLE',
     numberOfDependants: 0,
     agesOfDependants: '',
