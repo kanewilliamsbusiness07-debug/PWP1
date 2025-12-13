@@ -849,7 +849,52 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     if (!watchedAssets || !Array.isArray(watchedAssets)) return;
     
     const currentProperties = form.getValues('properties') || [];
-    const propertyAssets = watchedAssets.filter((asset: any) => asset.type === 'property');
+    
+    // Filter for property assets that are NOT owner-occupied (investment properties only)
+    const propertyAssets = watchedAssets.filter((asset: any) => {
+      if (asset.type !== 'property') return false;
+      // Skip owner-occupied properties (first asset with ownerOccupied === 'own')
+      if (asset.ownerOccupied === 'own') return false;
+      return true;
+    });
+    
+    // Update existing linked properties with new asset/liability data
+    currentProperties.forEach((prop: any, propIndex: number) => {
+      if (prop.linkedAssetId) {
+        const linkedAsset = watchedAssets.find((a: any) => a.id === prop.linkedAssetId);
+        if (linkedAsset) {
+          // Update property values from asset
+          const assetIndex = watchedAssets.findIndex((a: any) => a.id === linkedAsset.id);
+          const linkedLiability = watchedLiabilities?.[assetIndex];
+          
+          const updates: any = {};
+          if (linkedAsset.name && linkedAsset.name !== prop.address) {
+            updates.address = linkedAsset.name;
+          }
+          if (Number(linkedAsset.currentValue) !== Number(prop.currentValue)) {
+            updates.currentValue = Number(linkedAsset.currentValue) || 0;
+          }
+          if (linkedLiability && linkedLiability.type === 'mortgage') {
+            if (Number(linkedLiability.balance) !== Number(prop.loanAmount)) {
+              updates.loanAmount = Number(linkedLiability.balance) || 0;
+            }
+            if (Number(linkedLiability.interestRate) !== Number(prop.interestRate)) {
+              updates.interestRate = Number(linkedLiability.interestRate) || 0;
+            }
+            if (Number(linkedLiability.loanTerm) !== Number(prop.loanTerm)) {
+              updates.loanTerm = Number(linkedLiability.loanTerm) || 30;
+            }
+          }
+          
+          // Only update if there are changes
+          if (Object.keys(updates).length > 0) {
+            Object.entries(updates).forEach(([key, value]) => {
+              form.setValue(`properties.${propIndex}.${key}` as any, value);
+            });
+          }
+        }
+      }
+    });
     
     // Find property assets that don't have a corresponding property entry yet
     const newPropertyAssets = propertyAssets.filter((asset: any) => {
