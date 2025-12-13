@@ -1831,6 +1831,15 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 <h4 className="font-medium text-base">
                                   {index === 0 ? 'Home Loan' : `Liability ${index + 1}`}
                                 </h4>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeLiability(index)}
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                               <div className="space-y-4">
                                 {/* Lender */}
