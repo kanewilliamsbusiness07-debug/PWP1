@@ -831,6 +831,11 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     
     // Find property assets that don't have a corresponding property entry yet
     const newPropertyAssets = propertyAssets.filter((asset: any) => {
+      // Skip empty assets (no name and no value) - don't create ghost properties
+      if (!asset.name && (!asset.currentValue || Number(asset.currentValue) === 0)) {
+        return false;
+      }
+      
       // Skip if already synced
       if (syncedAssetIdsRef.current.has(asset.id)) return false;
       
@@ -843,17 +848,31 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
     
     // Create new properties for each new property-type asset
     newPropertyAssets.forEach((asset: any) => {
-      // Find matching mortgage liability by name
-      const matchingMortgage = watchedLiabilities?.find((liability: any) => 
+      // Find matching mortgage liability - check both by name match and by index position
+      let matchingMortgage = watchedLiabilities?.find((liability: any) => 
         liability.type === 'mortgage' && 
         liability.name && 
         asset.name && 
         liability.name.toLowerCase().includes(asset.name.toLowerCase())
       );
       
-      // Create the new property entry
-      const newProperty = {
-        id: `property-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      // If no name match, try to find a mortgage at the same index position as the asset
+      if (!matchingMortgage) {
+        const assetIndex = watchedAssets.findIndex((a: any) => a.id === asset.id);
+        const liabilityAtSameIndex = watchedLiabilities?.[assetIndex];
+        if (liabilityAtSameIndex && liabilityAtSameIndex.type === 'mortgage') {
+          matchingMortgage = liabilityAtSameIndex;
+        }
+      }
+      
+      // Check if there's an empty property we can fill instead of appending
+      const emptyPropertyIndex = currentProperties.findIndex((prop: any) => 
+        !prop.address && 
+        (!prop.currentValue || Number(prop.currentValue) === 0) &&
+        !prop.linkedAssetId
+      );
+      
+      const propertyData = {
         address: asset.name || '',
         purchasePrice: Number(asset.currentValue) || 0,
         currentValue: Number(asset.currentValue) || 0,
@@ -866,11 +885,23 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
         linkedLiabilityId: matchingMortgage?.id || undefined,
       };
       
-      // Mark this asset as synced BEFORE appending to prevent re-triggering
+      // Mark this asset as synced BEFORE updating to prevent re-triggering
       syncedAssetIdsRef.current.add(asset.id);
       
-      // Append the new property
-      appendProperty(newProperty);
+      if (emptyPropertyIndex >= 0) {
+        // Fill the empty property slot instead of appending
+        const existingId = currentProperties[emptyPropertyIndex].id;
+        form.setValue(`properties.${emptyPropertyIndex}`, {
+          id: existingId,
+          ...propertyData,
+        });
+      } else {
+        // No empty slot, append a new property
+        appendProperty({
+          id: `property-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          ...propertyData,
+        });
+      }
     });
   }, [watchedAssets, watchedLiabilities, form, appendProperty]);
 
@@ -1299,7 +1330,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                               step="1"
                               placeholder="0"
                               {...field}
-                              value={field.value ?? ''}
+                              value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                               onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
                             />
                           </FormControl>
@@ -1610,7 +1641,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -1631,7 +1662,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -1652,7 +1683,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -1673,7 +1704,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -1694,7 +1725,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -1715,7 +1746,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -1743,7 +1774,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="e.g., 4500"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -1817,7 +1848,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                           step="any"
                                           placeholder="0"
                                           {...field}
-                                          value={field.value ?? ''}
+                                          value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                           onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         />
                                       </FormControl>
@@ -1936,7 +1967,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                           step="any"
                                           placeholder="0"
                                           {...field}
-                                          value={field.value ?? ''}
+                                          value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                           onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         />
                                       </FormControl>
@@ -1956,7 +1987,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                           step="any"
                                           placeholder="0"
                                           {...field}
-                                          value={field.value ?? ''}
+                                          value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                           onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         />
                                       </FormControl>
@@ -1976,7 +2007,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                           step="any"
                                           placeholder="0"
                                           {...field}
-                                          value={field.value ?? ''}
+                                          value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                           onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                         />
                                       </FormControl>
@@ -1996,7 +2027,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                           step="1"
                                           placeholder="30"
                                           {...field}
-                                          value={field.value ?? ''}
+                                          value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                           onChange={(e) => field.onChange(e.target.value === '' ? 30 : parseInt(e.target.value))}
                                         />
                                       </FormControl>
@@ -2069,7 +2100,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                     step="any"
                                     placeholder="0"
                                     {...field}
-                                    value={field.value ?? ''}
+                                    value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                     onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
@@ -2089,7 +2120,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                     step="any"
                                     placeholder="0"
                                     {...field}
-                                    value={field.value ?? ''}
+                                    value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                     onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
@@ -2109,7 +2140,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                     step="any"
                                     placeholder="0"
                                     {...field}
-                                    value={field.value ?? ''}
+                                    value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                     onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
@@ -2129,7 +2160,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                     step="any"
                                     placeholder="0"
                                     {...field}
-                                    value={field.value ?? ''}
+                                    value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                     onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
@@ -2149,7 +2180,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="1"
                                 placeholder="30"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
                               />
                                 </FormControl>
@@ -2169,7 +2200,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                     step="any"
                                     placeholder="0"
                                     {...field}
-                                    value={field.value ?? ''}
+                                    value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                     onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
@@ -2189,7 +2220,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                     step="any"
                                     placeholder="0"
                                     {...field}
-                                    value={field.value ?? ''}
+                                    value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                     onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   />
                                 </FormControl>
@@ -2222,7 +2253,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="1"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
                               />
                             </FormControl>
@@ -2242,7 +2273,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="1"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
                               />
                             </FormControl>
@@ -2262,7 +2293,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2282,7 +2313,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2302,7 +2333,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2322,7 +2353,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2342,7 +2373,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2362,7 +2393,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2388,7 +2419,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2408,7 +2439,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2428,7 +2459,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2448,7 +2479,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2468,7 +2499,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2488,7 +2519,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2508,7 +2539,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2539,7 +2570,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2559,7 +2590,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2585,7 +2616,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2605,7 +2636,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2625,7 +2656,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2645,7 +2676,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2665,7 +2696,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2685,7 +2716,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2705,7 +2736,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2725,7 +2756,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2745,7 +2776,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2765,7 +2796,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2785,7 +2816,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
@@ -2805,7 +2836,7 @@ export function ClientForm({ clientSlot }: ClientFormProps) {
                                 step="any"
                                 placeholder="0"
                                 {...field}
-                                value={field.value ?? ''}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
