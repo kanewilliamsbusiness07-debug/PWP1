@@ -116,8 +116,10 @@ export default function ProjectionsPage() {
     const loadClientData = async () => {
       // Only load if we don't have any client data
       if (!hasClientA && !hasClientB) {
+        console.log('Projections page: No client data found, loading recent clients...');
         try {
           const recentClients = await loadRecentClients(2); // Load up to 2 most recent clients
+          console.log('Projections page: Loaded recent clients:', recentClients.length);
           
           if (recentClients.length > 0) {
             // Load first client into slot A
@@ -125,6 +127,7 @@ export default function ProjectionsPage() {
               ...recentClients[0],
               dateOfBirth: recentClients[0].dob ? (typeof recentClients[0].dob === 'string' ? new Date(recentClients[0].dob) : recentClients[0].dob) : undefined,
             } as any);
+            console.log('Projections page: Loaded client A:', recentClients[0].firstName, recentClients[0].lastName);
             
             // Load second client into slot B if available
             if (recentClients.length > 1) {
@@ -132,16 +135,21 @@ export default function ProjectionsPage() {
                 ...recentClients[1],
                 dateOfBirth: recentClients[1].dob ? (typeof recentClients[1].dob === 'string' ? new Date(recentClients[1].dob) : recentClients[1].dob) : undefined,
               } as any);
+              console.log('Projections page: Loaded client B:', recentClients[1].firstName, recentClients[1].lastName);
             }
+          } else {
+            console.log('Projections page: No recent clients found');
           }
         } catch (error) {
           console.error('Error loading recent client data:', error);
         }
+      } else {
+        console.log('Projections page: Client data already available - A:', hasClientA, 'B:', hasClientB);
       }
     };
 
     loadClientData();
-  }, [hasClientA, hasClientB, loadRecentClients, financialStore]);
+  }, [hasClientA, hasClientB]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get client names
   const clientAName = clientA ? `${clientA.firstName || ''} ${clientA.lastName || ''}`.trim() || 'Client A' : 'Client A';
@@ -157,9 +165,9 @@ export default function ProjectionsPage() {
 
     // Financial position
     const annualIncome = client.annualIncome ?? client.grossSalary ?? 0;
-    const currentSuper = client.superFundValue ?? 0;
-    const currentSavings = client.savingsValue ?? 0;
-    const currentShares = client.sharesValue ?? 0;
+    const currentSuper = client.currentSuper ?? client.superFundValue ?? 0;
+    const currentSavings = client.currentSavings ?? client.savingsValue ?? 0;
+    const currentShares = client.currentShares ?? client.sharesValue ?? 0;
     const propertyEquity = client.propertyEquity ?? 0;
     const monthlyDebtPayments = client.monthlyDebtPayments ?? 0;
     const monthlyRentalIncome = client.monthlyRentalIncome ?? (client.rentalIncome ? client.rentalIncome / 12 : 0);
