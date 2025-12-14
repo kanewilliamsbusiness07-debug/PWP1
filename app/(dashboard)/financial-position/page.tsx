@@ -64,15 +64,15 @@ export default function FinancialPositionPage() {
   const combinedNetPosition = combinedTotalAssets - combinedTotalLiabilities;
   
   // Combined income
-  const clientAIncome = (clientA?.annualIncome || clientA?.grossSalary || 0) + (clientA?.rentalIncome || 0) + (clientA?.dividends || 0) + (clientA?.otherIncome || 0);
-  const clientBIncome = (clientB?.annualIncome || clientB?.grossSalary || 0) + (clientB?.rentalIncome || 0) + (clientB?.dividends || 0) + (clientB?.otherIncome || 0);
+  const clientAIncome = (clientA?.annualIncome || clientA?.grossSalary || 0) + (clientA?.rentalIncome || 0);
+  const clientBIncome = (clientB?.annualIncome || clientB?.grossSalary || 0) + (clientB?.rentalIncome || 0);
   const combinedIncome = clientAIncome + clientBIncome;
   
-  // Monthly cashflow calculations (monthly income - monthly expenses - monthly debt payments)
+  // Monthly cashflow calculations: (yearly income + rental income) / 12 - monthly living expenses - monthly debt payments
   const clientAMonthlyIncome = clientAIncome / 12;
   const clientBMonthlyIncome = clientBIncome / 12;
-  const clientAMonthlyDebtPayments = clientALiabilities.reduce((sum, l) => sum + (Number(l.monthlyPayment) || 0), 0);
-  const clientBMonthlyDebtPayments = clientBLiabilities.reduce((sum, l) => sum + (Number(l.monthlyPayment) || 0), 0);
+  const clientAMonthlyDebtPayments = clientA?.monthlyDebtPayments || 0;
+  const clientBMonthlyDebtPayments = clientB?.monthlyDebtPayments || 0;
   const clientAMonthlyExpenses = clientA?.monthlyExpenses || 0;
   const clientBMonthlyExpenses = clientB?.monthlyExpenses || 0;
   const clientAMonthlyCashflow = clientAMonthlyIncome - clientAMonthlyExpenses - clientAMonthlyDebtPayments;

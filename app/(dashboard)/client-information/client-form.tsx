@@ -659,7 +659,34 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       if (data.annualIncome !== undefined && data.annualIncome !== null) clientData.annualIncome = Number(data.annualIncome);
       if (data.grossSalary !== undefined && data.grossSalary !== null) clientData.grossSalary = Number(data.grossSalary);
       if (data.rentalIncome !== undefined && data.rentalIncome !== null) clientData.rentalIncome = Number(data.rentalIncome);
-      // Add other numeric financial fields as needed - only those that exist in Prisma schema
+      if (data.dividends !== undefined && data.dividends !== null) clientData.dividends = Number(data.dividends);
+      if (data.frankedDividends !== undefined && data.frankedDividends !== null) clientData.frankedDividends = Number(data.frankedDividends);
+      if (data.capitalGains !== undefined && data.capitalGains !== null) clientData.capitalGains = Number(data.capitalGains);
+      if (data.otherIncome !== undefined && data.otherIncome !== null) clientData.otherIncome = Number(data.otherIncome);
+      if (data.investmentIncome !== undefined && data.investmentIncome !== null) clientData.investmentIncome = Number(data.investmentIncome);
+      if (data.monthlyRentalIncome !== undefined && data.monthlyRentalIncome !== null) clientData.monthlyRentalIncome = Number(data.monthlyRentalIncome);
+      if (data.currentAge !== undefined && data.currentAge !== null) clientData.currentAge = Number(data.currentAge);
+      if (data.retirementAge !== undefined && data.retirementAge !== null) clientData.retirementAge = Number(data.retirementAge);
+      if (data.currentSuper !== undefined && data.currentSuper !== null) clientData.currentSuper = Number(data.currentSuper);
+      if (data.currentSavings !== undefined && data.currentSavings !== null) clientData.currentSavings = Number(data.currentSavings);
+      if (data.currentShares !== undefined && data.currentShares !== null) clientData.currentShares = Number(data.currentShares);
+      if (data.propertyEquity !== undefined && data.propertyEquity !== null) clientData.propertyEquity = Number(data.propertyEquity);
+      if (data.monthlyDebtPayments !== undefined && data.monthlyDebtPayments !== null) clientData.monthlyDebtPayments = Number(data.monthlyDebtPayments);
+      if (data.monthlyExpenses !== undefined && data.monthlyExpenses !== null) clientData.monthlyExpenses = Number(data.monthlyExpenses);
+      if (data.workRelatedExpenses !== undefined && data.workRelatedExpenses !== null) clientData.workRelatedExpenses = Number(data.workRelatedExpenses);
+      if (data.vehicleExpenses !== undefined && data.vehicleExpenses !== null) clientData.vehicleExpenses = Number(data.vehicleExpenses);
+      if (data.uniformsAndLaundry !== undefined && data.uniformsAndLaundry !== null) clientData.uniformsAndLaundry = Number(data.uniformsAndLaundry);
+      if (data.homeOfficeExpenses !== undefined && data.homeOfficeExpenses !== null) clientData.homeOfficeExpenses = Number(data.homeOfficeExpenses);
+      if (data.selfEducationExpenses !== undefined && data.selfEducationExpenses !== null) clientData.selfEducationExpenses = Number(data.selfEducationExpenses);
+      if (data.investmentExpenses !== undefined && data.investmentExpenses !== null) clientData.investmentExpenses = Number(data.investmentExpenses);
+      if (data.charityDonations !== undefined && data.charityDonations !== null) clientData.charityDonations = Number(data.charityDonations);
+      if (data.accountingFees !== undefined && data.accountingFees !== null) clientData.accountingFees = Number(data.accountingFees);
+      if (data.rentalExpenses !== undefined && data.rentalExpenses !== null) clientData.rentalExpenses = Number(data.rentalExpenses);
+      if (data.superContributions !== undefined && data.superContributions !== null) clientData.superContributions = Number(data.superContributions);
+      if (data.healthInsurance !== undefined) clientData.healthInsurance = Boolean(data.healthInsurance);
+      if (data.hecs !== undefined) clientData.hecs = Boolean(data.hecs);
+      if (data.helpDebt !== undefined && data.helpDebt !== null) clientData.helpDebt = Number(data.helpDebt);
+      if (data.privateHealthInsurance !== undefined) clientData.privateHealthInsurance = Boolean(data.privateHealthInsurance);
 
       console.log('Saving client data:', { ...clientData, dob: dobString ? 'provided' : 'missing' });
 
