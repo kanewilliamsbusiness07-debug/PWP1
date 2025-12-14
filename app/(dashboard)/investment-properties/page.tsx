@@ -6,8 +6,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFinancialStore } from '@/lib/store/store';
+import { useClientStorage } from '@/lib/hooks/use-client-storage';
 import { Home, Calculator, TrendingUp, TrendingDown, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +44,7 @@ interface ServiceabilityResult {
   loanToValueRatio: number;
   debtToIncomeRatio: number;
   canAfford: boolean;
-  monthlyShortfall?: number;
+  breakevenMonthlyRent?: number;
   isNegativelyGeared: boolean;
   negativeGearingAmount: number;
   annualTaxBenefit: number;
@@ -68,7 +69,7 @@ interface ServiceabilityResult {
   loanToValueRatio: number;
   debtToIncomeRatio: number;
   canAfford: boolean;
-  monthlyShortfall?: number;
+  breakevenMonthlyRent?: number;
   isNegativelyGeared: boolean;
   negativeGearingAmount: number;
   annualTaxBenefit: number;
@@ -82,11 +83,45 @@ export default function InvestmentPropertiesPage() {
   // Subscribe to client data
   const clientA = useFinancialStore((state) => state.clientA);
   const clientB = useFinancialStore((state) => state.clientB);
+  const financialStore = useFinancialStore();
+  const { loadRecentClients } = useClientStorage();
 
   // Check if we have data in each client slot for combined view
   const hasClientA = clientA && (clientA.firstName || clientA.lastName || (clientA.annualIncome ?? clientA.grossSalary ?? 0) > 0 || ((clientA.properties as Property[])?.length ?? 0) > 0);
   const hasClientB = clientB && (clientB.firstName || clientB.lastName || (clientB.annualIncome ?? clientB.grossSalary ?? 0) > 0 || ((clientB.properties as Property[])?.length ?? 0) > 0);
   const showCombined = hasClientA && hasClientB;
+
+  // Auto-load recent client data if no client data is available
+  useEffect(() => {
+    const loadClientData = async () => {
+      // Only load if we don't have any client data
+      if (!hasClientA && !hasClientB) {
+        try {
+          const recentClients = await loadRecentClients(2); // Load up to 2 most recent clients
+          
+          if (recentClients.length > 0) {
+            // Load first client into slot A
+            financialStore.setClientData('A', {
+              ...recentClients[0],
+              dateOfBirth: recentClients[0].dob ? (typeof recentClients[0].dob === 'string' ? new Date(recentClients[0].dob) : recentClients[0].dob) : undefined,
+            } as any);
+            
+            // Load second client into slot B if available
+            if (recentClients.length > 1) {
+              financialStore.setClientData('B', {
+                ...recentClients[1],
+                dateOfBirth: recentClients[1].dob ? (typeof recentClients[1].dob === 'string' ? new Date(recentClients[1].dob) : recentClients[1].dob) : undefined,
+              } as any);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading recent client data:', error);
+        }
+      }
+    };
+
+    loadClientData();
+  }, [hasClientA, hasClientB, loadRecentClients, financialStore]);
 
   // Get client names
   const clientAName = clientA ? `${clientA.firstName || ''} ${clientA.lastName || ''}`.trim() || 'Client A' : 'Client A';
@@ -149,9 +184,6 @@ export default function InvestmentPropertiesPage() {
     const loanTerm = 30;
     const monthlyLoanPayment = calculateLoanPayment(loanAmount, interestRate, loanTerm);
 
-    const canAfford = monthlyLoanPayment <= availableForNewLoan;
-    const monthlyShortfall = canAfford ? 0 : monthlyLoanPayment - availableForNewLoan;
-
     // Negative gearing analysis
     const expectedRent = (targetPropertyPrice * 0.004); // 0.4% of property value per week
     const annualRent = expectedRent * 52;
@@ -163,13 +195,16 @@ export default function InvestmentPropertiesPage() {
     const monthlyTaxBenefit = annualTaxBenefit / 12;
     const netMonthlyPaymentAfterTax = monthlyLoanPayment - monthlyTaxBenefit;
 
+    const canAfford = monthlyLoanPayment <= availableForNewLoan;
+    const breakevenMonthlyRent = monthlyLoanPayment + (annualPropertyExpenses / 12);
+
     return {
       maxBorrowingCapacity: targetPropertyPrice,
       monthlyServiceCapacity: availableForNewLoan,
       loanToValueRatio: (loanAmount / targetPropertyPrice) * 100,
       debtToIncomeRatio: ((existingDebtPayments + monthlyLoanPayment) / (annualIncome / 12)) * 100,
       canAfford,
-      monthlyShortfall,
+      breakevenMonthlyRent,
       isNegativelyGeared,
       negativeGearingAmount,
       annualTaxBenefit,
@@ -188,7 +223,7 @@ export default function InvestmentPropertiesPage() {
     loanToValueRatio: Math.max(clientAServiceability.loanToValueRatio, clientBServiceability.loanToValueRatio),
     debtToIncomeRatio: Math.max(clientAServiceability.debtToIncomeRatio, clientBServiceability.debtToIncomeRatio),
     canAfford: clientAServiceability.canAfford && clientBServiceability.canAfford,
-    monthlyShortfall: (clientAServiceability.monthlyShortfall ?? 0) + (clientBServiceability.monthlyShortfall ?? 0),
+    breakevenMonthlyRent: (clientAServiceability.breakevenMonthlyRent ?? 0) + (clientBServiceability.breakevenMonthlyRent ?? 0),
     isNegativelyGeared: clientAServiceability.isNegativelyGeared || clientBServiceability.isNegativelyGeared,
     negativeGearingAmount: clientAServiceability.negativeGearingAmount + clientBServiceability.negativeGearingAmount,
     annualTaxBenefit: clientAServiceability.annualTaxBenefit + clientBServiceability.annualTaxBenefit,
@@ -262,7 +297,7 @@ export default function InvestmentPropertiesPage() {
                     ) : (
                       <div className="flex items-center gap-2 text-red-600">
                         <AlertTriangle className="h-5 w-5" />
-                        <span className="font-semibold">Monthly shortfall: ${combinedServiceability?.monthlyShortfall?.toLocaleString() ?? 0}</span>
+                        <span className="font-semibold">Breakeven monthly rent: ${combinedServiceability?.breakevenMonthlyRent?.toLocaleString() ?? 0}</span>
                       </div>
                     )}
                   </div>
@@ -373,7 +408,7 @@ export default function InvestmentPropertiesPage() {
                     ) : (
                       <div className="flex items-center gap-2 text-red-600">
                         <AlertTriangle className="h-5 w-5" />
-                        <span className="font-semibold">Monthly shortfall: ${clientAServiceability.monthlyShortfall?.toLocaleString() ?? 0}</span>
+                        <span className="font-semibold">Breakeven monthly rent: ${clientAServiceability.breakevenMonthlyRent?.toLocaleString() ?? 0}</span>
                       </div>
                     )}
                   </div>
@@ -502,7 +537,7 @@ export default function InvestmentPropertiesPage() {
                     ) : (
                       <div className="flex items-center gap-2 text-red-600">
                         <AlertTriangle className="h-5 w-5" />
-                        <span className="font-semibold">Monthly shortfall: ${clientBServiceability.monthlyShortfall?.toLocaleString() ?? 0}</span>
+                        <span className="font-semibold">Breakeven monthly rent: ${clientBServiceability.breakevenMonthlyRent?.toLocaleString() ?? 0}</span>
                       </div>
                     )}
                   </div>
