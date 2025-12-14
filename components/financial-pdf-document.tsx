@@ -152,6 +152,7 @@ const FinancialPDFDocument: React.FC<PDFProps> = ({
         {chartNetWorth && (
           <View style={styles.chartContainer}>
             <Text style={styles.subheading}>Net Worth Chart</Text>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={chartNetWorth} style={styles.chartImage} />
           </View>
         )}
@@ -159,6 +160,7 @@ const FinancialPDFDocument: React.FC<PDFProps> = ({
         {chartCashFlow && (
           <View style={styles.chartContainer}>
             <Text style={styles.subheading}>Cash Flow Chart</Text>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={chartCashFlow} style={styles.chartImage} />
           </View>
         )}
@@ -166,6 +168,7 @@ const FinancialPDFDocument: React.FC<PDFProps> = ({
         {chartAssets && (
           <View style={styles.chartContainer}>
             <Text style={styles.subheading}>Asset Allocation</Text>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={chartAssets} style={styles.chartImage} />
           </View>
         )}

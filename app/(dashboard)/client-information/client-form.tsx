@@ -134,6 +134,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     firstName: '',
     lastName: '',
     middleName: '',
+    dob: null,
     email: '',
     mobile: '',
     phoneNumber: '',
@@ -1014,6 +1015,13 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     resetClient: () => {
       const emptyData = getEmptyClientData();
       form.reset(emptyData);
+      // Clear date input state
+      setDobDay('');
+      setDobMonth('');
+      setDobYear('');
+      setPartnerDobDay('');
+      setPartnerDobMonth('');
+      setPartnerDobYear('');
       financialStore.setClientData(clientSlot, emptyData as any);
     },
     deleteClient: async () => {
