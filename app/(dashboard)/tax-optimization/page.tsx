@@ -17,22 +17,32 @@ import { useFinancialStore } from '@/lib/store/store';
 const calculateTax = (client: any) => {
   if (!client) return null;
 
-  const annualIncome = client.annualIncome ?? client.grossSalary ?? 0;
-  const employmentIncome = client.employmentIncome ?? 0;
+  // Primary income (these are synonymous fields)
+  const primaryIncome = client.annualIncome ?? client.grossSalary ?? client.employmentIncome ?? 0;
   const investmentIncome = client.investmentIncome ?? 0;
   const rentalIncome = client.rentalIncome ?? 0;
+  const dividends = client.dividends ?? 0;
+  const frankedDividends = client.frankedDividends ?? 0;
+  const capitalGains = client.capitalGains ?? 0;
   const otherIncome = client.otherIncome ?? 0;
 
-  const totalIncome = annualIncome + employmentIncome + investmentIncome + rentalIncome + otherIncome;
+  const totalIncome = primaryIncome + investmentIncome + rentalIncome + dividends + frankedDividends + capitalGains + otherIncome;
 
   // Deductions
   const workRelatedExpenses = client.workRelatedExpenses ?? 0;
   const vehicleExpenses = client.vehicleExpenses ?? 0;
+  const uniformsAndLaundry = client.uniformsAndLaundry ?? 0;
   const homeOfficeExpenses = client.homeOfficeExpenses ?? 0;
+  const selfEducationExpenses = client.selfEducationExpenses ?? 0;
   const investmentExpenses = client.investmentExpenses ?? 0;
-  const otherDeductions = client.otherDeductions ?? 0;
+  const charityDonations = client.charityDonations ?? 0;
+  const accountingFees = client.accountingFees ?? 0;
+  const rentalExpenses = client.rentalExpenses ?? 0;
+  const superContributions = client.superContributions ?? 0;
 
-  const totalDeductions = workRelatedExpenses + vehicleExpenses + homeOfficeExpenses + investmentExpenses + otherDeductions;
+  const totalDeductions = workRelatedExpenses + vehicleExpenses + uniformsAndLaundry + homeOfficeExpenses + 
+                         selfEducationExpenses + investmentExpenses + charityDonations + accountingFees + 
+                         rentalExpenses + superContributions;
   const taxableIncome = Math.max(0, totalIncome - totalDeductions);
 
   // Australian Tax Brackets 2023-24
@@ -75,15 +85,15 @@ const calculateTax = (client: any) => {
     netIncome,
     effectiveRate,
     incomeBreakdown: {
-      employmentIncome: employmentIncome + annualIncome,
+      employmentIncome: primaryIncome,
       investmentIncome,
       rentalIncome,
-      otherIncome
+      otherIncome: dividends + frankedDividends + capitalGains + otherIncome
     },
     deductionsBreakdown: {
-      workRelated: workRelatedExpenses + vehicleExpenses + homeOfficeExpenses,
+      workRelated: workRelatedExpenses + vehicleExpenses + uniformsAndLaundry + homeOfficeExpenses + selfEducationExpenses,
       investment: investmentExpenses,
-      other: otherDeductions
+      other: charityDonations + accountingFees + rentalExpenses + superContributions
     }
   };
 };
