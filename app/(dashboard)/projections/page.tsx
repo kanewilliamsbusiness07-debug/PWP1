@@ -6,8 +6,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFinancialStore } from '@/lib/store/store';
+import { useClientStorage } from '@/lib/hooks/use-client-storage';
 import { Calculator, TriangleAlert, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -102,11 +103,45 @@ export default function ProjectionsPage() {
   const activeClient = useFinancialStore((state) => state.activeClient);
   const clientA = useFinancialStore((state) => state.clientA);
   const clientB = useFinancialStore((state) => state.clientB);
+  const financialStore = useFinancialStore();
+  const { loadRecentClients } = useClientStorage();
 
   // Check if we have data in each client slot for combined view
   const hasClientA = clientA && (clientA.firstName || clientA.lastName || (clientA.annualIncome ?? clientA.grossSalary ?? 0) > 0);
   const hasClientB = clientB && (clientB.firstName || clientB.lastName || (clientB.annualIncome ?? clientB.grossSalary ?? 0) > 0);
   const showCombined = hasClientA && hasClientB;
+
+  // Auto-load recent client data if no client data is available
+  useEffect(() => {
+    const loadClientData = async () => {
+      // Only load if we don't have any client data
+      if (!hasClientA && !hasClientB) {
+        try {
+          const recentClients = await loadRecentClients(2); // Load up to 2 most recent clients
+          
+          if (recentClients.length > 0) {
+            // Load first client into slot A
+            financialStore.setClientData('A', {
+              ...recentClients[0],
+              dateOfBirth: recentClients[0].dob ? (typeof recentClients[0].dob === 'string' ? new Date(recentClients[0].dob) : recentClients[0].dob) : undefined,
+            } as any);
+            
+            // Load second client into slot B if available
+            if (recentClients.length > 1) {
+              financialStore.setClientData('B', {
+                ...recentClients[1],
+                dateOfBirth: recentClients[1].dob ? (typeof recentClients[1].dob === 'string' ? new Date(recentClients[1].dob) : recentClients[1].dob) : undefined,
+              } as any);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading recent client data:', error);
+        }
+      }
+    };
+
+    loadClientData();
+  }, [hasClientA, hasClientB, loadRecentClients, financialStore]);
 
   // Get client names
   const clientAName = clientA ? `${clientA.firstName || ''} ${clientA.lastName || ''}`.trim() || 'Client A' : 'Client A';
