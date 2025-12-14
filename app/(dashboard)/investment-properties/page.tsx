@@ -96,8 +96,10 @@ export default function InvestmentPropertiesPage() {
     const loadClientData = async () => {
       // Only load if we don't have any client data
       if (!hasClientA && !hasClientB) {
+        console.log('Investment Properties page: No client data found, loading recent clients...');
         try {
           const recentClients = await loadRecentClients(2); // Load up to 2 most recent clients
+          console.log('Investment Properties page: Loaded recent clients:', recentClients.length);
           
           if (recentClients.length > 0) {
             // Load first client into slot A
@@ -105,6 +107,7 @@ export default function InvestmentPropertiesPage() {
               ...recentClients[0],
               dateOfBirth: recentClients[0].dob ? (typeof recentClients[0].dob === 'string' ? new Date(recentClients[0].dob) : recentClients[0].dob) : undefined,
             } as any);
+            console.log('Investment Properties page: Loaded client A:', recentClients[0].firstName, recentClients[0].lastName);
             
             // Load second client into slot B if available
             if (recentClients.length > 1) {
@@ -112,16 +115,21 @@ export default function InvestmentPropertiesPage() {
                 ...recentClients[1],
                 dateOfBirth: recentClients[1].dob ? (typeof recentClients[1].dob === 'string' ? new Date(recentClients[1].dob) : recentClients[1].dob) : undefined,
               } as any);
+              console.log('Investment Properties page: Loaded client B:', recentClients[1].firstName, recentClients[1].lastName);
             }
+          } else {
+            console.log('Investment Properties page: No recent clients found');
           }
         } catch (error) {
           console.error('Error loading recent client data:', error);
         }
+      } else {
+        console.log('Investment Properties page: Client data already available - A:', hasClientA, 'B:', hasClientB);
       }
     };
 
     loadClientData();
-  }, [hasClientA, hasClientB, loadRecentClients, financialStore]);
+  }, [hasClientA, hasClientB]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get client names
   const clientAName = clientA ? `${clientA.firstName || ''} ${clientA.lastName || ''}`.trim() || 'Client A' : 'Client A';
@@ -169,7 +177,7 @@ export default function InvestmentPropertiesPage() {
     const annualIncome = client.annualIncome ?? client.grossSalary ?? 0;
     const monthlyExpenses = client.monthlyExpenses ?? 0;
     const existingDebtPayments = client.monthlyDebtPayments ?? 0;
-    const cashSavings = client.savingsValue ?? 0;
+    const cashSavings = client.currentSavings ?? client.savingsValue ?? 0;
 
     // Assume target property price based on income (simplified calculation)
     const targetPropertyPrice = annualIncome * 4; // 4x annual income rule
