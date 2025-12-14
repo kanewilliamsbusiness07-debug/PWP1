@@ -478,47 +478,50 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       isInitialMountRef.current = false;
       previousClientIdRef.current = currentClientId;
       previousClientDbIdRef.current = clientDbId;
-      
-      // Initialize date dropdowns from client data
-      let dobValue: Date | null = null;
-      const clientDob = client.dob || client.dateOfBirth;
-      if (clientDob) {
-        const dob = clientDob instanceof Date ? clientDob : new Date(clientDob);
-        if (!isNaN(dob.getTime())) {
-          dobValue = dob;
-          setDobDay(dob.getDate().toString());
-          setDobMonth((dob.getMonth() + 1).toString());
-          setDobYear(dob.getFullYear().toString());
-        } else {
-          setDobDay('');
-          setDobMonth('');
-          setDobYear('');
-        }
+    }
+    
+    // Always initialize date dropdowns from client data (whether resetting or not)
+    let dobValue: Date | null = null;
+    const clientDob = client?.dob || client?.dateOfBirth;
+    if (clientDob) {
+      const dob = clientDob instanceof Date ? clientDob : new Date(clientDob);
+      if (!isNaN(dob.getTime())) {
+        dobValue = dob;
+        setDobDay(dob.getDate().toString());
+        setDobMonth((dob.getMonth() + 1).toString());
+        setDobYear(dob.getFullYear().toString());
       } else {
         setDobDay('');
         setDobMonth('');
         setDobYear('');
       }
-      
-      // Initialize partner date dropdowns from client data
-      let partnerDobValue: Date | null = null;
-      if (client.partnerDateOfBirth) {
-        const partnerDob = client.partnerDateOfBirth instanceof Date ? client.partnerDateOfBirth : new Date(client.partnerDateOfBirth);
-        if (!isNaN(partnerDob.getTime())) {
-          partnerDobValue = partnerDob;
-          setPartnerDobDay(partnerDob.getDate().toString());
-          setPartnerDobMonth((partnerDob.getMonth() + 1).toString());
-          setPartnerDobYear(partnerDob.getFullYear().toString());
-        } else {
-          setPartnerDobDay('');
-          setPartnerDobMonth('');
-          setPartnerDobYear('');
-        }
+    } else {
+      setDobDay('');
+      setDobMonth('');
+      setDobYear('');
+    }
+    
+    // Always initialize partner date dropdowns from client data
+    let partnerDobValue: Date | null = null;
+    if (client?.partnerDateOfBirth) {
+      const partnerDob = client.partnerDateOfBirth instanceof Date ? client.partnerDateOfBirth : new Date(client.partnerDateOfBirth);
+      if (!isNaN(partnerDob.getTime())) {
+        partnerDobValue = partnerDob;
+        setPartnerDobDay(partnerDob.getDate().toString());
+        setPartnerDobMonth((partnerDob.getMonth() + 1).toString());
+        setPartnerDobYear(partnerDob.getFullYear().toString());
       } else {
         setPartnerDobDay('');
         setPartnerDobMonth('');
         setPartnerDobYear('');
       }
+    } else {
+      setPartnerDobDay('');
+      setPartnerDobMonth('');
+      setPartnerDobYear('');
+    }
+    
+    if (shouldReset) {
       
       form.reset({
         firstName: client.firstName || '',
