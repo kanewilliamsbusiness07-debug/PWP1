@@ -1338,6 +1338,7 @@ export function PDFReport({ data, chartImages = [] }: PDFReportProps) {
         {/* Chart Section */}
         <View style={styles.chartSection}>
           {getChartImage('serviceability') ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
             <Image style={styles.largeChart} src={getChartImage('serviceability')} />
           ) : (
             <Text style={styles.captionText}>Serviceability Chart</Text>
@@ -1419,6 +1420,7 @@ export function PDFReport({ data, chartImages = [] }: PDFReportProps) {
         {/* Chart Section */}
         <View style={styles.chartSection}>
           {getChartImage('cashflow') ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
             <Image style={styles.largeChart} src={getChartImage('cashflow')} />
           ) : (
             <Text style={styles.captionText}>Cash Flow Chart</Text>
@@ -1543,6 +1545,7 @@ export function PDFReport({ data, chartImages = [] }: PDFReportProps) {
         {/* Chart Section */}
         <View style={styles.chartSection}>
           {getChartImage('networth') ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
             <Image style={styles.largeChart} src={getChartImage('networth')} />
           ) : (
             <Text style={styles.captionText}>Net Worth Chart</Text>
@@ -1733,6 +1736,7 @@ export function PDFReport({ data, chartImages = [] }: PDFReportProps) {
         {/* Chart Section */}
         <View style={styles.chartSection}>
           {getChartImage('retirement') ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
             <Image style={styles.largeChart} src={getChartImage('retirement')} />
           ) : (
             <Text style={styles.captionText}>Retirement Projection Chart</Text>
@@ -1833,6 +1837,7 @@ export function PDFReport({ data, chartImages = [] }: PDFReportProps) {
         {/* Chart Section */}
         <View style={styles.chartSection}>
           {getChartImage('tax') ? (
+            // eslint-disable-next-line jsx-a11y/alt-text
             <Image style={styles.largeChart} src={getChartImage('tax')} />
           ) : (
             <Text style={styles.captionText}>Tax Optimization Chart</Text>
