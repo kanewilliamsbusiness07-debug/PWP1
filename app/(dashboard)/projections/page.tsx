@@ -258,7 +258,11 @@ export default function ProjectionsPage() {
         isDeficit: clientAProjection.isDeficit,
       };
       
-      console.log('=== PROJECTIONS PAGE: Saving Client A results to global state ===', clientAResults);
+      const currentResults = useFinancialStore.getState().results || {};
+      useFinancialStore.getState().setResults({
+        ...currentResults,
+        clientA: clientAResults,
+      });
     }
   }, [clientAProjection]);
 

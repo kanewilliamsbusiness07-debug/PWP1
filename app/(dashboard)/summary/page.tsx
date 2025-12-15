@@ -341,7 +341,7 @@ export default function SummaryPage() {
     if (storedProjectionResults && storedProjectionResults.projectedLumpSum > 0) {
       // Use stored values from Projections page for consistency
       projectedRetirementLumpSum = storedProjectionResults.projectedLumpSum;
-      projectedRetirementMonthlyCashFlow = storedProjectionResults.projectedMonthlyPassiveIncome;
+      projectedRetirementMonthlyCashFlow = storedProjectionResults.monthlyPassiveIncome;
       retirementDeficitSurplus = storedProjectionResults.monthlyDeficitSurplus;
       isRetirementDeficit = storedProjectionResults.isDeficit;
     } else {
