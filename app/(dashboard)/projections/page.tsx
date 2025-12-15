@@ -242,6 +242,64 @@ export default function ProjectionsPage() {
     projectedProperty: clientAProjection.projectedProperty + clientBProjection.projectedProperty
   } : null;
 
+  // Save projection results to global state for cross-page access
+  useEffect(() => {
+    if (clientAProjection) {
+      const clientAResults = {
+        projectedLumpSum: clientAProjection.projectedLumpSum,
+        monthlyPassiveIncome: clientAProjection.currentPassiveIncome / 12,
+        yearsToRetirement: clientAProjection.yearsToRetirement,
+        requiredIncome: clientAProjection.requiredIncome,
+        monthlyDeficitSurplus: clientAProjection.monthlyDeficitSurplus,
+        isDeficit: clientAProjection.isDeficit,
+      };
+      
+      console.log('=== PROJECTIONS PAGE: Saving Client A results to global state ===', clientAResults);
+      const currentResults = financialStore.results || {};
+      financialStore.setResults({
+        ...currentResults,
+        clientA: clientAResults,
+      });
+    }
+  }, [clientAProjection, financialStore]);
+
+  useEffect(() => {
+    if (clientBProjection) {
+      const clientBResults = {
+        projectedLumpSum: clientBProjection.projectedLumpSum,
+        monthlyPassiveIncome: clientBProjection.currentPassiveIncome / 12,
+        yearsToRetirement: clientBProjection.yearsToRetirement,
+        requiredIncome: clientBProjection.requiredIncome,
+        monthlyDeficitSurplus: clientBProjection.monthlyDeficitSurplus,
+        isDeficit: clientBProjection.isDeficit,
+      };
+      
+      console.log('=== PROJECTIONS PAGE: Saving Client B results to global state ===', clientBResults);
+      const currentResults = financialStore.results || {};
+      financialStore.setResults({
+        ...currentResults,
+        clientB: clientBResults,
+      });
+    }
+  }, [clientBProjection, financialStore]);
+
+  useEffect(() => {
+    if (combinedProjection) {
+      const combinedResults = {
+        totalProjectedLumpSum: combinedProjection.projectedLumpSum,
+        totalMonthlyIncome: combinedProjection.currentPassiveIncome / 12,
+        combinedSurplusDeficit: combinedProjection.monthlyDeficitSurplus,
+      };
+      
+      console.log('=== PROJECTIONS PAGE: Saving combined results to global state ===', combinedResults);
+      const currentResults = financialStore.results || {};
+      financialStore.setResults({
+        ...currentResults,
+        combined: combinedResults,
+      });
+    }
+  }, [combinedProjection, financialStore]);
+
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-8">
       {/* Header */}

@@ -172,7 +172,7 @@ export default function SummaryPage() {
   // Check if we have both clients for combined view
   const showCombined = hasClientA && hasClientB;
   
-  const calculateSummaryForClient = (client: any): FinancialSummary => {
+  const calculateSummaryForClient = (client: any, clientKey: 'clientA' | 'clientB'): FinancialSummary => {
     
     // Debug logging to help track data flow
     console.log('=== SUMMARY PAGE: calculateSummary called ===');
@@ -180,6 +180,10 @@ export default function SummaryPage() {
     console.log('Client data:', client ? 'exists' : 'null');
     console.log('Client projectionResults:', client?.projectionResults);
     console.log('Client taxOptimizationResults:', client?.taxOptimizationResults);
+    console.log('Client annualIncome:', client?.annualIncome);
+    console.log('Client currentSuper:', client?.currentSuper);
+    console.log('Client currentSavings:', client?.currentSavings);
+    console.log('Client currentShares:', client?.currentShares);
     
     const clientName = client 
       ? `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Client'
@@ -334,9 +338,18 @@ export default function SummaryPage() {
       savingsValue = client?.savingsValue || client?.currentSavings || financialStore.cashSavings || 0;
     }
 
-    // Use stored projection results from Projections page if available
+    // Use stored projection results from global state first, then client data
     // This ensures Summary page shows the SAME values as the Projections page
-    const storedProjectionResults = client?.projectionResults;
+    const globalResults = financialStore.results;
+    const clientResults = client?.projectionResults;
+    const storedProjectionResults = globalResults?.[clientKey] || clientResults;
+    
+    console.log('=== SUMMARY PAGE: Checking results sources ===');
+    console.log('Global results:', globalResults);
+    console.log('Client key:', clientKey);
+    console.log('Global results for client:', globalResults?.[clientKey]);
+    console.log('Client results:', clientResults);
+    console.log('Using stored results:', storedProjectionResults);
     
     let projectedRetirementLumpSum: number;
     let projectedRetirementMonthlyCashFlow: number;
@@ -543,15 +556,16 @@ export default function SummaryPage() {
 
   // Wrapper for backward compatibility
   const calculateSummary = (): FinancialSummary => {
-    return calculateSummaryForClient(activeClient);
+    const clientKey = activeClientSlot === 'A' ? 'clientA' : 'clientB';
+    return calculateSummaryForClient(activeClient, clientKey);
   };
 
   useEffect(() => {
     setSummary(calculateSummary());
     
     // Calculate for both clients
-    const calcA = hasClientA ? calculateSummaryForClient(clientA) : defaultSummary;
-    const calcB = hasClientB ? calculateSummaryForClient(clientB) : defaultSummary;
+    const calcA = hasClientA ? calculateSummaryForClient(clientA, 'clientA') : defaultSummary;
+    const calcB = hasClientB ? calculateSummaryForClient(clientB, 'clientB') : defaultSummary;
     
     setSummaryA(calcA);
     setSummaryB(calcB);

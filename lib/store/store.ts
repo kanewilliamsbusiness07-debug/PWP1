@@ -278,6 +278,39 @@ interface SharedAssumptions {
   hecsThreshold: number;
 }
 
+// Calculation Results stored globally for cross-page access
+interface CalculationResults {
+  clientA?: {
+    projectedLumpSum: number;
+    monthlyPassiveIncome: number;
+    yearsToRetirement: number;
+    requiredIncome: number;
+    monthlyDeficitSurplus: number;
+    isDeficit: boolean;
+    currentTax?: number;
+    optimizedTax?: number;
+    taxSavings?: number;
+  };
+  clientB?: {
+    projectedLumpSum: number;
+    monthlyPassiveIncome: number;
+    yearsToRetirement: number;
+    requiredIncome: number;
+    monthlyDeficitSurplus: number;
+    isDeficit: boolean;
+    currentTax?: number;
+    optimizedTax?: number;
+    taxSavings?: number;
+  };
+  combined?: {
+    totalProjectedLumpSum: number;
+    totalMonthlyIncome: number;
+    combinedSurplusDeficit: number;
+    totalTax?: number;
+    totalTaxSavings?: number;
+  };
+}
+
 // Financial data structure
 type FinancialFields = {
   // Income
@@ -316,6 +349,9 @@ type FinancialFields = {
   // Shared Assumptions (apply to both clients)
   sharedAssumptions: SharedAssumptions;
 
+  // Calculation Results (stored globally for cross-page access)
+  results?: CalculationResults;
+
   // Computed Values
   totalIncome: number;
   netIncome: number;
@@ -339,6 +375,9 @@ interface FinancialStore extends FinancialFields {
   
   // Set active client
   setActiveClient: (client: "A" | "B") => void;
+
+  // Set calculation results
+  setResults: (results: CalculationResults) => void;
 
   // Set income data
   setIncomeData: (data: Partial<Pick<FinancialFields, 'grossIncome' | 'employmentIncome' | 'investmentIncome' | 'rentalIncome' | 'frankedDividends' | 'otherIncome'>>) => void;
@@ -382,6 +421,7 @@ const initialState: FinancialFields = {
   totalDebt: 0,
   totalIncome: 0,
   netIncome: 0,
+  results: undefined,
   sharedAssumptions: {
     inflationRate: 2.5,
     salaryGrowthRate: 3.0,
@@ -539,6 +579,8 @@ export const useFinancialStore = create<FinancialStore>()(
       
       setActiveClient: (client) => set({ activeClient: client }),
 
+      setResults: (results) => set({ results }),
+
       setIncomeData: (data) => {
         set((state) => {
           const newState = { ...state, ...data };
@@ -667,3 +709,6 @@ export const useFinancialStore = create<FinancialStore>()(
     }
   )
 );
+
+// Alias for compatibility with diagnostic guides
+export const useGlobalState = useFinancialStore;
