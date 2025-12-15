@@ -174,17 +174,6 @@ export default function SummaryPage() {
   
   const calculateSummaryForClient = (client: any, clientKey: 'clientA' | 'clientB'): FinancialSummary => {
     
-    // Debug logging to help track data flow
-    console.log('=== SUMMARY PAGE: calculateSummary called ===');
-    console.log('Active client slot:', activeClientSlot);
-    console.log('Client data:', client ? 'exists' : 'null');
-    console.log('Client projectionResults:', client?.projectionResults);
-    console.log('Client taxOptimizationResults:', client?.taxOptimizationResults);
-    console.log('Client annualIncome:', client?.annualIncome);
-    console.log('Client currentSuper:', client?.currentSuper);
-    console.log('Client currentSavings:', client?.currentSavings);
-    console.log('Client currentShares:', client?.currentShares);
-    
     const clientName = client 
       ? `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Client'
       : 'No Client Selected';
@@ -344,13 +333,6 @@ export default function SummaryPage() {
     const clientResults = client?.projectionResults;
     const storedProjectionResults = globalResults?.[clientKey] || clientResults;
     
-    console.log('=== SUMMARY PAGE: Checking results sources ===');
-    console.log('Global results:', globalResults);
-    console.log('Client key:', clientKey);
-    console.log('Global results for client:', globalResults?.[clientKey]);
-    console.log('Client results:', clientResults);
-    console.log('Using stored results:', storedProjectionResults);
-    
     let projectedRetirementLumpSum: number;
     let projectedRetirementMonthlyCashFlow: number;
     let retirementDeficitSurplus: number;
@@ -362,16 +344,8 @@ export default function SummaryPage() {
       projectedRetirementMonthlyCashFlow = storedProjectionResults.projectedMonthlyPassiveIncome;
       retirementDeficitSurplus = storedProjectionResults.monthlyDeficitSurplus;
       isRetirementDeficit = storedProjectionResults.isDeficit;
-      
-      console.log('=== SUMMARY: Using stored projection results ===');
-      console.log('Projected Lump Sum:', projectedRetirementLumpSum);
-      console.log('Monthly Passive Income:', projectedRetirementMonthlyCashFlow);
-      console.log('Monthly Deficit/Surplus:', retirementDeficitSurplus);
-      console.log('Is Deficit:', isRetirementDeficit);
-      console.log('Calculated At:', storedProjectionResults.calculatedAt);
     } else {
       // Fallback: Calculate using default assumptions if projections haven't been run
-      console.log('=== SUMMARY: No stored projections, using fallback calculation ===');
       
       const currentAssetsForRetirement = {
         super: superFundValue,
