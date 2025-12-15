@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Calculator } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -152,13 +152,13 @@ export default function TaxOptimizationPage() {
   const clientAName = clientA ? `${clientA.firstName || ''} ${clientA.lastName || ''}`.trim() || 'Client A' : 'Client A';
   const clientBName = clientB ? `${clientB.firstName || ''} ${clientB.lastName || ''}`.trim() || 'Client B' : 'Client B';
 
-  // Calculate tax for each client
-  const clientATax = calculateTax(clientA);
-  const clientBTax = calculateTax(clientB);
+  // Calculate tax for each client (memoized to prevent infinite loops)
+  const clientATax = useMemo(() => calculateTax(clientA), [clientA]);
+  const clientBTax = useMemo(() => calculateTax(clientB), [clientB]);
 
   // Calculate optimization strategies
-  const clientAOptimizations = calculateOptimizationStrategies(clientA);
-  const clientBOptimizations = calculateOptimizationStrategies(clientB);
+  const clientAOptimizations = useMemo(() => calculateOptimizationStrategies(clientA), [clientA]);
+  const clientBOptimizations = useMemo(() => calculateOptimizationStrategies(clientB), [clientB]);
 
   // Save tax optimization results to global state for consistency across pages
   useEffect(() => {

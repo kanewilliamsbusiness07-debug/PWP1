@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useFinancialStore } from '@/lib/store/store';
 import { useClientStorage } from '@/lib/hooks/use-client-storage';
 import { Calculator, TriangleAlert, CheckCircle } from 'lucide-react';
@@ -222,25 +222,29 @@ export default function ProjectionsPage() {
     };
   };
 
-  const clientAProjection = calculateClientProjection(clientA);
-  const clientBProjection = calculateClientProjection(clientB);
+  const clientAProjection = useMemo(() => calculateClientProjection(clientA), [clientA]);
+  const clientBProjection = useMemo(() => calculateClientProjection(clientB), [clientB]);
 
   // Combined projections
-  const combinedProjection = showCombined && clientAProjection && clientBProjection ? {
-    currentAge: Math.min(clientAProjection.currentAge, clientBProjection.currentAge),
-    retirementAge: Math.max(clientAProjection.retirementAge, clientBProjection.retirementAge),
-    yearsToRetirement: Math.max(clientAProjection.yearsToRetirement, clientBProjection.yearsToRetirement),
-    annualIncome: clientAProjection.annualIncome + clientBProjection.annualIncome,
-    totalWealth: clientAProjection.totalWealth + clientBProjection.totalWealth,
-    projectedLumpSum: clientAProjection.projectedLumpSum + clientBProjection.projectedLumpSum,
-    requiredIncome: clientAProjection.requiredIncome + clientBProjection.requiredIncome,
-    currentPassiveIncome: clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome,
-    monthlyDeficitSurplus: Math.abs((clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome) - (clientAProjection.requiredIncome + clientBProjection.requiredIncome)) / 12,
-    isDeficit: (clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome) < (clientAProjection.requiredIncome + clientBProjection.requiredIncome),
-    projectedSuper: clientAProjection.projectedSuper + clientBProjection.projectedSuper,
-    projectedShares: clientAProjection.projectedShares + clientBProjection.projectedShares,
-    projectedProperty: clientAProjection.projectedProperty + clientBProjection.projectedProperty
-  } : null;
+  const combinedProjection = useMemo(() => {
+    if (!showCombined || !clientAProjection || !clientBProjection) return null;
+    
+    return {
+      currentAge: Math.min(clientAProjection.currentAge, clientBProjection.currentAge),
+      retirementAge: Math.max(clientAProjection.retirementAge, clientBProjection.retirementAge),
+      yearsToRetirement: Math.max(clientAProjection.yearsToRetirement, clientBProjection.yearsToRetirement),
+      annualIncome: clientAProjection.annualIncome + clientBProjection.annualIncome,
+      totalWealth: clientAProjection.totalWealth + clientBProjection.totalWealth,
+      projectedLumpSum: clientAProjection.projectedLumpSum + clientBProjection.projectedLumpSum,
+      requiredIncome: clientAProjection.requiredIncome + clientBProjection.requiredIncome,
+      currentPassiveIncome: clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome,
+      monthlyDeficitSurplus: Math.abs((clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome) - (clientAProjection.requiredIncome + clientBProjection.requiredIncome)) / 12,
+      isDeficit: (clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome) < (clientAProjection.requiredIncome + clientBProjection.requiredIncome),
+      projectedSuper: clientAProjection.projectedSuper + clientBProjection.projectedSuper,
+      projectedShares: clientAProjection.projectedShares + clientBProjection.projectedShares,
+      projectedProperty: clientAProjection.projectedProperty + clientBProjection.projectedProperty
+    };
+  }, [showCombined, clientAProjection, clientBProjection]);
 
   // Save projection results to global state for cross-page access
   useEffect(() => {
@@ -255,13 +259,8 @@ export default function ProjectionsPage() {
       };
       
       console.log('=== PROJECTIONS PAGE: Saving Client A results to global state ===', clientAResults);
-      const currentResults = financialStore.results || {};
-      financialStore.setResults({
-        ...currentResults,
-        clientA: clientAResults,
-      });
     }
-  }, [clientAProjection, financialStore]);
+  }, [clientAProjection]);
 
   useEffect(() => {
     if (clientBProjection) {
@@ -274,14 +273,14 @@ export default function ProjectionsPage() {
         isDeficit: clientBProjection.isDeficit,
       };
       
-      console.log('=== PROJECTIONS PAGE: Saving Client B results to global state ===', clientBResults);
-      const currentResults = financialStore.results || {};
-      financialStore.setResults({
+
+      const currentResults = useFinancialStore.getState().results || {};
+      useFinancialStore.getState().setResults({
         ...currentResults,
         clientB: clientBResults,
       });
     }
-  }, [clientBProjection, financialStore]);
+  }, [clientBProjection]);
 
   useEffect(() => {
     if (combinedProjection) {
@@ -292,13 +291,13 @@ export default function ProjectionsPage() {
       };
       
       console.log('=== PROJECTIONS PAGE: Saving combined results to global state ===', combinedResults);
-      const currentResults = financialStore.results || {};
-      financialStore.setResults({
+      const currentResults = useFinancialStore.getState().results || {};
+      useFinancialStore.getState().setResults({
         ...currentResults,
         combined: combinedResults,
       });
     }
-  }, [combinedProjection, financialStore]);
+  }, [combinedProjection]);
 
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-8">
