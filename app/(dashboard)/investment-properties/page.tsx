@@ -96,35 +96,41 @@ export default function InvestmentPropertiesPage() {
     const loadClientData = async () => {
       // Only load if we don't have any client data
       if (!hasClientA && !hasClientB) {
-        console.log('Investment Properties page: No client data found, loading recent clients...');
         try {
-          const recentClients = await loadRecentClients(2); // Load up to 2 most recent clients
-          console.log('Investment Properties page: Loaded recent clients:', recentClients.length);
+          let clients = await loadRecentClients(2); // Load up to 2 most recent clients
           
-          if (recentClients.length > 0) {
+          // If no recent clients found, try to load all clients
+          if (clients.length === 0) {
+            try {
+              const response = await fetch('/api/clients?limit=2', {
+                credentials: 'include',
+              });
+              if (response.ok) {
+                clients = await response.json();
+              }
+            } catch (apiError) {
+              console.error('Error loading all clients from API:', apiError);
+            }
+          }
+          
+          if (clients.length > 0) {
             // Load first client into slot A
             financialStore.setClientData('A', {
-              ...recentClients[0],
-              dateOfBirth: recentClients[0].dob ? (typeof recentClients[0].dob === 'string' ? new Date(recentClients[0].dob) : recentClients[0].dob) : undefined,
+              ...clients[0],
+              dateOfBirth: clients[0].dob ? (typeof clients[0].dob === 'string' ? new Date(clients[0].dob) : clients[0].dob) : undefined,
             } as any);
-            console.log('Investment Properties page: Loaded client A:', recentClients[0].firstName, recentClients[0].lastName);
             
             // Load second client into slot B if available
-            if (recentClients.length > 1) {
+            if (clients.length > 1) {
               financialStore.setClientData('B', {
-                ...recentClients[1],
-                dateOfBirth: recentClients[1].dob ? (typeof recentClients[1].dob === 'string' ? new Date(recentClients[1].dob) : recentClients[1].dob) : undefined,
+                ...clients[1],
+                dateOfBirth: clients[1].dob ? (typeof clients[1].dob === 'string' ? new Date(clients[1].dob) : clients[1].dob) : undefined,
               } as any);
-              console.log('Investment Properties page: Loaded client B:', recentClients[1].firstName, recentClients[1].lastName);
             }
-          } else {
-            console.log('Investment Properties page: No recent clients found');
           }
         } catch (error) {
-          console.error('Error loading recent client data:', error);
+          console.error('Error loading client data:', error);
         }
-      } else {
-        console.log('Investment Properties page: Client data already available - A:', hasClientA, 'B:', hasClientB);
       }
     };
 
