@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calculator } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -159,6 +159,63 @@ export default function TaxOptimizationPage() {
   // Calculate optimization strategies
   const clientAOptimizations = calculateOptimizationStrategies(clientA);
   const clientBOptimizations = calculateOptimizationStrategies(clientB);
+
+  // Save tax optimization results to global state for consistency across pages
+  useEffect(() => {
+    if (clientATax) {
+      const clientATaxResults = {
+        currentTax: clientATax.totalTax,
+        optimizedTax: clientATax.totalTax, // For now, same as current
+        taxSavings: 0, // Will be calculated when optimization strategies are implemented
+      };
+      
+      const currentResults = useFinancialStore.getState().results || {};
+      useFinancialStore.getState().setResults({
+        ...currentResults,
+        clientA: {
+          ...currentResults.clientA,
+          ...clientATaxResults,
+        } as any, // Type assertion to handle partial updates
+      });
+    }
+  }, [clientATax]);
+
+  useEffect(() => {
+    if (clientBTax) {
+      const clientBTaxResults = {
+        currentTax: clientBTax.totalTax,
+        optimizedTax: clientBTax.totalTax, // For now, same as current
+        taxSavings: 0, // Will be calculated when optimization strategies are implemented
+      };
+      
+      const currentResults = useFinancialStore.getState().results || {};
+      useFinancialStore.getState().setResults({
+        ...currentResults,
+        clientB: {
+          ...currentResults.clientB,
+          ...clientBTaxResults,
+        } as any, // Type assertion to handle partial updates
+      });
+    }
+  }, [clientBTax]);
+
+  useEffect(() => {
+    if (clientATax && clientBTax) {
+      const combinedTaxResults = {
+        totalTax: clientATax.totalTax + clientBTax.totalTax,
+        totalTaxSavings: 0, // Will be calculated when optimization strategies are implemented
+      };
+      
+      const currentResults = useFinancialStore.getState().results || {};
+      useFinancialStore.getState().setResults({
+        ...currentResults,
+        combined: {
+          ...currentResults.combined,
+          ...combinedTaxResults,
+        } as any, // Type assertion to handle partial updates
+      });
+    }
+  }, [clientATax, clientBTax]);
 
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-8">
