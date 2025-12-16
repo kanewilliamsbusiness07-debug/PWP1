@@ -12,8 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFinancialStore } from '@/lib/store/store';
+import { calculateTotalTax, ATO_TAX_BRACKETS_2024_25, getTaxBracket } from '@/lib/australian-tax-calculator';
 
-// Australian Tax Calculation Function
+// Australian Tax Calculation Function using new calculator
 const calculateTax = (client: any) => {
   if (!client) return null;
 
@@ -40,33 +41,15 @@ const calculateTax = (client: any) => {
   const rentalExpenses = client.rentalExpenses ?? 0;
   const superContributions = client.superContributions ?? 0;
 
-  const totalDeductions = workRelatedExpenses + vehicleExpenses + uniformsAndLaundry + homeOfficeExpenses + 
-                         selfEducationExpenses + investmentExpenses + charityDonations + accountingFees + 
+  const totalDeductions = workRelatedExpenses + vehicleExpenses + uniformsAndLaundry + homeOfficeExpenses +
+                         selfEducationExpenses + investmentExpenses + charityDonations + accountingFees +
                          rentalExpenses + superContributions;
   const taxableIncome = Math.max(0, totalIncome - totalDeductions);
 
-  // Australian Tax Brackets 2024-25 (Updated)
-  let incomeTax = 0;
-  if (taxableIncome <= 18200) {
-    incomeTax = 0;
-  } else if (taxableIncome <= 45000) {
-    // 16% on each $1 over $18,200
-    incomeTax = (taxableIncome - 18200) * 0.16;
-  } else if (taxableIncome <= 135000) {
-    // $4,288 plus 30% on each $1 over $45,000
-    incomeTax = 4288 + (taxableIncome - 45000) * 0.30;
-  } else if (taxableIncome <= 190000) {
-    // $31,288 plus 37% on each $1 over $135,000
-    incomeTax = 31288 + (taxableIncome - 135000) * 0.37;
-  } else {
-    // $51,638 plus 45% on each $1 over $190,000
-    incomeTax = 51638 + (taxableIncome - 190000) * 0.45;
-  }
+  // Use new tax calculator
+  const taxBreakdown = calculateTotalTax(taxableIncome);
 
-  // Medicare Levy (2%)
-  const medicareLevy = taxableIncome * 0.02;
-
-  // HECS Repayment (if applicable)
+  // HECS Repayment (if applicable) - add to existing breakdown
   let hecsRepayment = 0;
   if (client.hecs && taxableIncome > 51550) {
     const hecsThreshold = 51550;
@@ -78,7 +61,7 @@ const calculateTax = (client: any) => {
     hecsRepayment = (taxableIncome - hecsThreshold) * hecsRate;
   }
 
-  const totalTax = incomeTax + medicareLevy + hecsRepayment;
+  const totalTax = taxBreakdown.totalTax + hecsRepayment;
   const netIncome = totalIncome - totalTax;
   const effectiveRate = totalIncome > 0 ? (totalTax / totalIncome) * 100 : 0;
 
@@ -88,6 +71,7 @@ const calculateTax = (client: any) => {
     totalTax,
     netIncome,
     effectiveRate,
+    marginalRate: taxBreakdown.marginalRate,
     incomeBreakdown: {
       employmentIncome: primaryIncome,
       investmentIncome,
@@ -98,6 +82,11 @@ const calculateTax = (client: any) => {
       workRelated: workRelatedExpenses + vehicleExpenses + uniformsAndLaundry + homeOfficeExpenses + selfEducationExpenses,
       investment: investmentExpenses,
       other: charityDonations + accountingFees + rentalExpenses + superContributions
+    },
+    taxBreakdown: {
+      incomeTax: taxBreakdown.incomeTax,
+      medicareLevy: taxBreakdown.medicareLevy,
+      hecsRepayment: hecsRepayment
     }
   };
 };
