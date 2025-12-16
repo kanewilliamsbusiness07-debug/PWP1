@@ -49,6 +49,44 @@ A comprehensive financial planning platform designed for Australian financial ad
 
 ## 🚀 Quick Start
 
+### Local Development Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd project-bolt-sb1-derrkza2
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start the application**
+   ```bash
+   npm run dev:local
+   ```
+   
+   This will automatically set up the required environment variables and start the development server.
+
+4. **Access the application**
+   - Open [http://localhost:3000](http://localhost:3000)
+   - Login with default credentials:
+     - **Email:** `allan@pwp2026.com.au`
+     - **Password:** `123456`
+
+### Alternative: Manual Environment Setup
+
+If you prefer to set environment variables manually:
+
+```powershell
+$env:DATABASE_URL="postgres://bbe2e42e19dff62fe30b7dc49ade4c9d4aed1a0e40f0d9e7aeae0c6926939076:sk_zWEMokrgWkBTPV5adw6WL@db.prisma.io:5432/postgres?sslmode=require"
+$env:NEXTAUTH_SECRET="development-nextauth-secret-key-32-chars"
+$env:NEXTAUTH_URL="http://localhost:3000"
+$env:JWT_SECRET="development-jwt-secret-key-32-characters"
+npm run dev
+```
+
 ### 1. Clone and Install
 
 ```bash

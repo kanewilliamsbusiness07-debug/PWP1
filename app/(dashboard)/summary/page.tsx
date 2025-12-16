@@ -541,11 +541,6 @@ export default function SummaryPage() {
     try {
       console.log('🚀 Starting PDF generation...');
       
-      // Verify @react-pdf/renderer is available
-      if (typeof pdf === 'undefined') {
-        throw new Error('PDF generation library (@react-pdf/renderer) is not installed. Please install it with: npm install @react-pdf/renderer');
-      }
-
       // Get active client for saving PDF
       const activeClient = financialStore.activeClient 
         ? financialStore[`client${financialStore.activeClient}` as keyof typeof financialStore] as any
@@ -604,6 +599,93 @@ export default function SummaryPage() {
 
       // Calculate summary data
       const summaryData = calculateSummary();
+
+      // --- HTML-based PDF generation (Puppeteer server-side) ---
+      // Capture current DOM, convert canvases to images, remove scripts, and post HTML to server to render with Puppeteer
+
+      const capturePageHtml = async (): Promise<string> => {
+        // Clone document to avoid mutating live DOM
+        const docClone = document.documentElement.cloneNode(true) as HTMLElement;
+
+        // Convert canvas elements inside the summary root to img data URLs
+        const rootSelector = '#summary-root';
+        const sourceRoot = document.querySelector(rootSelector) || document.body;
+        const cloneRoot = docClone.querySelector(rootSelector) || docClone;
+
+        // Replace canvas elements with images (data URLs)
+        const canvases = Array.from(sourceRoot.querySelectorAll('canvas')) as HTMLCanvasElement[];
+        for (const canvas of canvases) {
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.width = canvas.width;
+            img.height = canvas.height;
+            // Replace in clone
+            const selector = canvas.getAttribute('data-pdf-selector') || '';
+            // Find corresponding canvas in clone by index fallback
+            const clonedCanvas = cloneRoot.querySelector('canvas');
+            if (clonedCanvas && clonedCanvas.parentNode) {
+              clonedCanvas.parentNode.replaceChild(img.cloneNode(true), clonedCanvas);
+            }
+          } catch (e) {
+            // ignore canvas conversion failures
+            // eslint-disable-next-line no-console
+            console.warn('Canvas conversion skipped:', e);
+          }
+        }
+
+        // Remove all script tags from the clone to prevent script execution on setContent
+        Array.from(docClone.querySelectorAll('script')).forEach(s => s.remove());
+
+        // Ensure base href is set so relative assets resolve
+        const base = document.createElement('base');
+        base.setAttribute('href', window.location.origin);
+        const head = docClone.querySelector('head') || document.createElement('head');
+        head.insertBefore(base, head.firstChild || null);
+
+        // Add a helper class to force dark theme and PDF-specific rules
+        docClone.classList?.add('dark', 'pdf-export');
+
+        // Inject small PDF-specific CSS to avoid splitting cards and set fixed width
+        const style = document.createElement('style');
+        style.innerHTML = `
+          /* PDF export helper styles - only used for PDF capture */
+          html.pdf-export, body.pdf-export { background-color: hsl(var(--background)); }
+          .pdf-export #summary-root { width: 1440px; margin: 0 auto; }
+          .pdf-export .card, .pdf-export .rounded-lg { break-inside: avoid; page-break-inside: avoid; }
+          @media print { .card, .rounded-lg { page-break-inside: avoid; break-inside: avoid; } }
+        `;
+        head.appendChild(style);
+
+        // Return outerHTML
+        return '<!doctype html>' + docClone.outerHTML;
+      };
+
+      // Capture HTML and send to server
+      const html = await capturePageHtml();
+      const payload = { html, clientId, fileName: `Financial_Summary_${(summaryData.clientName || 'Client').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf` };
+
+      const genRes = await fetch('/api/pdf-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!genRes.ok) {
+        const err = await genRes.json().catch(() => ({}));
+        throw new Error(err?.error || 'PDF generation failed on server');
+      }
+
+      const genJson = await genRes.json();
+      if (genJson?.success) {
+        toast({ title: 'PDF Generated', description: 'PDF has been generated and saved to your account.' });
+        // Optionally refresh PDF list
+        try { await fetch('/api/pdf-exports?limit=10'); } catch (_) {}
+      } else {
+        throw new Error('PDF generation failed');
+      }
+
 
       // Validate summaryData exists and has required properties
       if (!summaryData || typeof summaryData !== 'object') {

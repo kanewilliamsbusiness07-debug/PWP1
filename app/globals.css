@@ -106,6 +106,32 @@
     @apply overflow-x-auto overflow-y-visible;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* PDF export helper styles (applied when capturing HTML for PDF generation) */
+  html.pdf-export, body.pdf-export {
+    /* Ensure dark theme matches UI when generating PDF */
+    background-color: hsl(var(--background));
+  }
+
+  html.pdf-export #summary-root {
+    width: 1440px;
+    margin: 0 auto;
+  }
+
+  /* Prevent cards splitting across pages */
+  html.pdf-export .card, html.pdf-export .rounded-lg {
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  @media print {
+    html.pdf-export .card, html.pdf-export .rounded-lg {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    @page { size: auto; margin: 12mm; }
+  }
   
   /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
