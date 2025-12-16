@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { RefreshCw, CheckCircle, AlertTriangle, Database, HardDrive, Zap } from 'lucide-react';
+import { RefreshCw, CheckCircle, AlertTriangle, Database, HardDrive, Zap, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function DataSharingDiagnostics() {
@@ -38,6 +38,10 @@ export function DataSharingDiagnostics() {
           hasClientB: !!(financialStore.clientB?.firstName || financialStore.clientB?.lastName),
           activeClient: financialStore.activeClient,
           grossIncome: financialStore.grossIncome,
+          employmentIncome: financialStore.employmentIncome,
+          rentalIncome: financialStore.rentalIncome,
+          investmentIncome: financialStore.investmentIncome,
+          otherIncome: financialStore.otherIncome,
           totalAssets: financialStore.cashSavings + financialStore.investments + financialStore.superBalance,
           totalLiabilities: financialStore.totalDebt,
         },
@@ -156,7 +160,7 @@ export function DataSharingDiagnostics() {
 
         {diagnosticResults && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
@@ -176,13 +180,35 @@ export function DataSharingDiagnostics() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2">
-                    <Database className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm font-medium">Store State</span>
+                    <User className="h-4 w-4 text-green-500" />
+                    <span className="text-sm font-medium">Client Status</span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">
                     Client A: {diagnosticResults.storeState.hasClientA ? 'Loaded' : 'Empty'}
                     <br />
                     Client B: {diagnosticResults.storeState.hasClientB ? 'Loaded' : 'Empty'}
+                    <br />
+                    Active: {diagnosticResults.storeState.activeClient || 'None'}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Database className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">Income Breakdown</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Gross Income: {diagnosticResults.storeState.grossIncome?.toLocaleString() || '0'}
+                    <br />
+                    Employment: {diagnosticResults.storeState.employmentIncome?.toLocaleString() || '0'}
+                    <br />
+                    Rental: {diagnosticResults.storeState.rentalIncome?.toLocaleString() || '0'}
+                    <br />
+                    Investment: {diagnosticResults.storeState.investmentIncome?.toLocaleString() || '0'}
+                    <br />
+                    Other: {diagnosticResults.storeState.otherIncome?.toLocaleString() || '0'}
                   </div>
                 </CardContent>
               </Card>

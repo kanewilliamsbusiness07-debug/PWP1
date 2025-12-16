@@ -460,11 +460,14 @@ export const useFinancialStore = create<FinancialStore>()(
           const newState = { ...state, [key]: value } as FinancialFields;
           
           // Recalculate derived values
-          newState.totalIncome = 
-            (newState.grossIncome || 0) +
+          // grossIncome is the total of all income sources
+          newState.grossIncome = 
+            (newState.employmentIncome || 0) +
             (newState.rentalIncome || 0) +
             (newState.investmentIncome || 0) +
             (newState.otherIncome || 0);
+            
+          newState.totalIncome = newState.grossIncome;
             
           newState.netIncome = 
             newState.totalIncome -
@@ -496,17 +499,14 @@ export const useFinancialStore = create<FinancialStore>()(
           }
           
           // Income fields - map multiple field names to the same store field
-          // CANONICAL: annualIncome → grossIncome (store internal name)
+          // CANONICAL: annualIncome → employmentIncome (store internal name)
           if (data.annualIncome !== undefined) {
-            updates.grossIncome = data.annualIncome;
             updates.employmentIncome = data.annualIncome;
           }
           if (data.grossSalary !== undefined) {
-            updates.grossIncome = data.grossSalary;
-            updates.employmentIncome = data.grossSalary; // Also update employmentIncome
+            updates.employmentIncome = data.grossSalary;
           }
           if (data.employmentIncome !== undefined) {
-            updates.grossIncome = data.employmentIncome;
             updates.employmentIncome = data.employmentIncome;
           }
           if (data.rentalIncome !== undefined) {
@@ -570,7 +570,7 @@ export const useFinancialStore = create<FinancialStore>()(
           }
           
           // Recalculate derived values
-          const newGrossIncome = updates.grossIncome !== undefined ? updates.grossIncome : state.grossIncome;
+          const newEmploymentIncome = updates.employmentIncome !== undefined ? updates.employmentIncome : state.employmentIncome;
           const newRentalIncome = updates.rentalIncome !== undefined ? updates.rentalIncome : state.rentalIncome;
           const newInvestmentIncome = updates.investmentIncome !== undefined ? updates.investmentIncome : state.investmentIncome;
           const newOtherIncome = updates.otherIncome !== undefined ? updates.otherIncome : state.otherIncome;
@@ -578,7 +578,9 @@ export const useFinancialStore = create<FinancialStore>()(
           const newInvExpenses = updates.investmentExpenses !== undefined ? updates.investmentExpenses : state.investmentExpenses;
           const newRentalExpenses = updates.rentalExpenses !== undefined ? updates.rentalExpenses : state.rentalExpenses;
           
-          updates.totalIncome = newGrossIncome + newRentalIncome + newInvestmentIncome + newOtherIncome;
+          // grossIncome is the total of all income sources
+          updates.grossIncome = newEmploymentIncome + newRentalIncome + newInvestmentIncome + newOtherIncome;
+          updates.totalIncome = updates.grossIncome;
           updates.netIncome = updates.totalIncome - newWorkExpenses - newInvExpenses - newRentalExpenses;
           
           return {
@@ -598,11 +600,14 @@ export const useFinancialStore = create<FinancialStore>()(
           const newState = { ...state, ...data };
           
           // Recalculate derived values
-          newState.totalIncome = 
-            (newState.grossIncome || 0) +
+          // grossIncome is the total of all income sources
+          newState.grossIncome = 
+            (newState.employmentIncome || 0) +
             (newState.rentalIncome || 0) +
             (newState.investmentIncome || 0) +
             (newState.otherIncome || 0);
+            
+          newState.totalIncome = newState.grossIncome;
             
           newState.netIncome = 
             newState.totalIncome -
@@ -662,7 +667,8 @@ export const useFinancialStore = create<FinancialStore>()(
           // Auto-update financial store fields
           const updates: Partial<FinancialFields> = {};
           
-          if (clientData.grossSalary !== undefined) updates.grossIncome = clientData.grossSalary;
+          if (clientData.grossSalary !== undefined) updates.employmentIncome = clientData.grossSalary;
+          if (clientData.annualIncome !== undefined) updates.employmentIncome = clientData.annualIncome;
           if (clientData.rentalIncome !== undefined) updates.rentalIncome = clientData.rentalIncome;
           if (clientData.dividends !== undefined || clientData.frankedDividends !== undefined) {
             updates.investmentIncome = (clientData.dividends || 0) + (clientData.frankedDividends || 0);
@@ -681,6 +687,15 @@ export const useFinancialStore = create<FinancialStore>()(
             const totalDebt = clientData.liabilities.reduce((sum, liab) => sum + (liab.balance || 0), 0);
             updates.totalDebt = totalDebt;
           }
+          
+          // Recalculate derived values
+          const newEmploymentIncome = updates.employmentIncome !== undefined ? updates.employmentIncome : currentState.employmentIncome;
+          const newRentalIncome = updates.rentalIncome !== undefined ? updates.rentalIncome : currentState.rentalIncome;
+          const newInvestmentIncome = updates.investmentIncome !== undefined ? updates.investmentIncome : currentState.investmentIncome;
+          const newOtherIncome = updates.otherIncome !== undefined ? updates.otherIncome : currentState.otherIncome;
+          
+          updates.grossIncome = newEmploymentIncome + newRentalIncome + newInvestmentIncome + newOtherIncome;
+          updates.totalIncome = updates.grossIncome;
           
           return {
             ...currentState,
@@ -778,14 +793,34 @@ export const useFinancialStore = create<FinancialStore>()(
         const clientA = state.clientA;
         const clientB = state.clientB;
         
-        // Validate that financial calculations match client data
-        if (clientA?.annualIncome && state.grossIncome !== clientA.annualIncome) {
-          console.warn('Data integrity issue: clientA annualIncome does not match grossIncome');
+        // Validate that store grossIncome equals sum of all income sources
+        const expectedGrossIncomeA = (state.employmentIncome || 0) + (state.rentalIncome || 0) + (state.investmentIncome || 0) + (state.otherIncome || 0);
+        if (Math.abs(state.grossIncome - expectedGrossIncomeA) > 0.01) {
+          console.warn('Data integrity issue: store grossIncome does not match sum of income sources', {
+            grossIncome: state.grossIncome,
+            expected: expectedGrossIncomeA,
+            employmentIncome: state.employmentIncome,
+            rentalIncome: state.rentalIncome,
+            investmentIncome: state.investmentIncome,
+            otherIncome: state.otherIncome
+          });
           return false;
         }
         
-        if (clientB?.annualIncome && state.grossIncome !== clientB.annualIncome) {
-          console.warn('Data integrity issue: clientB annualIncome does not match grossIncome');
+        // Validate that client annualIncome matches store employmentIncome
+        if (clientA?.annualIncome && Math.abs(state.employmentIncome - clientA.annualIncome) > 0.01) {
+          console.warn('Data integrity issue: clientA annualIncome does not match store employmentIncome', {
+            clientAnnualIncome: clientA.annualIncome,
+            storeEmploymentIncome: state.employmentIncome
+          });
+          return false;
+        }
+        
+        if (clientB?.annualIncome && Math.abs(state.employmentIncome - clientB.annualIncome) > 0.01) {
+          console.warn('Data integrity issue: clientB annualIncome does not match store employmentIncome', {
+            clientAnnualIncome: clientB.annualIncome,
+            storeEmploymentIncome: state.employmentIncome
+          });
           return false;
         }
         
