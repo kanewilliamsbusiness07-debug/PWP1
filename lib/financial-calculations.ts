@@ -54,6 +54,7 @@ export interface RetirementWithdrawal {
 
 /**
  * Calculate future value using compound interest
+ * Retirement Savings Formula: Future Value = Current Balance × (1 + Rate)^Time
  * Formula: FV = PV × (1 + r)^n
  */
 export const calculateFutureValue = (
