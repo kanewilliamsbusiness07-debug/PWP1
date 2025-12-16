@@ -632,7 +632,7 @@ export default function ProjectionsPage() {
                   {/* Combined Asset Breakdown */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Combined Projected Asset Values at Retirement</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
                         <p className="text-xl font-bold text-blue-600">{formatCurrency(combinedProjection?.futureSuper)}</p>
@@ -642,12 +642,8 @@ export default function ProjectionsPage() {
                         <p className="text-xl font-bold text-green-600">{formatCurrency(combinedProjection?.futureShares)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Investment Properties</p>
-                        <p className="text-xl font-bold text-purple-600">{formatCurrency(combinedProjection?.futurePropertyEquity)}</p>
-                      </div>
-                      <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Other Properties</p>
-                        <p className="text-xl font-bold text-indigo-600">{formatCurrency(combinedProjection?.futurePropertyAssets)}</p>
+                      <p className="text-sm text-muted-foreground">Property Portfolio</p>
+                      <p className="text-xl font-bold text-purple-600">{formatCurrency((combinedProjection?.futurePropertyEquity || 0) + (combinedProjection?.futurePropertyAssets || 0))}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Other Assets</p>
@@ -759,7 +755,7 @@ export default function ProjectionsPage() {
                   {/* Asset Breakdown */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Projected Asset Values at Retirement</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
                         <p className="text-xl font-bold text-blue-600">{formatCurrency(clientAProjection.futureSuper)}</p>
@@ -769,12 +765,8 @@ export default function ProjectionsPage() {
                         <p className="text-xl font-bold text-green-600">{formatCurrency(clientAProjection.futureShares)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Investment Properties</p>
-                        <p className="text-xl font-bold text-purple-600">{formatCurrency(clientAProjection.futurePropertyEquity)}</p>
-                      </div>
-                      <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Other Properties</p>
-                        <p className="text-xl font-bold text-indigo-600">{formatCurrency(clientAProjection.futurePropertyAssets)}</p>
+                        <p className="text-sm text-muted-foreground">Property Portfolio</p>
+                        <p className="text-xl font-bold text-purple-600">{formatCurrency((clientAProjection.futurePropertyEquity || 0) + (clientAProjection.futurePropertyAssets || 0))}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Other Assets</p>
@@ -886,7 +878,7 @@ export default function ProjectionsPage() {
                   {/* Asset Breakdown */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Projected Asset Values at Retirement</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
                         <p className="text-xl font-bold text-blue-600">{formatCurrency(clientBProjection.futureSuper)}</p>
@@ -896,12 +888,8 @@ export default function ProjectionsPage() {
                         <p className="text-xl font-bold text-green-600">{formatCurrency(clientBProjection.futureShares)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Investment Properties</p>
-                        <p className="text-xl font-bold text-purple-600">{formatCurrency(clientBProjection.futurePropertyEquity)}</p>
-                      </div>
-                      <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Other Properties</p>
-                        <p className="text-xl font-bold text-indigo-600">{formatCurrency(clientBProjection.futurePropertyAssets)}</p>
+                        <p className="text-sm text-muted-foreground">Property Portfolio</p>
+                        <p className="text-xl font-bold text-purple-600">{formatCurrency((clientBProjection.futurePropertyEquity || 0) + (clientBProjection.futurePropertyAssets || 0))}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Other Assets</p>
