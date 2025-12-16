@@ -35,7 +35,7 @@ function SharedAssumptionsSection() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-10 gap-4">
           <div>
             <Label htmlFor="inflation-rate" className="text-sm text-muted-foreground">Inflation Rate (%)</Label>
             <Input
@@ -129,6 +129,31 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.savingsRate ?? 10.0}
               onChange={(e) => handleChange('savingsRate', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="super-admin-fee" className="text-sm text-muted-foreground">Super Admin Fee ($)</Label>
+            <Input
+              id="super-admin-fee"
+              type="number"
+              step="1"
+              min="0"
+              defaultValue={sharedAssumptions?.superAdminFee ?? 59}
+              onChange={(e) => handleChange('superAdminFee', e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="super-admin-fee-percent" className="text-sm text-muted-foreground">Super Admin Fee (%)</Label>
+            <Input
+              id="super-admin-fee-percent"
+              type="number"
+              step="0.01"
+              min="0"
+              max="5"
+              defaultValue={sharedAssumptions?.superAdminFeePercent ?? 0.08}
+              onChange={(e) => handleChange('superAdminFeePercent', e.target.value)}
               className="mt-1"
             />
           </div>
