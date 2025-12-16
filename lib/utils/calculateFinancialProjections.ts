@@ -276,34 +276,25 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     monthlyDebtPayments;
 
   // ========================================
-  // FUTURE SUPERANNUATION
+  // FUTURE SUPERANNUATION (Using specified formula)
   // ========================================
 
-  // Annual super contribution (capped at maximum)
-  const QUARTERLY_EARNINGS_CAP = 63750;
-  const MAX_ANNUAL_SUPER = 30600;
+  // Formula: B₀*(1+r)^n + 0.12*S*((1+r)^n - (1+g)^n)/(r - g)
+  // Where:
+  // B₀ = current super balance
+  // S = current annual salary
+  // r = annual investment return
+  // g = annual salary growth rate
+  // n = years to retirement
 
-  let annualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE;
-  if (annualSuperContribution > MAX_ANNUAL_SUPER) {
-    annualSuperContribution = MAX_ANNUAL_SUPER;
+  let futureSuper = currentSuper * Math.pow(1 + r_super, years);
+
+  if (Math.abs(r_super - g_salary) < 0.0001) {
+    // Edge case: when r ≈ g, use simplified formula to avoid division by zero
+    futureSuper += 0.12 * inputs.annualIncome * years * Math.pow(1 + r_super, years - 1);
+  } else {
+    futureSuper += 0.12 * inputs.annualIncome * (Math.pow(1 + r_super, years) - Math.pow(1 + g_salary, years)) / (r_super - g_salary);
   }
-
-  // Part 1: Current super balance grows
-  const futureSuperFromGrowth = calculateFutureValue(
-    currentSuper,
-    r_super,
-    years
-  );
-
-  // Part 2: Future contributions (growing annuity)
-  const futureSuperFromContributions = calculateFutureValueOfAnnuity(
-    annualSuperContribution,
-    r_super,
-    years,
-    g_salary
-  );
-
-  const futureSuper = futureSuperFromGrowth + futureSuperFromContributions;
 
   // ========================================
   // FUTURE SHARES
@@ -467,11 +458,9 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // TARGET INCOME & SURPLUS/DEFICIT
   // ========================================
 
-  // Final salary after years of growth
-  const finalAnnualIncome = inputs.annualIncome * Math.pow(1 + g_salary, years);
-
-  // Required income is 70% of final salary
-  const requiredAnnualIncome = finalAnnualIncome * RETIREMENT_INCOME_THRESHOLD;
+  // Required income is 70% of current total income (employment + rental)
+  const currentTotalIncome = inputs.annualIncome + inputs.rentalIncome;
+  const requiredAnnualIncome = currentTotalIncome * RETIREMENT_INCOME_THRESHOLD;
   const requiredMonthlyIncome = requiredAnnualIncome / 12;
 
   // Surplus or deficit
@@ -521,7 +510,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     combinedMonthlyCashflowRetirement,
 
     // Analysis & Status
-    finalAnnualIncome,
+    finalAnnualIncome: inputs.annualIncome + inputs.rentalIncome,
     requiredAnnualIncome,
     requiredMonthlyIncome,
     annualSurplusDeficit,
