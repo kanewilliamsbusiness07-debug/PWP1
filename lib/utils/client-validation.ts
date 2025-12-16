@@ -209,6 +209,7 @@ export const clientValidationSchema = z.object({
   propertyGrowthRate: z.number().min(0, 'Property growth rate cannot be negative').max(50, 'Property growth rate cannot exceed 50%').optional(),
   withdrawalRate: z.number().min(0, 'Withdrawal rate cannot be negative').max(50, 'Withdrawal rate cannot exceed 50%').optional(),
   rentGrowthRate: z.number().min(0, 'Rent growth rate cannot be negative').max(50, 'Rent growth rate cannot exceed 50%').optional(),
+  savingsRate: z.number().min(0, 'Savings rate cannot be negative').max(100, 'Savings rate cannot exceed 100%').optional(),
   
   // Projection Results (stored from Projections page for Summary page consistency)
   projectionResults: z.object({
