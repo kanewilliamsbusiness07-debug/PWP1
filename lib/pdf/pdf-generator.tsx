@@ -757,6 +757,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 20,
   },
+  netWorthLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 8,
+  },
   netWorthValue: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -1010,6 +1016,88 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: '#333',
     lineHeight: 1.4,
+  },
+
+  // New styles for summary page layout
+  snapshotGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 12,
+    width: '100%',
+  },
+  snapshotBox: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  snapshotMetrics: {
+    marginTop: 8,
+  },
+  combinedSnapshot: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#fff3e0',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ff9800',
+  },
+  combinedTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#e65100',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  combinedMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  combinedMetric: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  positionGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 12,
+    width: '100%',
+  },
+  positionSection: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+  },
+  cashFlowGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 12,
+    width: '100%',
+  },
+  cashFlowItem: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cashFlowLabel: {
+    fontSize: 10,
+    color: '#666',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  cashFlowValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
@@ -1919,12 +2007,299 @@ export function PDFReport({ data, chartImages = [] }: PDFReportProps) {
 
   return (
     <Document>
-      <ExecutiveSummaryPage />
-      <InvestmentPropertyPage />
-      <CashFlowBreakdownPage />
-      <FinancialPositionPage />
-      <RetirementProjectionsPage />
-      <TaxOptimizationPage />
+      <Page size="A4" style={styles.page}>
+        <ReportHeader reportDate={reportDate} clientNames={clientNames} />
+        <View style={{ flex: 1, padding: 20 }}>
+          <Text style={styles.pageTitle}>Financial Summary</Text>
+
+          {/* Financial Snapshot */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Financial Snapshot</Text>
+            <Text style={styles.captionText}>Quick view of key financial metrics</Text>
+
+            <View style={styles.snapshotGrid}>
+              {/* Client A Snapshot */}
+              {clientNames[0] && (
+                <View style={styles.snapshotBox}>
+                  <Text style={styles.clientName}>{clientNames[0]}</Text>
+                  <View style={styles.snapshotMetrics}>
+                    <View style={styles.metricRow}>
+                      <Text style={styles.bodyText}>Net Worth:</Text>
+                      <Text style={[styles.bodyText, styles.valuePositive]}>
+                        {formatCurrency(data.currentNetWorth)}
+                      </Text>
+                    </View>
+                    <View style={styles.metricRow}>
+                      <Text style={styles.bodyText}>Monthly Surplus:</Text>
+                      <Text style={[styles.bodyText, safeNumber(data.currentMonthlyCashFlow, 0) >= 0 ? styles.valuePositive : styles.valueNegative]}>
+                        {formatCurrency(data.currentMonthlyCashFlow)}
+                      </Text>
+                    </View>
+                    <View style={styles.metricRow}>
+                      <Text style={styles.bodyText}>Retirement Status:</Text>
+                      <Text style={[styles.bodyText, safeNumber(data.projectedRetirementSurplus, 0) >= 0 ? styles.valuePositive : styles.valueNegative]}>
+                        {safeNumber(data.projectedRetirementSurplus, 0) >= 0 ? 'On Track' : 'Action Needed'}
+                      </Text>
+                    </View>
+                    <View style={styles.metricRow}>
+                      <Text style={styles.bodyText}>Tax Savings:</Text>
+                      <Text style={[styles.bodyText, styles.valuePositive]}>
+                        {formatCurrency(data.taxSavings)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Client B Snapshot */}
+              {clientNames[1] && (
+                <View style={styles.snapshotBox}>
+                  <Text style={styles.clientName}>{clientNames[1]}</Text>
+                  <View style={styles.snapshotMetrics}>
+                    <View style={styles.metricRow}>
+                      <Text style={styles.bodyText}>Net Worth:</Text>
+                      <Text style={[styles.bodyText, styles.valuePositive]}>
+                        {formatCurrency(data.currentNetWorth)}
+                      </Text>
+                    </View>
+                    <View style={styles.metricRow}>
+                      <Text style={styles.bodyText}>Monthly Surplus:</Text>
+                      <Text style={[styles.bodyText, safeNumber(data.currentMonthlyCashFlow, 0) >= 0 ? styles.valuePositive : styles.valueNegative]}>
+                        {formatCurrency(data.currentMonthlyCashFlow)}
+                      </Text>
+                    </View>
+                    <View style={styles.metricRow}>
+                      <Text style={styles.bodyText}>Retirement Status:</Text>
+                      <Text style={[styles.bodyText, safeNumber(data.projectedRetirementSurplus, 0) >= 0 ? styles.valuePositive : styles.valueNegative]}>
+                        {safeNumber(data.projectedRetirementSurplus, 0) >= 0 ? 'On Track' : 'Action Needed'}
+                      </Text>
+                    </View>
+                    <View style={styles.metricRow}>
+                      <Text style={styles.bodyText}>Tax Savings:</Text>
+                      <Text style={[styles.bodyText, styles.valuePositive]}>
+                        {formatCurrency(data.taxSavings)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Combined Household Snapshot */}
+            {clientNames[0] && clientNames[1] && (
+              <View style={styles.combinedSnapshot}>
+                <Text style={styles.combinedTitle}>Combined Household</Text>
+                <View style={styles.combinedMetrics}>
+                  <View style={styles.combinedMetric}>
+                    <Text style={styles.captionText}>Net Worth</Text>
+                    <Text style={[styles.bodyText, styles.valuePositive]}>
+                      {formatCurrency(data.currentNetWorth)}
+                    </Text>
+                  </View>
+                  <View style={styles.combinedMetric}>
+                    <Text style={styles.captionText}>Monthly Surplus</Text>
+                    <Text style={[styles.bodyText, safeNumber(data.currentMonthlyCashFlow, 0) >= 0 ? styles.valuePositive : styles.valueNegative]}>
+                      {formatCurrency(data.currentMonthlyCashFlow)}
+                    </Text>
+                  </View>
+                  <View style={styles.combinedMetric}>
+                    <Text style={styles.captionText}>Retirement Status</Text>
+                    <Text style={[styles.bodyText, safeNumber(data.projectedRetirementSurplus, 0) >= 0 ? styles.valuePositive : styles.valueNegative]}>
+                      {safeNumber(data.projectedRetirementSurplus, 0) >= 0 ? 'On Track' : 'Action Needed'}
+                    </Text>
+                  </View>
+                  <View style={styles.combinedMetric}>
+                    <Text style={styles.captionText}>Tax Savings</Text>
+                    <Text style={[styles.bodyText, styles.valuePositive]}>
+                      {formatCurrency(data.taxSavings)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Financial Position */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Financial Position</Text>
+            <View style={styles.positionGrid}>
+              <View style={styles.positionSection}>
+                <Text style={styles.subsectionTitle}>Assets</Text>
+                <Text style={[styles.sectionValue, styles.valuePositive]}>
+                  {formatCurrency(
+                    (data.financialPosition?.home || 0) +
+                    (data.financialPosition?.investments || 0) +
+                    (data.financialPosition?.super || 0) +
+                    (data.financialPosition?.shares || 0) +
+                    (data.financialPosition?.savings || 0) +
+                    (data.financialPosition?.vehicle || 0) +
+                    (data.financialPosition?.other || 0)
+                  )}
+                </Text>
+                <View style={styles.assetBreakdown}>
+                  {data.financialPosition && (
+                    <>
+                      <View style={styles.assetItem}>
+                        <Text style={styles.assetLabel}>Home</Text>
+                        <Text style={styles.assetValue}>{formatCurrency(data.financialPosition.home)}</Text>
+                      </View>
+                      <View style={styles.assetItem}>
+                        <Text style={styles.assetLabel}>Investments</Text>
+                        <Text style={styles.assetValue}>{formatCurrency(data.financialPosition.investments)}</Text>
+                      </View>
+                      <View style={styles.assetItem}>
+                        <Text style={styles.assetLabel}>Superannuation</Text>
+                        <Text style={styles.assetValue}>{formatCurrency(data.financialPosition.super)}</Text>
+                      </View>
+                      <View style={styles.assetItem}>
+                        <Text style={styles.assetLabel}>Shares</Text>
+                        <Text style={styles.assetValue}>{formatCurrency(data.financialPosition.shares)}</Text>
+                      </View>
+                      <View style={styles.assetItem}>
+                        <Text style={styles.assetLabel}>Savings</Text>
+                        <Text style={styles.assetValue}>{formatCurrency(data.financialPosition.savings)}</Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.positionSection}>
+                <Text style={styles.subsectionTitle}>Liabilities</Text>
+                <Text style={[styles.sectionValue, styles.valueNegative]}>
+                  {formatCurrency(
+                    (data.financialPosition?.homeLoan || 0) +
+                    (data.financialPosition?.investmentLoans || 0) +
+                    (data.financialPosition?.creditCard || 0) +
+                    (data.financialPosition?.personalLoan || 0) +
+                    (data.financialPosition?.hecs || 0)
+                  )}
+                </Text>
+                <View style={styles.liabilityBreakdown}>
+                  {data.financialPosition && (
+                    <>
+                      <View style={styles.liabilityItem}>
+                        <Text style={styles.liabilityLabel}>Home Loan</Text>
+                        <Text style={styles.liabilityValue}>{formatCurrency(data.financialPosition.homeLoan)}</Text>
+                      </View>
+                      <View style={styles.liabilityItem}>
+                        <Text style={styles.liabilityLabel}>Investment Loans</Text>
+                        <Text style={styles.liabilityValue}>{formatCurrency(data.financialPosition.investmentLoans)}</Text>
+                      </View>
+                      <View style={styles.liabilityItem}>
+                        <Text style={styles.liabilityLabel}>Credit Card</Text>
+                        <Text style={styles.liabilityValue}>{formatCurrency(data.financialPosition.creditCard)}</Text>
+                      </View>
+                      <View style={styles.liabilityItem}>
+                        <Text style={styles.liabilityLabel}>Personal Loan</Text>
+                        <Text style={styles.liabilityValue}>{formatCurrency(data.financialPosition.personalLoan)}</Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.netWorthSummary}>
+              <Text style={styles.netWorthLabel}>Net Worth</Text>
+              <Text style={[styles.netWorthValue, safeNumber(data.currentNetWorth, 0) >= 0 ? styles.valuePositive : styles.valueNegative]}>
+                {formatCurrency(data.currentNetWorth)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Cash Flow Analysis */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Cash Flow Analysis</Text>
+            <View style={styles.cashFlowGrid}>
+              <View style={styles.cashFlowItem}>
+                <Text style={styles.cashFlowLabel}>Monthly Income</Text>
+                <Text style={[styles.cashFlowValue, styles.valuePositive]}>
+                  {formatCurrency(data.monthlyIncome)}
+                </Text>
+              </View>
+              <View style={styles.cashFlowItem}>
+                <Text style={styles.cashFlowLabel}>Monthly Expenses</Text>
+                <Text style={[styles.cashFlowValue, styles.valueNegative]}>
+                  {formatCurrency(data.monthlyExpenses)}
+                </Text>
+              </View>
+              <View style={styles.cashFlowItem}>
+                <Text style={styles.cashFlowLabel}>Net Cash Flow</Text>
+                <Text style={[styles.cashFlowValue, safeNumber(data.currentMonthlyCashFlow, 0) >= 0 ? styles.valuePositive : styles.valueNegative]}>
+                  {formatCurrency(data.currentMonthlyCashFlow)}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Retirement Projection */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Retirement Projection</Text>
+            <View style={styles.retirementGrid}>
+              <View style={styles.retirementBox}>
+                <Text style={styles.retirementLabel}>Years to Retirement</Text>
+                <Text style={styles.retirementValue}>{safeNumber(data.yearsToRetirement, 0)}</Text>
+              </View>
+              <View style={styles.retirementBox}>
+                <Text style={styles.retirementLabel}>Projected Net Worth</Text>
+                <Text style={styles.retirementValue}>{formatCurrency(data.projectedLumpSum)}</Text>
+              </View>
+              <View style={styles.retirementBox}>
+                <Text style={styles.retirementLabel}>Projected Passive Income</Text>
+                <Text style={styles.retirementValue}>{formatCurrency(data.monthlySurplus)}/mo</Text>
+              </View>
+              <View style={styles.retirementBox}>
+                <Text style={styles.retirementLabel}>{safeNumber(data.projectedRetirementSurplus, 0) >= 0 ? 'Surplus' : 'Deficit'}</Text>
+                <Text style={[styles.retirementValue, safeNumber(data.projectedRetirementSurplus, 0) >= 0 ? styles.valuePositive : styles.valueNegative]}>
+                  {formatCurrency(Math.abs(safeNumber(data.projectedRetirementSurplus, 0)))}/mo
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Tax Optimization */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tax Optimization</Text>
+            <View style={styles.taxGrid}>
+              <View style={styles.taxBox}>
+                <Text style={styles.taxLabel}>Current Annual Tax</Text>
+                <Text style={[styles.taxValue, styles.valueNegative]}>{formatCurrency(data.currentTax)}</Text>
+              </View>
+              <View style={styles.taxBox}>
+                <Text style={styles.taxLabel}>Optimized Tax</Text>
+                <Text style={styles.taxValue}>{formatCurrency(data.optimizedTax)}</Text>
+              </View>
+              <View style={styles.taxBox}>
+                <Text style={styles.taxLabel}>Tax Savings</Text>
+                <Text style={[styles.taxValue, styles.valuePositive]}>{formatCurrency(data.taxSavings)}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Investment Property Potential */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Investment Property Potential</Text>
+            <View style={styles.serviceabilityMetrics}>
+              <View style={styles.metricItem}>
+                <Text style={styles.serviceValue}>{formatCurrency(data.maxPropertyValue)}</Text>
+                <Text style={styles.serviceLabel}>Maximum Property Value</Text>
+              </View>
+              <View style={styles.metricItem}>
+                <Text style={styles.serviceValue}>{formatCurrency(data.surplusIncome)}</Text>
+                <Text style={styles.serviceLabel}>Surplus Income</Text>
+              </View>
+              <View style={styles.metricItem}>
+                <Text style={styles.serviceValue}>
+                  {safeNumber(data.maxPropertyValue, 0) ? ((safeNumber(data.surplusIncome, 0) / safeNumber(data.maxPropertyValue, 0)) * 100).toFixed(1) : '0.0'}%
+                </Text>
+                <Text style={styles.serviceLabel}>Income to Value Ratio</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+        <ReportFooter reportDate={reportDate} />
+      </Page>
     </Document>
   );
 }

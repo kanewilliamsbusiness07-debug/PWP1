@@ -1,6 +1,6 @@
-import { verifyCalculations } from '../lib/utils/calculateFinancialProjections';
+import { verifyCalculations, FinancialInputs } from '../lib/utils/calculateFinancialProjections';
 
-const testInputs = {
+const testInputs: FinancialInputs = {
   annualIncome: 150000,
   rentalIncome: 39000,
   dividends: 0,
