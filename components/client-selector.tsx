@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useFinancialStore } from '@/lib/store/store';
 import { useClientStorage } from '@/lib/hooks/use-client-storage';
+import { useDataSharing } from '@/lib/hooks/use-data-sharing';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,12 +12,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trash2, User } from 'lucide-react';
+import { Trash2, User, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function ClientSelector() {
   const financialStore = useFinancialStore();
   const { deleteClient } = useClientStorage();
+  const { forceSync, validateIntegrity } = useDataSharing({ autoSync: false });
   const { toast } = useToast();
   const [selectedSavedClient, setSelectedSavedClient] = useState<string>('');
   const [loadTarget, setLoadTarget] = useState<'A' | 'B'>('A');
@@ -119,6 +121,37 @@ export function ClientSelector() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Data Synchronization Controls */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Data Synchronization</h3>
+              <p className="text-xs text-muted-foreground">Keep your data in sync between local storage and database</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={validateIntegrity}
+                className="text-xs"
+              >
+                Validate
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={forceSync}
+                className="text-xs"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Sync Data
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Load Saved Client */}
       {savedClientNames.length > 0 && (

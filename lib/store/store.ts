@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { StateStorage } from 'zustand/middleware';
+import { normalizeFields } from '@/lib/utils/field-mapping';
 
 // SafeLocalStorage implementation
 class SafeLocalStorage implements StateStorage {
@@ -46,6 +47,10 @@ class SafeLocalStorage implements StateStorage {
 
 // Client data type - comprehensive including all fields from all pages
 interface ClientData {
+  // Database ID (optional - may not exist for locally saved clients)
+  id?: string;
+  
+  // Personal Information - Primary Person
   // Personal Information - Primary Person
   firstName: string;
   lastName: string;
@@ -356,6 +361,7 @@ type FinancialFields = {
   // Computed Values
   totalIncome: number;
   netIncome: number;
+  investmentDeductions?: number;
 }
 
 // Saved clients by name
@@ -396,8 +402,11 @@ interface FinancialStore extends FinancialFields {
   // Shared assumptions actions
   setSharedAssumptions: (data: Partial<SharedAssumptions>) => void;
 
-  // Additional computed fields
-  investmentDeductions?: number;
+// Enhanced data synchronization actions
+syncClientData: (clientSlot: "A" | "B", clientData: Partial<ClientData>) => void;
+syncFromDatabase: (clientId: string, clientSlot: "A" | "B") => Promise<void>;
+validateDataIntegrity: () => boolean;
+forceSync: () => Promise<boolean>;
 }
 
 // Initial state
@@ -422,6 +431,7 @@ const initialState: FinancialFields = {
   totalDebt: 0,
   totalIncome: 0,
   netIncome: 0,
+  investmentDeductions: 0,
   results: undefined,
   sharedAssumptions: {
     inflationRate: 2.5,
@@ -703,7 +713,100 @@ export const useFinancialStore = create<FinancialStore>()(
         }));
       },
       
-      investmentDeductions: 0
+      syncClientData: (clientSlot, clientData) => {
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = state[clientKey] || {};
+          
+          // Apply field normalization consistently
+          const normalizedData = normalizeFields(clientData);
+          
+          // Update client data
+          const updatedClient = { ...currentClient, ...normalizedData };
+          
+          // Auto-sync financial fields
+          const updates: Partial<FinancialFields> = {};
+          
+          // Apply the same field mapping logic as setClientData
+          if (normalizedData.annualIncome !== undefined) {
+            updates.grossIncome = normalizedData.annualIncome;
+            updates.employmentIncome = normalizedData.annualIncome;
+          }
+          if (normalizedData.grossSalary !== undefined) {
+            updates.grossIncome = normalizedData.grossSalary;
+            updates.employmentIncome = normalizedData.grossSalary;
+          }
+          if (normalizedData.rentalIncome !== undefined) {
+            updates.rentalIncome = normalizedData.rentalIncome;
+          }
+          if (normalizedData.savingsValue !== undefined) {
+            updates.cashSavings = normalizedData.savingsValue;
+          }
+          if (normalizedData.superFundValue !== undefined) {
+            updates.superBalance = normalizedData.superFundValue;
+          }
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient,
+            ...updates
+          };
+        });
+      },
+      
+      syncFromDatabase: async (clientId, clientSlot) => {
+        try {
+          const response = await fetch(`/api/clients/${clientId}`, {
+            credentials: 'include',
+          });
+          
+          if (response.ok) {
+            const clientData = await response.json();
+            get().syncClientData(clientSlot, clientData);
+          } else {
+            console.error('Failed to sync client from database:', response.status);
+          }
+        } catch (error) {
+          console.error('Error syncing client from database:', error);
+        }
+      },
+      
+      validateDataIntegrity: () => {
+        const state = get();
+        
+        // Check if client data is consistent
+        const clientA = state.clientA;
+        const clientB = state.clientB;
+        
+        // Validate that financial calculations match client data
+        if (clientA?.annualIncome && state.grossIncome !== clientA.annualIncome) {
+          console.warn('Data integrity issue: clientA annualIncome does not match grossIncome');
+          return false;
+        }
+        
+        if (clientB?.annualIncome && state.grossIncome !== clientB.annualIncome) {
+          console.warn('Data integrity issue: clientB annualIncome does not match grossIncome');
+          return false;
+        }
+        
+        return true;
+      },
+      
+      forceSync: async () => {
+        const state = get();
+        
+        // Sync both clients if they have IDs
+        if (state.clientA?.id) {
+          await get().syncFromDatabase(state.clientA.id, "A");
+        }
+        
+        if (state.clientB?.id) {
+          await get().syncFromDatabase(state.clientB.id, "B");
+        }
+        
+        // Validate integrity after sync
+        return get().validateDataIntegrity();
+      },
     }),
     {
       name: 'financial-store',

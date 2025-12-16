@@ -36,6 +36,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useFinancialStore } from '@/lib/store/store';
+import { useDataSharing } from '@/lib/hooks/use-data-sharing';
 import { ServiceabilitySummary } from '@/components/serviceability-summary';
 import { calculateInvestmentSurplus, calculatePropertyServiceability } from '@/lib/finance/serviceability';
 import {
@@ -83,6 +84,7 @@ export default function SummaryPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const financialStore = useFinancialStore();
+  const { forceSync, validateIntegrity } = useDataSharing({ autoSync: true });
 
   // Get active client
   const activeClientForEmail = financialStore.activeClient 
