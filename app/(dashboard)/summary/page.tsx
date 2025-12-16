@@ -125,6 +125,8 @@ export default function SummaryPage() {
   const activeClientSlot = useFinancialStore((state) => state.activeClient);
   const clientA = useFinancialStore((state) => state.clientA);
   const clientB = useFinancialStore((state) => state.clientB);
+  const sharedAssumptions = useFinancialStore((state) => state.sharedAssumptions);
+  const globalResults = useFinancialStore((state) => state.results);
   
   // Get active client data with proper subscription
   const activeClient = activeClientSlot 
@@ -329,8 +331,6 @@ export default function SummaryPage() {
 
     // Use stored projection results from global state first, then client data
     // This ensures Summary page shows the SAME values as the Projections page
-    const globalResults = financialStore.results;
-    const clientResults = client?.projectionResults;
     const storedProjectionResults = globalResults?.[clientKey] || clientResults;
     
     let projectedRetirementLumpSum: number;
@@ -354,15 +354,26 @@ export default function SummaryPage() {
         savings: savingsValue,
       };
 
+      // Use shared assumptions for consistency with projections page
+      const projectionAssumptions = sharedAssumptions ? {
+        inflationRate: sharedAssumptions.inflationRate / 100,
+        propertyGrowthRate: sharedAssumptions.propertyGrowthRate / 100,
+        shareMarketReturn: sharedAssumptions.shareReturn / 100,
+        superReturn: sharedAssumptions.superReturn / 100,
+        withdrawalRate: sharedAssumptions.withdrawalRate / 100,
+        salaryGrowthRate: sharedAssumptions.salaryGrowthRate / 100,
+        expectedRentGrowthRate: sharedAssumptions.rentGrowthRate / 100,
+      } : DEFAULT_ASSUMPTIONS;
+
       projectedRetirementLumpSum = calculateRetirementLumpSum(
         currentAssetsForRetirement,
-        DEFAULT_ASSUMPTIONS,
+        projectionAssumptions,
         yearsToRetirement
       );
 
       // Compute projected passive income at retirement (annual), then derive monthly
       const rentalAnnual = (surplusResult.income.rental || 0) * 12;
-      const projectedPassiveAnnual = calculatePassiveIncome(projectedRetirementLumpSum, rentalAnnual, DEFAULT_ASSUMPTIONS);
+      const projectedPassiveAnnual = calculatePassiveIncome(projectedRetirementLumpSum, rentalAnnual, projectionAssumptions);
       projectedRetirementMonthlyCashFlow = projectedPassiveAnnual / 12;
 
       // Calculate debt payments at retirement - only include loans that won't be paid off
