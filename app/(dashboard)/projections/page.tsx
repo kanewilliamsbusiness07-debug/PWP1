@@ -278,6 +278,10 @@ export default function ProjectionsPage() {
   const combinedProjection = useMemo(() => {
     if (!showCombined || !clientAProjection || !clientBProjection) return null;
     
+    const combinedPassiveIncome = clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome;
+    const combinedRequiredIncome = clientAProjection.requiredIncome + clientBProjection.requiredIncome;
+    const combinedSurplus = combinedPassiveIncome - combinedRequiredIncome;
+    
     return {
       currentAge: Math.min(clientAProjection.currentAge, clientBProjection.currentAge),
       retirementAge: Math.max(clientAProjection.retirementAge, clientBProjection.retirementAge),
@@ -285,13 +289,14 @@ export default function ProjectionsPage() {
       annualIncome: clientAProjection.annualIncome + clientBProjection.annualIncome,
       totalWealth: clientAProjection.totalWealth + clientBProjection.totalWealth,
       projectedLumpSum: clientAProjection.projectedLumpSum + clientBProjection.projectedLumpSum,
-      requiredIncome: clientAProjection.requiredIncome + clientBProjection.requiredIncome,
-      currentPassiveIncome: clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome,
-      monthlyDeficitSurplus: Math.abs((clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome) - (clientAProjection.requiredIncome + clientBProjection.requiredIncome)) / 12,
-      isDeficit: (clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome) < (clientAProjection.requiredIncome + clientBProjection.requiredIncome),
+      requiredIncome: combinedRequiredIncome,
+      currentPassiveIncome: combinedPassiveIncome,
+      monthlyDeficitSurplus: combinedSurplus / 12,
+      isDeficit: combinedSurplus < 0,
       projectedSuper: clientAProjection.projectedSuper + clientBProjection.projectedSuper,
       projectedShares: clientAProjection.projectedShares + clientBProjection.projectedShares,
-      projectedProperty: clientAProjection.projectedProperty + clientBProjection.projectedProperty
+      projectedProperty: clientAProjection.projectedProperty + clientBProjection.projectedProperty,
+      projectedSavings: clientAProjection.projectedSavings + clientBProjection.projectedSavings
     };
   }, [showCombined, clientAProjection, clientBProjection]);
 
@@ -398,21 +403,62 @@ export default function ProjectionsPage() {
                       <p className="text-2xl font-bold">{combinedProjection?.yearsToRetirement ?? 0}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Projected Lump Sum</p>
-                      <p className="text-2xl font-bold text-green-600">${combinedProjection?.projectedLumpSum.toLocaleString() ?? 0}</p>
+                      <p className="text-sm text-muted-foreground">Combined Net Worth at Retirement</p>
+                      <p className="text-2xl font-bold text-blue-600">${combinedProjection?.projectedLumpSum.toLocaleString() ?? 0}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Required Annual Income</p>
-                      <p className="text-2xl font-bold">${combinedProjection?.requiredIncome.toLocaleString() ?? 0}</p>
+                      <p className="text-sm text-muted-foreground">Combined Monthly Cashflow</p>
+                      <p className="text-2xl font-bold text-green-600">${((combinedProjection?.currentPassiveIncome ?? 0) / 12).toLocaleString()}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Monthly Position</p>
-                      <div className={`text-2xl font-bold flex items-center justify-center gap-2 ${
-                        combinedProjection?.isDeficit ? 'text-red-600' : 'text-green-600'
-                      }`}>
-                        {combinedProjection?.isDeficit ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
-                        ${combinedProjection?.monthlyDeficitSurplus.toLocaleString() ?? 0}
-                        <span className="text-sm">{combinedProjection?.isDeficit ? 'deficit' : 'surplus'}</span>
+                      <p className="text-sm text-muted-foreground">Combined Property Portfolio</p>
+                      <p className="text-2xl font-bold text-purple-600">${combinedProjection?.projectedProperty.toLocaleString() ?? 0}</p>
+                    </div>
+                  </div>
+
+                  {/* Combined Income Analysis */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Combined Income Analysis at Retirement</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Required Annual Income (70% of current combined)</p>
+                        <p className="text-xl font-bold">${combinedProjection?.requiredIncome.toLocaleString() ?? 0}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Projected Annual Passive Income</p>
+                        <p className="text-xl font-bold text-green-600">${combinedProjection?.currentPassiveIncome.toLocaleString() ?? 0}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Monthly Surplus/Deficit</p>
+                        <div className={`text-xl font-bold flex items-center justify-center gap-2 ${
+                          combinedProjection?.isDeficit ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {combinedProjection?.isDeficit ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+                          ${Math.abs(combinedProjection?.monthlyDeficitSurplus ?? 0).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Combined Asset Breakdown */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Combined Projected Asset Values at Retirement</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Superannuation</p>
+                        <p className="text-xl font-bold text-blue-600">${combinedProjection?.projectedSuper.toLocaleString() ?? 0}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Shares/Investments</p>
+                        <p className="text-xl font-bold text-green-600">${combinedProjection?.projectedShares.toLocaleString() ?? 0}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Property Portfolio</p>
+                        <p className="text-xl font-bold text-purple-600">${combinedProjection?.projectedProperty.toLocaleString() ?? 0}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Savings/Cash</p>
+                        <p className="text-xl font-bold text-orange-600">${combinedProjection?.projectedSavings.toLocaleString() ?? 0}</p>
                       </div>
                     </div>
                   </div>
@@ -471,29 +517,48 @@ export default function ProjectionsPage() {
                       <p className="text-2xl font-bold">{clientAProjection.yearsToRetirement}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Projected Lump Sum</p>
-                      <p className="text-2xl font-bold text-green-600">${clientAProjection.projectedLumpSum.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Net Worth at Retirement</p>
+                      <p className="text-2xl font-bold text-blue-600">${clientAProjection.projectedLumpSum.toLocaleString()}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Required Annual Income</p>
-                      <p className="text-2xl font-bold">${clientAProjection.requiredIncome.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Monthly Cashflow at Retirement</p>
+                      <p className="text-2xl font-bold text-green-600">${(clientAProjection.currentPassiveIncome / 12).toLocaleString()}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Monthly Position</p>
-                      <div className={`text-2xl font-bold flex items-center justify-center gap-2 ${
-                        clientAProjection.isDeficit ? 'text-red-600' : 'text-green-600'
-                      }`}>
-                        {clientAProjection.isDeficit ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
-                        ${clientAProjection.monthlyDeficitSurplus.toLocaleString()}
-                        <span className="text-sm">{clientAProjection.isDeficit ? 'deficit' : 'surplus'}</span>
+                      <p className="text-sm text-muted-foreground">Property Portfolio Value</p>
+                      <p className="text-2xl font-bold text-purple-600">${clientAProjection.projectedProperty.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {/* Income Analysis */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Income Analysis at Retirement</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Required Annual Income (70% of current)</p>
+                        <p className="text-xl font-bold">${clientAProjection.requiredIncome.toLocaleString()}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Projected Annual Passive Income</p>
+                        <p className="text-xl font-bold text-green-600">${clientAProjection.currentPassiveIncome.toLocaleString()}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Monthly Surplus/Deficit</p>
+                        <div className={`text-xl font-bold flex items-center justify-center gap-2 ${
+                          clientAProjection.isDeficit ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {clientAProjection.isDeficit ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+                          ${Math.abs(clientAProjection.monthlyDeficitSurplus).toLocaleString()}
+                          <span className="text-sm">{clientAProjection.isDeficit ? 'deficit' : 'surplus'}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Asset Breakdown */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Projected Asset Values</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <h3 className="text-lg font-semibold">Projected Asset Values at Retirement</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
                         <p className="text-xl font-bold text-blue-600">${clientAProjection.projectedSuper.toLocaleString()}</p>
@@ -503,8 +568,12 @@ export default function ProjectionsPage() {
                         <p className="text-xl font-bold text-green-600">${clientAProjection.projectedShares.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Property Equity</p>
+                        <p className="text-sm text-muted-foreground">Property Portfolio</p>
                         <p className="text-xl font-bold text-purple-600">${clientAProjection.projectedProperty.toLocaleString()}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Savings/Cash</p>
+                        <p className="text-xl font-bold text-orange-600">${clientAProjection.projectedSavings.toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
@@ -563,29 +632,48 @@ export default function ProjectionsPage() {
                       <p className="text-2xl font-bold">{clientBProjection.yearsToRetirement}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Projected Lump Sum</p>
-                      <p className="text-2xl font-bold text-green-600">${clientBProjection.projectedLumpSum.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Net Worth at Retirement</p>
+                      <p className="text-2xl font-bold text-blue-600">${clientBProjection.projectedLumpSum.toLocaleString()}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Required Annual Income</p>
-                      <p className="text-2xl font-bold">${clientBProjection.requiredIncome.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Monthly Cashflow at Retirement</p>
+                      <p className="text-2xl font-bold text-green-600">${(clientBProjection.currentPassiveIncome / 12).toLocaleString()}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Monthly Position</p>
-                      <div className={`text-2xl font-bold flex items-center justify-center gap-2 ${
-                        clientBProjection.isDeficit ? 'text-red-600' : 'text-green-600'
-                      }`}>
-                        {clientBProjection.isDeficit ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
-                        ${clientBProjection.monthlyDeficitSurplus.toLocaleString()}
-                        <span className="text-sm">{clientBProjection.isDeficit ? 'deficit' : 'surplus'}</span>
+                      <p className="text-sm text-muted-foreground">Property Portfolio Value</p>
+                      <p className="text-2xl font-bold text-purple-600">${clientBProjection.projectedProperty.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {/* Income Analysis */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Income Analysis at Retirement</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Required Annual Income (70% of current)</p>
+                        <p className="text-xl font-bold">${clientBProjection.requiredIncome.toLocaleString()}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Projected Annual Passive Income</p>
+                        <p className="text-xl font-bold text-green-600">${clientBProjection.currentPassiveIncome.toLocaleString()}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Monthly Surplus/Deficit</p>
+                        <div className={`text-xl font-bold flex items-center justify-center gap-2 ${
+                          clientBProjection.isDeficit ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {clientBProjection.isDeficit ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+                          ${Math.abs(clientBProjection.monthlyDeficitSurplus).toLocaleString()}
+                          <span className="text-sm">{clientBProjection.isDeficit ? 'deficit' : 'surplus'}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Asset Breakdown */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Projected Asset Values</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <h3 className="text-lg font-semibold">Projected Asset Values at Retirement</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
                         <p className="text-xl font-bold text-blue-600">${clientBProjection.projectedSuper.toLocaleString()}</p>
@@ -595,8 +683,12 @@ export default function ProjectionsPage() {
                         <p className="text-xl font-bold text-green-600">${clientBProjection.projectedShares.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Property Equity</p>
+                        <p className="text-sm text-muted-foreground">Property Portfolio</p>
                         <p className="text-xl font-bold text-purple-600">${clientBProjection.projectedProperty.toLocaleString()}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Savings/Cash</p>
+                        <p className="text-xl font-bold text-orange-600">${clientBProjection.projectedSavings.toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
