@@ -101,6 +101,8 @@ export interface ProjectionResults {
   futurePropertyValue: number; // Total property value
   futurePropertyEquity: number; // Property value - remaining loans
   remainingPropertyLoans: number; // How much loan is left
+  futurePropertyAssets: number; // General property assets
+  futureOtherAssets: number; // Other assets
   futureSavings: number;
   combinedNetworthAtRetirement: number;
 
@@ -410,6 +412,8 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     futurePropertyValue, // Total property value
     futurePropertyEquity, // Property value - remaining loans
     remainingPropertyLoans, // How much loan is left
+    futurePropertyAssets,
+    futureOtherAssets,
     futureSavings,
     combinedNetworthAtRetirement,
 

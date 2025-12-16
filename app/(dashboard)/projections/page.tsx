@@ -455,8 +455,15 @@ export default function ProjectionsPage() {
       futureSuper: safeAdd(clientAProjection.futureSuper, clientBProjection.futureSuper),
       futureShares: safeAdd(clientAProjection.futureShares, clientBProjection.futureShares),
       futurePropertyEquity: safeAdd(clientAProjection.futurePropertyEquity, clientBProjection.futurePropertyEquity),
+      futurePropertyAssets: safeAdd(clientAProjection.futurePropertyAssets, clientBProjection.futurePropertyAssets),
+      futureOtherAssets: safeAdd(clientAProjection.futureOtherAssets, clientBProjection.futureOtherAssets),
       futureSavings: safeAdd(clientAProjection.futureSavings, clientBProjection.futureSavings),
-      combinedNetworthAtRetirement: safeAdd(clientAProjection.combinedNetworthAtRetirement, clientBProjection.combinedNetworthAtRetirement),
+      combinedNetworthAtRetirement: safeAdd(clientAProjection.futureSuper, clientBProjection.futureSuper) +
+                                   safeAdd(clientAProjection.futureShares, clientBProjection.futureShares) +
+                                   safeAdd(clientAProjection.futurePropertyAssets, clientBProjection.futurePropertyAssets) +
+                                   safeAdd(clientAProjection.futureOtherAssets, clientBProjection.futureOtherAssets) +
+                                   safeAdd(clientAProjection.futurePropertyEquity, clientBProjection.futurePropertyEquity) +
+                                   safeAdd(clientAProjection.futureSavings, clientBProjection.futureSavings),
 
       // Retirement Income
       futureMonthlyRentalIncome: safeAdd(clientAProjection.futureMonthlyRentalIncome, clientBProjection.futureMonthlyRentalIncome),
@@ -621,23 +628,35 @@ export default function ProjectionsPage() {
                   {/* Combined Asset Breakdown */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Combined Projected Asset Values at Retirement</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
-                        <p className="text-xl font-bold text-blue-600">${combinedProjection?.futureSuper.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-blue-600">{formatCurrency(combinedProjection?.futureSuper)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Shares/Investments</p>
-                        <p className="text-xl font-bold text-green-600">${combinedProjection?.futureShares.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-green-600">{formatCurrency(combinedProjection?.futureShares)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Property Portfolio</p>
-                        <p className="text-xl font-bold text-purple-600">${combinedProjection?.futurePropertyEquity.toLocaleString() ?? 0}</p>
+                        <p className="text-sm text-muted-foreground">Investment Properties</p>
+                        <p className="text-xl font-bold text-purple-600">{formatCurrency(combinedProjection?.futurePropertyEquity)}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Other Properties</p>
+                        <p className="text-xl font-bold text-indigo-600">{formatCurrency(combinedProjection?.futurePropertyAssets)}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Other Assets</p>
+                        <p className="text-xl font-bold text-teal-600">{formatCurrency(combinedProjection?.futureOtherAssets)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Savings/Cash</p>
-                        <p className="text-xl font-bold text-orange-600">${combinedProjection?.futureSavings.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-orange-600">{formatCurrency(combinedProjection?.futureSavings)}</p>
                       </div>
+                    </div>
+                    <div className="text-center p-4 bg-primary/10 rounded-lg border">
+                      <p className="text-sm text-muted-foreground">Total Combined Net Worth at Retirement</p>
+                      <p className="text-2xl font-bold text-primary">{formatCurrency(combinedProjection?.combinedNetworthAtRetirement)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -736,7 +755,7 @@ export default function ProjectionsPage() {
                   {/* Asset Breakdown */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Projected Asset Values at Retirement</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
                         <p className="text-xl font-bold text-blue-600">{formatCurrency(clientAProjection.futureSuper)}</p>
@@ -746,13 +765,25 @@ export default function ProjectionsPage() {
                         <p className="text-xl font-bold text-green-600">{formatCurrency(clientAProjection.futureShares)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Property Portfolio</p>
+                        <p className="text-sm text-muted-foreground">Investment Properties</p>
                         <p className="text-xl font-bold text-purple-600">{formatCurrency(clientAProjection.futurePropertyEquity)}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Other Properties</p>
+                        <p className="text-xl font-bold text-indigo-600">{formatCurrency(clientAProjection.futurePropertyAssets)}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Other Assets</p>
+                        <p className="text-xl font-bold text-teal-600">{formatCurrency(clientAProjection.futureOtherAssets)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Savings/Cash</p>
                         <p className="text-xl font-bold text-orange-600">{formatCurrency(clientAProjection.futureSavings)}</p>
                       </div>
+                    </div>
+                    <div className="text-center p-4 bg-primary/10 rounded-lg border">
+                      <p className="text-sm text-muted-foreground">Total Net Worth at Retirement</p>
+                      <p className="text-2xl font-bold text-primary">{formatCurrency(clientAProjection.combinedNetworthAtRetirement)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -851,7 +882,7 @@ export default function ProjectionsPage() {
                   {/* Asset Breakdown */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Projected Asset Values at Retirement</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
                         <p className="text-xl font-bold text-blue-600">{formatCurrency(clientBProjection.futureSuper)}</p>
@@ -861,13 +892,25 @@ export default function ProjectionsPage() {
                         <p className="text-xl font-bold text-green-600">{formatCurrency(clientBProjection.futureShares)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground">Property Portfolio</p>
+                        <p className="text-sm text-muted-foreground">Investment Properties</p>
                         <p className="text-xl font-bold text-purple-600">{formatCurrency(clientBProjection.futurePropertyEquity)}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Other Properties</p>
+                        <p className="text-xl font-bold text-indigo-600">{formatCurrency(clientBProjection.futurePropertyAssets)}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">Other Assets</p>
+                        <p className="text-xl font-bold text-teal-600">{formatCurrency(clientBProjection.futureOtherAssets)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Savings/Cash</p>
                         <p className="text-xl font-bold text-orange-600">{formatCurrency(clientBProjection.futureSavings)}</p>
                       </div>
+                    </div>
+                    <div className="text-center p-4 bg-primary/10 rounded-lg border">
+                      <p className="text-sm text-muted-foreground">Total Net Worth at Retirement</p>
+                      <p className="text-2xl font-bold text-primary">{formatCurrency(clientBProjection.combinedNetworthAtRetirement)}</p>
                     </div>
                   </div>
                 </CardContent>
