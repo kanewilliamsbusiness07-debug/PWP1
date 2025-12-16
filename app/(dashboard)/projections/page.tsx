@@ -9,6 +9,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useFinancialStore } from '@/lib/store/store';
 import { useClientStorage } from '@/lib/hooks/use-client-storage';
+import { calculateFinancialProjections, type FinancialInputs } from '@/lib/utils/calculateFinancialProjections';
 import { Calculator, TriangleAlert, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -162,113 +163,247 @@ export default function ProjectionsPage() {
   const clientAName = clientA ? `${clientA.firstName || ''} ${clientA.lastName || ''}`.trim() || 'Client A' : 'Client A';
   const clientBName = clientB ? `${clientB.firstName || ''} ${clientB.lastName || ''}`.trim() || 'Client B' : 'Client B';
 
-  // Calculate projections for each client
-  const calculateClientProjection = (client: any) => {
+  // Convert client data to FinancialInputs format
+  const convertClientToInputs = (client: any): FinancialInputs | null => {
     if (!client) return null;
 
+    // Map legacy fields to new structure
+    const annualIncome = client.annualIncome ?? client.grossSalary ?? 0;
     const currentAge = client.currentAge ?? 30;
     const retirementAge = client.retirementAge ?? 65;
-    const yearsToRetirement = Math.max(0, retirementAge - currentAge);
 
-    // Financial position
-    const annualIncome = client.annualIncome ?? client.grossSalary ?? 0;
-    const currentSuper = client.currentSuper ?? client.superFundValue ?? 0;
-    const currentSavings = client.currentSavings ?? client.savingsValue ?? 0;
-    const currentShares = client.currentShares ?? client.sharesValue ?? 0;
-    const propertyEquity = client.propertyEquity ?? 0;
-    const monthlyDebtPayments = client.monthlyDebtPayments ?? 0;
-    const monthlyRentalIncome = client.monthlyRentalIncome ?? (client.rentalIncome ? client.rentalIncome / 12 : 0);
-    const monthlyExpenses = client.monthlyExpenses ?? 0;
+    // Convert assets array
+    const assets: Array<{
+      name: string;
+      value: number;
+      type: 'Property' | 'Super' | 'Shares' | 'Cash' | 'Other';
+    }> = [];
 
-    // Assumptions from shared state or defaults
-    const superReturn = sharedAssumptions.superReturn / 100; // Convert to decimal
-    const shareReturn = sharedAssumptions.shareReturn / 100;
-    const propertyGrowth = sharedAssumptions.propertyGrowthRate / 100;
-    const inflationRate = sharedAssumptions.inflationRate / 100;
-    const salaryGrowthRate = sharedAssumptions.salaryGrowthRate / 100;
-    const withdrawalRate = sharedAssumptions.withdrawalRate / 100;
-
-    // ===== SUPERANNUATION CALCULATION =====
-    // Super guarantee rate (11.5% of salary)
-    const SUPER_GUARANTEE_RATE = 0.115;
-
-    // Initial super contribution
-    const initialSuperContribution = annualIncome * SUPER_GUARANTEE_RATE;
-
-    // Future value of current super balance
-    const projectedSuperFromBalance = currentSuper * Math.pow(1 + superReturn, yearsToRetirement);
-
-    // Future value of growing super contributions
-    // This is the future value of an annuity with growing payments
-    let projectedSuperFromContributions = 0;
-    if (Math.abs(superReturn - salaryGrowthRate) < 0.0001) {
-      // Special case when rates are equal
-      projectedSuperFromContributions = initialSuperContribution * yearsToRetirement * Math.pow(1 + superReturn, yearsToRetirement - 1);
-    } else {
-      projectedSuperFromContributions = initialSuperContribution *
-        ((Math.pow(1 + superReturn, yearsToRetirement) - Math.pow(1 + salaryGrowthRate, yearsToRetirement)) /
-         (superReturn - salaryGrowthRate));
+    // Add super
+    if (client.superFundValue ?? client.currentSuper ?? 0 > 0) {
+      assets.push({
+        name: 'Superannuation',
+        value: client.superFundValue ?? client.currentSuper ?? 0,
+        type: 'Super' as const
+      });
     }
 
-    const projectedSuper = projectedSuperFromBalance + projectedSuperFromContributions;
+    // Add savings/cash
+    if (client.savingsValue ?? client.currentSavings ?? 0 > 0) {
+      assets.push({
+        name: 'Savings',
+        value: client.savingsValue ?? client.currentSavings ?? 0,
+        type: 'Cash' as const
+      });
+    }
 
-    // ===== SHARES CALCULATION =====
-    // Adjust for inflation (real return)
-    const realShareReturn = (1 + shareReturn) / (1 + inflationRate) - 1;
-    const projectedShares = currentShares * Math.pow(1 + realShareReturn, yearsToRetirement);
+    // Add shares
+    if (client.sharesValue ?? client.sharesTotalValue ?? client.currentShares ?? 0 > 0) {
+      assets.push({
+        name: 'Shares',
+        value: client.sharesValue ?? client.sharesTotalValue ?? client.currentShares ?? 0,
+        type: 'Shares' as const
+      });
+    }
 
-    // ===== PROPERTY CALCULATION =====
-    const realPropertyGrowth = (1 + propertyGrowth) / (1 + inflationRate) - 1;
-    const projectedProperty = propertyEquity * Math.pow(1 + realPropertyGrowth, yearsToRetirement);
+    // Add other assets from dynamic array if available
+    if (client.assets && Array.isArray(client.assets)) {
+      client.assets.forEach((asset: any) => {
+        if (asset.currentValue > 0) {
+          let type: 'Property' | 'Super' | 'Shares' | 'Cash' | 'Other' = 'Other';
+          switch (asset.type) {
+            case 'property': type = 'Property'; break;
+            case 'super': type = 'Super'; break;
+            case 'shares': type = 'Shares'; break;
+            case 'savings': type = 'Cash'; break;
+          }
+          assets.push({
+            name: asset.name,
+            value: asset.currentValue,
+            type
+          });
+        }
+      });
+    }
 
-    // ===== SAVINGS CALCULATION =====
-    // Savings get conservative return (assume 2% real after inflation)
-    const savingsReturn = 0.02; // Conservative real return
-    const projectedSavings = currentSavings * Math.pow(1 + savingsReturn, yearsToRetirement);
+    // Convert liabilities array
+    const liabilities: Array<{
+      lender: string;
+      loanType: string;
+      liabilityType: string;
+      balanceOwing: number;
+      repaymentAmount: number;
+      frequency: 'W' | 'F' | 'M';
+      interestRate: number;
+      loanTerm: number;
+      termRemaining: number;
+    }> = [];
 
-    // ===== TOTAL LUMP SUM =====
-    const projectedLumpSum = projectedSuper + projectedShares + projectedProperty + projectedSavings;
+    // Add mortgages from legacy fields
+    if (client.homeBalance ?? 0 > 0) {
+      liabilities.push({
+        lender: client.homeFunder ?? 'Unknown',
+        loanType: 'Mortgage',
+        liabilityType: 'Mortgage',
+        balanceOwing: client.homeBalance,
+        repaymentAmount: client.homeRepayment ?? 0,
+        frequency: 'M' as const,
+        interestRate: client.homeRate ?? 0,
+        loanTerm: 30,
+        termRemaining: 20
+      });
+    }
 
-    // ===== PASSIVE INCOME =====
-    // Investment withdrawal using 4% rule
-    const investmentWithdrawal = projectedLumpSum * withdrawalRate;
+    // Add investment property loans
+    [1, 2, 3, 4].forEach(i => {
+      const balance = client[`investment${i}Balance`];
+      if (balance > 0) {
+        liabilities.push({
+          lender: client[`investment${i}Funder`] ?? 'Unknown',
+          loanType: 'Mortgage',
+          liabilityType: 'Mortgage',
+          balanceOwing: balance,
+          repaymentAmount: client[`investment${i}Repayment`] ?? 0,
+          frequency: 'M' as const,
+          interestRate: client[`investment${i}Rate`] ?? 0,
+          loanTerm: 30,
+          termRemaining: 25
+        });
+      }
+    });
 
-    // Future rental income (grows with inflation)
-    const currentAnnualRental = monthlyRentalIncome * 12;
-    const rentGrowthRate = sharedAssumptions.rentGrowthRate / 100;
-    const realRentGrowth = (1 + rentGrowthRate) / (1 + inflationRate) - 1;
-    const futureAnnualRental = currentAnnualRental * Math.pow(1 + realRentGrowth, yearsToRetirement);
+    // Add other liabilities
+    if (client.personalLoanBalance ?? 0 > 0) {
+      liabilities.push({
+        lender: 'Unknown',
+        loanType: 'Personal Loan',
+        liabilityType: 'Personal Loan',
+        balanceOwing: client.personalLoanBalance,
+        repaymentAmount: client.personalLoanRepayment ?? 0,
+        frequency: 'M' as const,
+        interestRate: 0,
+        loanTerm: 5,
+        termRemaining: 3
+      });
+    }
 
-    const currentPassiveIncome = investmentWithdrawal + futureAnnualRental;
+    if (client.creditCardBalance ?? 0 > 0) {
+      liabilities.push({
+        lender: 'Unknown',
+        loanType: 'Credit Card',
+        liabilityType: 'Credit Card',
+        balanceOwing: client.creditCardBalance,
+        repaymentAmount: 0, // Assume minimum payments
+        frequency: 'M' as const,
+        interestRate: 20,
+        loanTerm: 1,
+        termRemaining: 1
+      });
+    }
 
-    // ===== RETIREMENT INCOME REQUIREMENT =====
-    // Target is 70% of final salary (adjusted for inflation)
-    const finalSalary = annualIncome * Math.pow(1 + salaryGrowthRate, yearsToRetirement);
-    const requiredIncome = finalSalary * 0.70; // 70% replacement ratio
+    if (client.hecsBalance ?? 0 > 0) {
+      liabilities.push({
+        lender: 'HECS',
+        loanType: 'HECS',
+        liabilityType: 'Other',
+        balanceOwing: client.hecsBalance,
+        repaymentAmount: client.hecsRepayment ?? 0,
+        frequency: 'M' as const,
+        interestRate: 0,
+        loanTerm: 20,
+        termRemaining: 15
+      });
+    }
 
-    // ===== DEFICIT OR SURPLUS =====
-    const surplus = currentPassiveIncome - requiredIncome;
-    const monthlyDeficitSurplus = surplus / 12;
-    const isDeficit = surplus < 0;
+    // Add from dynamic liabilities array if available
+    if (client.liabilities && Array.isArray(client.liabilities)) {
+      client.liabilities.forEach((liability: any) => {
+        if (liability.balance > 0) {
+          liabilities.push({
+            lender: liability.lender ?? liability.name ?? 'Unknown',
+            loanType: liability.loanType ?? 'Unknown',
+            liabilityType: liability.type === 'mortgage' ? 'Mortgage' :
+                          liability.type === 'personal-loan' ? 'Personal Loan' :
+                          liability.type === 'credit-card' ? 'Credit Card' : 'Other',
+            balanceOwing: liability.balance,
+            repaymentAmount: liability.monthlyPayment ?? 0,
+            frequency: (liability.paymentFrequency ?? 'M') as 'W' | 'F' | 'M',
+            interestRate: liability.interestRate ?? 0,
+            loanTerm: liability.loanTerm ?? 30,
+            termRemaining: liability.termRemaining ?? liability.loanTerm ?? 30
+          });
+        }
+      });
+    }
+
+    // Convert investment properties
+    const investmentProperties: Array<{
+      address: string;
+      purchasePrice: number;
+      currentValue: number;
+      loanAmount: number;
+      interestRate: number;
+      loanTerm: number;
+      weeklyRent: number;
+      annualExpenses: number;
+    }> = [];
+
+    // Add from legacy fields
+    [1, 2, 3, 4].forEach(i => {
+      const value = client[`investment${i}Value`];
+      if (value > 0) {
+        investmentProperties.push({
+          address: `Investment Property ${i}`,
+          purchasePrice: client[`investment${i}Price`] ?? value,
+          currentValue: value,
+          loanAmount: client[`investment${i}Balance`] ?? 0,
+          interestRate: client[`investment${i}Rate`] ?? 0,
+          loanTerm: 30,
+          weeklyRent: 0, // Not available in legacy
+          annualExpenses: 0
+        });
+      }
+    });
+
+    // Add from dynamic properties array if available
+    if (client.properties && Array.isArray(client.properties)) {
+      client.properties.forEach((property: any) => {
+        investmentProperties.push({
+          address: property.address,
+          purchasePrice: property.purchasePrice,
+          currentValue: property.currentValue,
+          loanAmount: property.loanAmount,
+          interestRate: property.interestRate,
+          loanTerm: property.loanTerm,
+          weeklyRent: property.weeklyRent,
+          annualExpenses: property.annualExpenses
+        });
+      });
+    }
 
     return {
+      annualIncome,
+      rentalIncome: client.rentalIncome ?? 0,
+      dividends: client.dividends ?? 0,
+      frankedDividends: client.frankedDividends ?? 0,
+      capitalGains: client.capitalGains ?? 0,
+      otherIncome: client.otherIncome ?? 0,
+      monthlyExpenses: client.monthlyExpenses ?? 0,
+      assets,
+      liabilities,
+      investmentProperties,
       currentAge,
       retirementAge,
-      yearsToRetirement,
-      annualIncome,
-      totalWealth: currentSuper + currentSavings + currentShares + propertyEquity,
-      projectedLumpSum,
-      requiredIncome,
-      currentPassiveIncome,
-      monthlyDeficitSurplus,
-      isDeficit,
-      projectedSuper,
-      projectedShares,
-      projectedProperty,
-      projectedSavings,
-      investmentWithdrawal,
-      futureAnnualRental
+      assumptions: sharedAssumptions
     };
+  };
+
+  // Calculate projections for each client
+  const calculateClientProjection = (client: any) => {
+    const inputs = convertClientToInputs(client);
+    if (!inputs) return null;
+
+    return calculateFinancialProjections(inputs);
   };
 
   const clientAProjection = useMemo(() => calculateClientProjection(clientA), [clientA]);
@@ -277,26 +412,42 @@ export default function ProjectionsPage() {
   // Combined projections
   const combinedProjection = useMemo(() => {
     if (!showCombined || !clientAProjection || !clientBProjection) return null;
-    
-    const combinedPassiveIncome = clientAProjection.currentPassiveIncome + clientBProjection.currentPassiveIncome;
-    const combinedRequiredIncome = clientAProjection.requiredIncome + clientBProjection.requiredIncome;
-    const combinedSurplus = combinedPassiveIncome - combinedRequiredIncome;
-    
+
     return {
+      // Current Position (summed)
       currentAge: Math.min(clientAProjection.currentAge, clientBProjection.currentAge),
       retirementAge: Math.max(clientAProjection.retirementAge, clientBProjection.retirementAge),
+      currentSuper: clientAProjection.currentSuper + clientBProjection.currentSuper,
+      currentSavings: clientAProjection.currentSavings + clientBProjection.currentSavings,
+      currentShares: clientAProjection.currentShares + clientBProjection.currentShares,
+      propertyEquity: clientAProjection.propertyEquity + clientBProjection.propertyEquity,
+      currentNetWorth: clientAProjection.currentNetWorth + clientBProjection.currentNetWorth,
+      monthlyDebtPayments: clientAProjection.monthlyDebtPayments + clientBProjection.monthlyDebtPayments,
+      monthlyRentalIncome: clientAProjection.monthlyRentalIncome + clientBProjection.monthlyRentalIncome,
+      currentMonthlyCashflow: clientAProjection.currentMonthlyCashflow + clientBProjection.currentMonthlyCashflow,
+      totalAnnualIncome: clientAProjection.totalAnnualIncome + clientBProjection.totalAnnualIncome,
+
+      // Future Projections
       yearsToRetirement: Math.max(clientAProjection.yearsToRetirement, clientBProjection.yearsToRetirement),
-      annualIncome: clientAProjection.annualIncome + clientBProjection.annualIncome,
-      totalWealth: clientAProjection.totalWealth + clientBProjection.totalWealth,
-      projectedLumpSum: clientAProjection.projectedLumpSum + clientBProjection.projectedLumpSum,
-      requiredIncome: combinedRequiredIncome,
-      currentPassiveIncome: combinedPassiveIncome,
-      monthlyDeficitSurplus: combinedSurplus / 12,
-      isDeficit: combinedSurplus < 0,
-      projectedSuper: clientAProjection.projectedSuper + clientBProjection.projectedSuper,
-      projectedShares: clientAProjection.projectedShares + clientBProjection.projectedShares,
-      projectedProperty: clientAProjection.projectedProperty + clientBProjection.projectedProperty,
-      projectedSavings: clientAProjection.projectedSavings + clientBProjection.projectedSavings
+      futureSuper: clientAProjection.futureSuper + clientBProjection.futureSuper,
+      futureShares: clientAProjection.futureShares + clientBProjection.futureShares,
+      futurePropertyEquity: clientAProjection.futurePropertyEquity + clientBProjection.futurePropertyEquity,
+      futureSavings: clientAProjection.futureSavings + clientBProjection.futureSavings,
+      combinedNetworthAtRetirement: clientAProjection.combinedNetworthAtRetirement + clientBProjection.combinedNetworthAtRetirement,
+
+      // Retirement Income
+      futureMonthlyRentalIncome: clientAProjection.futureMonthlyRentalIncome + clientBProjection.futureMonthlyRentalIncome,
+      monthlyInvestmentWithdrawal: clientAProjection.monthlyInvestmentWithdrawal + clientBProjection.monthlyInvestmentWithdrawal,
+      combinedMonthlyCashflowRetirement: clientAProjection.combinedMonthlyCashflowRetirement + clientBProjection.combinedMonthlyCashflowRetirement,
+      projectedAnnualPassiveIncome: clientAProjection.projectedAnnualPassiveIncome + clientBProjection.projectedAnnualPassiveIncome,
+
+      // Target & Surplus/Deficit (use weighted average for surplus/deficit status)
+      requiredAnnualIncome: clientAProjection.requiredAnnualIncome + clientBProjection.requiredAnnualIncome,
+      requiredMonthlyIncome: clientAProjection.requiredMonthlyIncome + clientBProjection.requiredMonthlyIncome,
+      monthlySurplusDeficit: clientAProjection.monthlySurplusDeficit + clientBProjection.monthlySurplusDeficit,
+      status: (clientAProjection.monthlySurplusDeficit + clientBProjection.monthlySurplusDeficit) >= 0 ? 'surplus' : 'deficit',
+      percentageOfTarget: ((clientAProjection.projectedAnnualPassiveIncome + clientBProjection.projectedAnnualPassiveIncome) /
+                          (clientAProjection.requiredAnnualIncome + clientBProjection.requiredAnnualIncome)) * 100,
     };
   }, [showCombined, clientAProjection, clientBProjection]);
 
@@ -304,14 +455,14 @@ export default function ProjectionsPage() {
   useEffect(() => {
     if (clientAProjection) {
       const clientAResults = {
-        projectedLumpSum: clientAProjection.projectedLumpSum,
-        monthlyPassiveIncome: clientAProjection.currentPassiveIncome / 12,
+        projectedLumpSum: clientAProjection.combinedNetworthAtRetirement,
+        monthlyPassiveIncome: clientAProjection.projectedAnnualPassiveIncome / 12,
         yearsToRetirement: clientAProjection.yearsToRetirement,
-        requiredIncome: clientAProjection.requiredIncome,
-        monthlyDeficitSurplus: clientAProjection.monthlyDeficitSurplus,
-        isDeficit: clientAProjection.isDeficit,
+        requiredIncome: clientAProjection.requiredAnnualIncome,
+        monthlyDeficitSurplus: clientAProjection.monthlySurplusDeficit,
+        isDeficit: clientAProjection.status === 'deficit',
       };
-      
+
       const currentResults = useFinancialStore.getState().results || {};
       useFinancialStore.getState().setResults({
         ...currentResults,
@@ -323,14 +474,13 @@ export default function ProjectionsPage() {
   useEffect(() => {
     if (clientBProjection) {
       const clientBResults = {
-        projectedLumpSum: clientBProjection.projectedLumpSum,
-        monthlyPassiveIncome: clientBProjection.currentPassiveIncome / 12,
+        projectedLumpSum: clientBProjection.combinedNetworthAtRetirement,
+        monthlyPassiveIncome: clientBProjection.projectedAnnualPassiveIncome / 12,
         yearsToRetirement: clientBProjection.yearsToRetirement,
-        requiredIncome: clientBProjection.requiredIncome,
-        monthlyDeficitSurplus: clientBProjection.monthlyDeficitSurplus,
-        isDeficit: clientBProjection.isDeficit,
+        requiredIncome: clientBProjection.requiredAnnualIncome,
+        monthlyDeficitSurplus: clientBProjection.monthlySurplusDeficit,
+        isDeficit: clientBProjection.status === 'deficit',
       };
-      
 
       const currentResults = useFinancialStore.getState().results || {};
       useFinancialStore.getState().setResults({
@@ -343,11 +493,11 @@ export default function ProjectionsPage() {
   useEffect(() => {
     if (combinedProjection) {
       const combinedResults = {
-        totalProjectedLumpSum: combinedProjection.projectedLumpSum,
-        totalMonthlyIncome: combinedProjection.currentPassiveIncome / 12,
-        combinedSurplusDeficit: combinedProjection.monthlyDeficitSurplus,
+        totalProjectedLumpSum: combinedProjection.combinedNetworthAtRetirement,
+        totalMonthlyIncome: combinedProjection.projectedAnnualPassiveIncome / 12,
+        combinedSurplusDeficit: combinedProjection.monthlySurplusDeficit,
       };
-      
+
       console.log('=== PROJECTIONS PAGE: Saving combined results to global state ===', combinedResults);
       const currentResults = useFinancialStore.getState().results || {};
       useFinancialStore.getState().setResults({
@@ -404,15 +554,15 @@ export default function ProjectionsPage() {
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Combined Net Worth at Retirement</p>
-                      <p className="text-2xl font-bold text-blue-600">${combinedProjection?.projectedLumpSum.toLocaleString() ?? 0}</p>
+                      <p className="text-2xl font-bold text-blue-600">${combinedProjection?.combinedNetworthAtRetirement.toLocaleString() ?? 0}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Combined Monthly Cashflow</p>
-                      <p className="text-2xl font-bold text-green-600">${((combinedProjection?.currentPassiveIncome ?? 0) / 12).toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-green-600">${combinedProjection?.combinedMonthlyCashflowRetirement.toLocaleString() ?? 0}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Combined Property Portfolio</p>
-                      <p className="text-2xl font-bold text-purple-600">${combinedProjection?.projectedProperty.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-purple-600">${combinedProjection?.futurePropertyEquity.toLocaleString() ?? 0}</p>
                     </div>
                   </div>
 
@@ -422,19 +572,20 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Required Annual Income (70% of current combined)</p>
-                        <p className="text-xl font-bold">${combinedProjection?.requiredIncome.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold">${combinedProjection?.requiredAnnualIncome.toLocaleString() ?? 0}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Projected Annual Passive Income</p>
-                        <p className="text-xl font-bold text-green-600">${combinedProjection?.currentPassiveIncome.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-green-600">${combinedProjection?.projectedAnnualPassiveIncome.toLocaleString() ?? 0}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Monthly Surplus/Deficit</p>
                         <div className={`text-xl font-bold flex items-center justify-center gap-2 ${
-                          combinedProjection?.isDeficit ? 'text-red-600' : 'text-green-600'
+                          combinedProjection?.status === 'deficit' ? 'text-red-600' : 'text-green-600'
                         }`}>
-                          {combinedProjection?.isDeficit ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
-                          ${Math.abs(combinedProjection?.monthlyDeficitSurplus ?? 0).toLocaleString()}
+                          {combinedProjection?.status === 'deficit' ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+                          ${Math.abs(combinedProjection?.monthlySurplusDeficit ?? 0).toLocaleString()}
+                          <span className="text-sm">{combinedProjection?.status}</span>
                         </div>
                       </div>
                     </div>
@@ -446,19 +597,19 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
-                        <p className="text-xl font-bold text-blue-600">${combinedProjection?.projectedSuper.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-blue-600">${combinedProjection?.futureSuper.toLocaleString() ?? 0}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Shares/Investments</p>
-                        <p className="text-xl font-bold text-green-600">${combinedProjection?.projectedShares.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-green-600">${combinedProjection?.futureShares.toLocaleString() ?? 0}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Property Portfolio</p>
-                        <p className="text-xl font-bold text-purple-600">${combinedProjection?.projectedProperty.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-purple-600">${combinedProjection?.futurePropertyEquity.toLocaleString() ?? 0}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Savings/Cash</p>
-                        <p className="text-xl font-bold text-orange-600">${combinedProjection?.projectedSavings.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-orange-600">${combinedProjection?.futureSavings.toLocaleString() ?? 0}</p>
                       </div>
                     </div>
                   </div>
@@ -518,15 +669,15 @@ export default function ProjectionsPage() {
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Net Worth at Retirement</p>
-                      <p className="text-2xl font-bold text-blue-600">${clientAProjection.projectedLumpSum.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-blue-600">${clientAProjection.combinedNetworthAtRetirement.toLocaleString()}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Monthly Cashflow at Retirement</p>
-                      <p className="text-2xl font-bold text-green-600">${(clientAProjection.currentPassiveIncome / 12).toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-green-600">${clientAProjection.combinedMonthlyCashflowRetirement.toLocaleString()}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Property Portfolio Value</p>
-                      <p className="text-2xl font-bold text-purple-600">${clientAProjection.projectedProperty.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-purple-600">${clientAProjection.futurePropertyEquity.toLocaleString()}</p>
                     </div>
                   </div>
 
@@ -536,20 +687,20 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Required Annual Income (70% of current)</p>
-                        <p className="text-xl font-bold">${clientAProjection.requiredIncome.toLocaleString()}</p>
+                        <p className="text-xl font-bold">${clientAProjection.requiredAnnualIncome.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Projected Annual Passive Income</p>
-                        <p className="text-xl font-bold text-green-600">${clientAProjection.currentPassiveIncome.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-green-600">${clientAProjection.projectedAnnualPassiveIncome.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Monthly Surplus/Deficit</p>
                         <div className={`text-xl font-bold flex items-center justify-center gap-2 ${
-                          clientAProjection.isDeficit ? 'text-red-600' : 'text-green-600'
+                          clientAProjection.status === 'deficit' ? 'text-red-600' : 'text-green-600'
                         }`}>
-                          {clientAProjection.isDeficit ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
-                          ${Math.abs(clientAProjection.monthlyDeficitSurplus).toLocaleString()}
-                          <span className="text-sm">{clientAProjection.isDeficit ? 'deficit' : 'surplus'}</span>
+                          {clientAProjection.status === 'deficit' ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+                          ${Math.abs(clientAProjection.monthlySurplusDeficit).toLocaleString()}
+                          <span className="text-sm">{clientAProjection.status}</span>
                         </div>
                       </div>
                     </div>
@@ -561,19 +712,19 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
-                        <p className="text-xl font-bold text-blue-600">${clientAProjection.projectedSuper.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-blue-600">${clientAProjection.futureSuper.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Shares/Investments</p>
-                        <p className="text-xl font-bold text-green-600">${clientAProjection.projectedShares.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-green-600">${clientAProjection.futureShares.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Property Portfolio</p>
-                        <p className="text-xl font-bold text-purple-600">${clientAProjection.projectedProperty.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-purple-600">${clientAProjection.futurePropertyEquity.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Savings/Cash</p>
-                        <p className="text-xl font-bold text-orange-600">${clientAProjection.projectedSavings.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-orange-600">${clientAProjection.futureSavings.toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
@@ -633,15 +784,15 @@ export default function ProjectionsPage() {
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Net Worth at Retirement</p>
-                      <p className="text-2xl font-bold text-blue-600">${clientBProjection.projectedLumpSum.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-blue-600">${clientBProjection.combinedNetworthAtRetirement.toLocaleString()}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Monthly Cashflow at Retirement</p>
-                      <p className="text-2xl font-bold text-green-600">${(clientBProjection.currentPassiveIncome / 12).toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-green-600">${clientBProjection.combinedMonthlyCashflowRetirement.toLocaleString()}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Property Portfolio Value</p>
-                      <p className="text-2xl font-bold text-purple-600">${clientBProjection.projectedProperty.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-purple-600">${clientBProjection.futurePropertyEquity.toLocaleString()}</p>
                     </div>
                   </div>
 
@@ -651,20 +802,20 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Required Annual Income (70% of current)</p>
-                        <p className="text-xl font-bold">${clientBProjection.requiredIncome.toLocaleString()}</p>
+                        <p className="text-xl font-bold">${clientBProjection.requiredAnnualIncome.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Projected Annual Passive Income</p>
-                        <p className="text-xl font-bold text-green-600">${clientBProjection.currentPassiveIncome.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-green-600">${clientBProjection.projectedAnnualPassiveIncome.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Monthly Surplus/Deficit</p>
                         <div className={`text-xl font-bold flex items-center justify-center gap-2 ${
-                          clientBProjection.isDeficit ? 'text-red-600' : 'text-green-600'
+                          clientBProjection.status === 'deficit' ? 'text-red-600' : 'text-green-600'
                         }`}>
-                          {clientBProjection.isDeficit ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
-                          ${Math.abs(clientBProjection.monthlyDeficitSurplus).toLocaleString()}
-                          <span className="text-sm">{clientBProjection.isDeficit ? 'deficit' : 'surplus'}</span>
+                          {clientBProjection.status === 'deficit' ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+                          ${Math.abs(clientBProjection.monthlySurplusDeficit).toLocaleString()}
+                          <span className="text-sm">{clientBProjection.status}</span>
                         </div>
                       </div>
                     </div>
@@ -676,19 +827,19 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
-                        <p className="text-xl font-bold text-blue-600">${clientBProjection.projectedSuper.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-blue-600">${clientBProjection.futureSuper.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Shares/Investments</p>
-                        <p className="text-xl font-bold text-green-600">${clientBProjection.projectedShares.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-green-600">${clientBProjection.futureShares.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Property Portfolio</p>
-                        <p className="text-xl font-bold text-purple-600">${clientBProjection.projectedProperty.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-purple-600">${clientBProjection.futurePropertyEquity.toLocaleString()}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Savings/Cash</p>
-                        <p className="text-xl font-bold text-orange-600">${clientBProjection.projectedSavings.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-orange-600">${clientBProjection.futureSavings.toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
