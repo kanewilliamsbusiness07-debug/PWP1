@@ -21,6 +21,7 @@ import {
   calculateRetirementProjection,
   validateFinancialInputs,
 } from '@/lib/financial-calculations';
+import { calculateTax } from '@/lib/tax/tax-engine';
 
 describe('Financial Calculations', () => {
   describe('calculateFutureValue', () => {
@@ -170,7 +171,7 @@ describe('Financial Calculations', () => {
       expect(projections[0].contributions).toBe(0);
 
       // Check retirement year (age 65)
-      const retirementProjection = projections.find(p => p.age === 65);
+      const retirementProjection = projections.find((p: any) => p.age === 65);
       expect(retirementProjection).toBeDefined();
       expect(retirementProjection!.endingBalance).toBeGreaterThan(1000000); // Should be substantial
     });
@@ -221,7 +222,7 @@ describe('Financial Calculations', () => {
       };
 
       const projections = calculateRetirementProjection(input);
-      const retirementProjection = projections.find(p => p.age === 65);
+      const retirementProjection = projections.find((p: any) => p.age === 65);
 
       // Should be approximately $1.4M - $1.5M at retirement (year-by-year calculation)
       expect(retirementProjection!.endingBalance).toBeGreaterThan(1400000);
@@ -232,6 +233,100 @@ describe('Financial Calculations', () => {
       // $400,000 loan, 6.5% APR, 30 years
       const payment = calculateLoanPayment(400000, 0.065, 30);
       expect(payment).toBeCloseTo(2528.27, 2); // Correct mortgage payment calculation
+    });
+  });
+
+  describe('Australian Tax Calculations', () => {
+    test('calculates tax correctly for $30,000 income', () => {
+      // $30,000 income falls in 16% bracket
+      // Income Tax = ($30,000 - $18,200) × 16% = $11,800 × 0.16 = $1,888
+      // Medicare Levy = $30,000 × 2% = $600
+      // Total Tax = $1,888 + $600 = $2,488
+      const input = {
+        grossIncome: 30000,
+        deductions: [],
+        negativeGearingLoss: 0,
+        capitalGains: 0,
+        frankedDividends: 0,
+        hecsBalance: 0,
+        medicareExemption: false
+      };
+
+      const result = calculateTax(input);
+
+      expect(result.totalTax).toBeCloseTo(2488, 0); // $2,488 total tax (income + medicare)
+      expect(result.incomeTax).toBeCloseTo(1888, 0); // $1,888 income tax
+      expect(result.medicareLevy).toBeCloseTo(600, 0); // $600 medicare levy
+      expect(result.taxableIncome).toBe(30000);
+    });
+
+    test('calculates tax correctly for $60,000 income', () => {
+      // $60,000 income falls in 30% bracket
+      // Income Tax = $4,288 + ($60,000 - $45,000) × 30% = $4,288 + $15,000 × 0.30 = $4,288 + $4,500 = $8,788
+      // Medicare Levy = $60,000 × 2% = $1,200
+      // Total Tax = $8,788 + $1,200 = $9,988
+      const input = {
+        grossIncome: 60000,
+        deductions: [],
+        negativeGearingLoss: 0,
+        capitalGains: 0,
+        frankedDividends: 0,
+        hecsBalance: 0,
+        medicareExemption: false
+      };
+
+      const result = calculateTax(input);
+
+      expect(result.totalTax).toBeCloseTo(9988, 0); // $9,988 total tax (income + medicare)
+      expect(result.incomeTax).toBeCloseTo(8788, 0); // $8,788 income tax
+      expect(result.medicareLevy).toBeCloseTo(1200, 0); // $1,200 medicare levy
+      expect(result.taxableIncome).toBe(60000);
+    });
+
+    test('calculates tax correctly for $150,000 income', () => {
+      // $150,000 income falls in 37% bracket
+      // Income Tax = $31,288 + ($150,000 - $135,000) × 37% = $31,288 + $15,000 × 0.37 = $31,288 + $5,550 = $36,838
+      // Medicare Levy = $150,000 × 2% = $3,000
+      // Total Tax = $36,838 + $3,000 = $39,838
+      const input = {
+        grossIncome: 150000,
+        deductions: [],
+        negativeGearingLoss: 0,
+        capitalGains: 0,
+        frankedDividends: 0,
+        hecsBalance: 0,
+        medicareExemption: false
+      };
+
+      const result = calculateTax(input);
+
+      expect(result.totalTax).toBeCloseTo(39838, 0); // $39,838 total tax (income + medicare)
+      expect(result.incomeTax).toBeCloseTo(36838, 0); // $36,838 income tax
+      expect(result.medicareLevy).toBeCloseTo(3000, 0); // $3,000 medicare levy
+      expect(result.taxableIncome).toBe(150000);
+    });
+
+    test('calculates tax correctly for $200,000 income', () => {
+      // $200,000 income falls in 45% bracket
+      // Income Tax = $51,638 + ($200,000 - $190,000) × 45% = $51,638 + $10,000 × 0.45 = $51,638 + $4,500 = $56,138
+      // Medicare Levy = $200,000 × 2% = $4,000
+      // Total Tax = $56,138 + $4,000 = $60,138
+      const input = {
+        grossIncome: 200000,
+        deductions: [],
+        negativeGearingLoss: 0,
+        capitalGains: 0,
+        frankedDividends: 0,
+        hecsBalance: 0,
+        medicareExemption: false
+      };
+
+      const result = calculateTax(input);
+
+      expect(result.totalTax).toBeCloseTo(60138, 0); // $60,138 total tax (income + medicare)
+      expect(result.incomeTax).toBeCloseTo(56138, 0); // $56,138 income tax
+      expect(result.medicareLevy).toBeCloseTo(4000, 0); // $4,000 medicare levy
+      expect(result.taxableIncome).toBe(200000);
     });
   });
 });

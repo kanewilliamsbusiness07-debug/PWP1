@@ -45,18 +45,22 @@ const calculateTax = (client: any) => {
                          rentalExpenses + superContributions;
   const taxableIncome = Math.max(0, totalIncome - totalDeductions);
 
-  // Australian Tax Brackets 2023-24
+  // Australian Tax Brackets 2024-25 (Updated)
   let incomeTax = 0;
   if (taxableIncome <= 18200) {
     incomeTax = 0;
   } else if (taxableIncome <= 45000) {
-    incomeTax = (taxableIncome - 18200) * 0.19;
-  } else if (taxableIncome <= 120000) {
-    incomeTax = 5092 + (taxableIncome - 45000) * 0.325;
-  } else if (taxableIncome <= 180000) {
-    incomeTax = 29467 + (taxableIncome - 120000) * 0.37;
+    // 16% on each $1 over $18,200
+    incomeTax = (taxableIncome - 18200) * 0.16;
+  } else if (taxableIncome <= 135000) {
+    // $4,288 plus 30% on each $1 over $45,000
+    incomeTax = 4288 + (taxableIncome - 45000) * 0.30;
+  } else if (taxableIncome <= 190000) {
+    // $31,288 plus 37% on each $1 over $135,000
+    incomeTax = 31288 + (taxableIncome - 135000) * 0.37;
   } else {
-    incomeTax = 51667 + (taxableIncome - 180000) * 0.45;
+    // $51,638 plus 45% on each $1 over $190,000
+    incomeTax = 51638 + (taxableIncome - 190000) * 0.45;
   }
 
   // Medicare Levy (2%)

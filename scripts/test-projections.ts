@@ -64,6 +64,7 @@ const testData: FinancialInputs = {
     propertyGrowthRate: 4.0,
     withdrawalRate: 4.0,
     rentGrowthRate: 3.0,
+    savingsRate: 20.0,
   },
 };
 
@@ -81,7 +82,7 @@ console.log('Current Net Worth:', results.currentNetWorth.toLocaleString());
 console.log('Future Super:', results.futureSuper.toLocaleString());
 console.log('Future Property Equity:', results.futurePropertyEquity.toLocaleString());
 console.log('Combined Net Worth at Retirement:', results.combinedNetworthAtRetirement.toLocaleString());
-console.log('Monthly Passive Income:', results.projectedMonthlyPassiveIncome.toLocaleString());
+console.log('Monthly Passive Income:', results.projectedAnnualPassiveIncome.toLocaleString());
 console.log('Required Monthly Income:', results.requiredMonthlyIncome.toLocaleString());
 console.log('Monthly Surplus/Deficit:', results.monthlySurplusDeficit.toLocaleString());
 console.log('Status:', results.status);
@@ -113,8 +114,8 @@ console.log('- Future Savings:', results.futureSavings.toLocaleString());
 
 console.log('\nRetirement Income Breakdown:');
 console.log('- Future Annual Rental Income:', results.futureAnnualRentalIncome.toLocaleString());
-console.log('- Annual Investment Withdrawal:', results.annualInvestmentWithdrawal.toLocaleString());
-console.log('- Future Monthly Expenses:', results.futureMonthlyExpenses.toLocaleString());
+console.log('- Annual Investment Withdrawal:', results.annualSuperWithdrawal.toLocaleString());
+console.log('- Future Monthly Expenses:', results.requiredMonthlyIncome.toLocaleString());
 console.log('- Combined Monthly Cashflow:', results.combinedMonthlyCashflowRetirement.toLocaleString());
 
 console.log('\n=== TEST COMPLETE ===');

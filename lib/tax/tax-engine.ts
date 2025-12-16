@@ -103,10 +103,10 @@ export const DEFAULT_TAX_RULES: TaxRules = {
   
   incomeTaxBrackets: [
     { min: 0, max: 18200, rate: 0, baseAmount: 0 },
-    { min: 18201, max: 45000, rate: 0.19, baseAmount: 0 },
-    { min: 45001, max: 120000, rate: 0.325, baseAmount: 5092 },
-    { min: 120001, max: 180000, rate: 0.37, baseAmount: 29467 },
-    { min: 180001, max: null, rate: 0.45, baseAmount: 51667 }
+    { min: 18201, max: 45000, rate: 0.16, baseAmount: 0 },
+    { min: 45001, max: 135000, rate: 0.30, baseAmount: 4288 },
+    { min: 135001, max: 190000, rate: 0.37, baseAmount: 31288 },
+    { min: 190001, max: null, rate: 0.45, baseAmount: 51638 }
   ],
   
   medicareLevy: {
