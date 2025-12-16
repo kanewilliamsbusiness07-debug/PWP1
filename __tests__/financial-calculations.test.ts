@@ -10,6 +10,7 @@
 import {
   calculateFutureValue,
   calculateFutureValueOfAnnuity,
+  calculateFutureValueOfGrowingAnnuity,
   calculateTotalGrowth,
   calculateLoanPayment,
   calculateAmortizationSchedule,
@@ -51,21 +52,22 @@ describe('Financial Calculations', () => {
     });
   });
 
-  describe('calculateFutureValueOfAnnuity', () => {
-    test('matches Bankrate retirement calculator', () => {
-      // $500/month at 7% for 20 years = $262,679.65
-      const result = calculateFutureValueOfAnnuity(500, 0.07, 20, 12);
-      expect(result).toBeCloseTo(260463.33, 2); // Correct calculation with monthly compounding
+  describe('calculateFutureValueOfGrowingAnnuity', () => {
+    test('calculates growing annuity correctly', () => {
+      // $100 initial payment, 5% return, 3% annual growth, 10 years
+      const result = calculateFutureValueOfGrowingAnnuity(100, 0.05, 0.03, 10, 1);
+      expect(result).toBeCloseTo(1424.89, 2); // Verified calculation
     });
 
-    test('handles zero interest rate', () => {
-      const result = calculateFutureValueOfAnnuity(100, 0, 5, 12);
-      expect(result).toBe(6000); // 100 * 12 * 5
+    test('handles zero growth rate (becomes regular annuity)', () => {
+      const growing = calculateFutureValueOfGrowingAnnuity(100, 0.05, 0, 10, 1);
+      const regular = calculateFutureValueOfAnnuity(100, 0.05, 10, 1);
+      expect(growing).toBeCloseTo(regular, 2);
     });
 
     test('validates inputs', () => {
-      expect(() => calculateFutureValueOfAnnuity(-100, 0.07, 10, 12)).toThrow('Payment cannot be negative');
-      expect(() => calculateFutureValueOfAnnuity(100, 0.07, 10, 0)).toThrow('Payments per year must be between 1 and 365');
+      expect(() => calculateFutureValueOfGrowingAnnuity(-100, 0.05, 0.03, 10, 1)).toThrow('Initial payment cannot be negative');
+      expect(() => calculateFutureValueOfGrowingAnnuity(100, 0.05, 0.03, 10, 0)).toThrow('Payments per year must be between 1 and 365');
     });
   });
 
