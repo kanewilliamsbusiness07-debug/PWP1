@@ -137,6 +137,9 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // CONSTANTS
   // ========================================
   const SUPER_GUARANTEE_RATE = 0.12; // CORRECT: 12% for 2024-25 (was 11.5%)
+  const QUARTERLY_EARNINGS_CAP = 63750; // ATO 2024-25 quarterly cap
+  const MAX_QUARTERLY_SUPER = QUARTERLY_EARNINGS_CAP * SUPER_GUARANTEE_RATE; // $7,650
+  const MAX_ANNUAL_SUPER = MAX_QUARTERLY_SUPER * 4; // $30,600
   const RETIREMENT_INCOME_THRESHOLD = 0.70;
 
   const years = inputs.retirementAge - inputs.currentAge;
@@ -212,7 +215,9 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   const futureSuperFromGrowth = calculateFutureValue(currentSuper, r_super, years);
 
   // Part 2: Future value of super contributions (growing annuity)
-  const annualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE;
+  // Apply Super Guarantee cap: max $30,600 annually (4 quarters × $7,650)
+  const uncappedAnnualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE;
+  const annualSuperContribution = Math.min(uncappedAnnualSuperContribution, MAX_ANNUAL_SUPER);
 
   // For growing annuity with salary growth, we need to calculate year by year
   let futureSuperFromContributions = 0;
