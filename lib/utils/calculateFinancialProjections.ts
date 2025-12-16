@@ -320,10 +320,10 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // FUTURE OTHER ASSETS
   // ========================================
 
-  // Other assets grow at conservative 3% rate
+  // Other assets grow at 0.5% rate
   const futureOtherAssets = calculateFutureValue(
     currentOtherAssets,
-    0.03,
+    0.005,
     years
   );
 
@@ -361,25 +361,25 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // FUTURE SAVINGS
   // ========================================
 
-  // Part 1: Current savings grow
+  // Part 1: Current savings grow at 3%
   const futureSavingsFromGrowth = calculateFutureValue(
     currentSavings,
-    r_super,
+    0.03,
     years
   );
 
-  // Part 2: Future savings contributions
+  // Part 2: Future savings contributions at 3%
   // Savings rate applied to annual income
   const annualSavingsContribution = inputs.annualIncome * savingsRate;
 
   const futureSavingsFromContributions = calculateFutureValueOfAnnuity(
     annualSavingsContribution,
-    r_super,
+    0.03,
     years,
     g_salary
   );
 
-  // Part 3: Net cashflow accumulated
+  // Part 3: Net cashflow accumulated at 3%
   const initialAnnualCashflow = currentMonthlyCashflow * 12;
 
   // Only add if positive cashflow
@@ -388,7 +388,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     const effectiveCashflowGrowth = g_rent - inflation;
     futureSavingsFromCashflow = calculateFutureValueOfAnnuity(
       initialAnnualCashflow,
-      r_super,
+      0.03,
       years,
       effectiveCashflowGrowth
     );
@@ -405,30 +405,61 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // COMBINED NET WORTH AT RETIREMENT
   // ========================================
 
+  // Calculate outstanding liabilities at retirement
+  const outstandingLiabilitiesAtRetirement = inputs.liabilities.reduce((sum, l) => {
+    if (years < l.termRemaining) {
+      // Loan still active at retirement
+      const remainingBalance = calculateRemainingLoanBalance(
+        l.balanceOwing,
+        l.interestRate,
+        l.termRemaining,
+        years
+      );
+      return sum + remainingBalance;
+    }
+    return sum; // Loan paid off before retirement
+  }, 0);
+
   const combinedNetworthAtRetirement =
     futureSuper +
     futureShares +
-    futurePropertyEquity +
     futurePropertyAssets +
     futureOtherAssets +
-    futureSavings;
+    futureSavings -
+    outstandingLiabilitiesAtRetirement;
 
   // ========================================
   // RETIREMENT INCOME
   // ========================================
 
-  // Future rental income (grows with rent growth rate)
-  const futureMonthlyRentalIncome = monthlyRentalIncome * Math.pow(1 + g_rent, years);
+  // Future rental income (compounded at property growth rate from assumptions)
+  const futureMonthlyRentalIncome = monthlyRentalIncome * Math.pow(1 + r_property, years);
   const futureAnnualRentalIncome = futureMonthlyRentalIncome * 12;
 
   // Super withdrawal (safe withdrawal rate)
   const annualSuperWithdrawal = futureSuper * withdrawalRate;
   const monthlySuperWithdrawal = annualSuperWithdrawal / 12;
 
-  // Total passive income
+  // Outstanding liabilities at retirement (annual cost)
+  const annualLiabilityPaymentsAtRetirement = inputs.liabilities.reduce((sum, l) => {
+    if (years < l.termRemaining) {
+      // Loan still active - convert to annual payment
+      let annual = 0;
+      switch (l.frequency) {
+        case 'W': annual = l.repaymentAmount * 52; break;
+        case 'F': annual = l.repaymentAmount * 26; break;
+        case 'M': annual = l.repaymentAmount * 12; break;
+      }
+      return sum + annual;
+    }
+    return sum;
+  }, 0);
+
+  // Total passive income (rental + super withdrawal - liabilities)
   const projectedAnnualPassiveIncome =
     futureAnnualRentalIncome +
-    annualSuperWithdrawal;
+    annualSuperWithdrawal -
+    annualLiabilityPaymentsAtRetirement;
 
   // Future monthly expenses (adjusted for inflation)
   const futureMonthlyExpenses = inputs.monthlyExpenses * Math.pow(1 + inflation, years);
@@ -448,19 +479,15 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     return sum;
   }, 0);
 
-  // Monthly cashflow at retirement
-  const combinedMonthlyCashflowRetirement =
-    (projectedAnnualPassiveIncome / 12) -
-    futureMonthlyExpenses -
-    futureMonthlyLoanPayments;
+  // Monthly cashflow at retirement (passive income only)
+  const combinedMonthlyCashflowRetirement = projectedAnnualPassiveIncome / 12;
 
   // ========================================
   // TARGET INCOME & SURPLUS/DEFICIT
   // ========================================
 
-  // Required income is 70% of current total income (employment + rental)
-  const currentTotalIncome = inputs.annualIncome + inputs.rentalIncome;
-  const requiredAnnualIncome = currentTotalIncome * RETIREMENT_INCOME_THRESHOLD;
+  // Required income is 70% of current annual income (employment only)
+  const requiredAnnualIncome = inputs.annualIncome * RETIREMENT_INCOME_THRESHOLD;
   const requiredMonthlyIncome = requiredAnnualIncome / 12;
 
   // Surplus or deficit
@@ -510,7 +537,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     combinedMonthlyCashflowRetirement,
 
     // Analysis & Status
-    finalAnnualIncome: inputs.annualIncome + inputs.rentalIncome,
+    finalAnnualIncome: inputs.annualIncome,
     requiredAnnualIncome,
     requiredMonthlyIncome,
     annualSurplusDeficit,
