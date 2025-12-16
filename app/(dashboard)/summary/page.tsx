@@ -36,7 +36,10 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useFinancialStore } from '@/lib/store/store';
+import { convertClientToInputs } from '@/lib/utils/convertClientToInputs';
+import { calculateFinancialProjections } from '@/lib/utils/calculateFinancialProjections';
 import { useDataSharing } from '@/lib/hooks/use-data-sharing';
+import { computeSummaryFromClient } from '@/lib/utils/summary-utils';
 import { ServiceabilitySummary } from '@/components/serviceability-summary';
 import { calculateInvestmentSurplus, calculatePropertyServiceability } from '@/lib/finance/serviceability';
 import {
@@ -191,7 +194,8 @@ export default function SummaryPage() {
       client.assets.forEach((asset: any) => {
         const value = asset.currentValue || 0;
         totalAssets += value;
-        if (asset.type === 'property') {
+        const t = String(asset.type || '').toLowerCase();
+        if (t === 'property' || t === 'property') {
           totalPropertyValue += value;
         }
       });
@@ -216,7 +220,7 @@ export default function SummaryPage() {
     // Calculate sharesValue from assets array or legacy fields for recommendations
     let sharesValue = 0;
     if (client?.assets && Array.isArray(client.assets)) {
-      const sharesAssets = client.assets.filter((asset: any) => asset.type === 'shares');
+      const sharesAssets = client.assets.filter((asset: any) => String(asset.type || '').toLowerCase() === 'shares');
       sharesValue = sharesAssets.reduce((sum: number, asset: any) => sum + (asset.currentValue || 0), 0);
     } else {
       // Fallback to legacy fields
@@ -333,6 +337,17 @@ export default function SummaryPage() {
     // Use stored projection results from global state
     // This ensures Summary page shows the SAME values as the Projections page
     const storedProjectionResults = globalResults?.[clientKey];
+  import { computeSummaryFromClient } from '@/lib/utils/summary-utils';
+
+    // Use helper to compute summary values (prefer stored results)
+    const computedSummary = computeSummaryFromClient(client, sharedAssumptions, storedProjectionResults);
+
+    // Map computed values into local variables
+    let projectedRetirementLumpSum = computedSummary.projectedRetirementLumpSum;
+    let projectedRetirementMonthlyCashFlow = computedSummary.projectedRetirementMonthlyCashFlow;
+    let retirementDeficitSurplus = computedSummary.retirementDeficitSurplus;
+    let isRetirementDeficit = computedSummary.isRetirementDeficit;
+    let yearsToRetirement = computedSummary.yearsToRetirement;
 
     let projectedRetirementLumpSum: number;
     let projectedRetirementMonthlyCashFlow: number;
@@ -348,12 +363,48 @@ export default function SummaryPage() {
       isRetirementDeficit = storedProjectionResults.isDeficit || false;
       yearsToRetirement = storedProjectionResults.yearsToRetirement || 0;
     } else {
-      // No stored results available - use default values
-      projectedRetirementLumpSum = 0;
-      projectedRetirementMonthlyCashFlow = 0;
-      retirementDeficitSurplus = 0;
-      isRetirementDeficit = false;
-      yearsToRetirement = Math.max(0, (client?.retirementAge || 65) - (client?.currentAge || 35));
+      // No stored results available - compute locally using the canonical projection function
+      try {
+        const inputs = convertClientToInputs(client, sharedAssumptions);
+        if (inputs) {
+          const computed = calculateFinancialProjections(inputs);
+
+          // Store computed results to global state for other pages to consume
+          const currentResults = useFinancialStore.getState().results || {};
+          const clientSlot = clientKey === 'clientA' ? 'clientA' : 'clientB';
+          useFinancialStore.getState().setResults({
+            ...currentResults,
+            [clientSlot]: {
+              projectedLumpSum: computed.combinedNetworthAtRetirement,
+              monthlyPassiveIncome: computed.projectedAnnualPassiveIncome / 12,
+              yearsToRetirement: computed.yearsToRetirement,
+              requiredIncome: computed.requiredAnnualIncome,
+              monthlyDeficitSurplus: computed.monthlySurplusDeficit,
+              isDeficit: computed.status === 'deficit',
+              currentTax: computed.finalAnnualIncome // placeholder for tax if available
+            }
+          });
+
+          projectedRetirementLumpSum = computed.combinedNetworthAtRetirement || 0;
+          projectedRetirementMonthlyCashFlow = (computed.projectedAnnualPassiveIncome / 12) || 0;
+          retirementDeficitSurplus = computed.monthlySurplusDeficit || 0;
+          isRetirementDeficit = computed.status === 'deficit';
+          yearsToRetirement = computed.yearsToRetirement || Math.max(0, (client?.retirementAge || 65) - (client?.currentAge || 35));
+        } else {
+          projectedRetirementLumpSum = 0;
+          projectedRetirementMonthlyCashFlow = 0;
+          retirementDeficitSurplus = 0;
+          isRetirementDeficit = false;
+          yearsToRetirement = Math.max(0, (client?.retirementAge || 65) - (client?.currentAge || 35));
+        }
+      } catch (e) {
+        console.warn('Failed to compute projection in Summary page:', e);
+        projectedRetirementLumpSum = 0;
+        projectedRetirementMonthlyCashFlow = 0;
+        retirementDeficitSurplus = 0;
+        isRetirementDeficit = false;
+        yearsToRetirement = Math.max(0, (client?.retirementAge || 65) - (client?.currentAge || 35));
+      }
     }
 
     // Tax calculations - use stored results from global state

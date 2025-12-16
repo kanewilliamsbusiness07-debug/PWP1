@@ -405,10 +405,9 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // COMBINED NET WORTH AT RETIREMENT
   // ========================================
 
-  // Calculate outstanding liabilities at retirement
-  const outstandingLiabilitiesAtRetirement = inputs.liabilities.reduce((sum, l) => {
+  // Calculate outstanding liabilities at retirement (includes remaining balances from inputs.liabilities)
+  let outstandingLiabilitiesAtRetirement = inputs.liabilities.reduce((sum, l) => {
     if (years < l.termRemaining) {
-      // Loan still active at retirement
       const remainingBalance = calculateRemainingLoanBalance(
         l.balanceOwing,
         l.interestRate,
@@ -417,13 +416,18 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
       );
       return sum + remainingBalance;
     }
-    return sum; // Loan paid off before retirement
+    return sum;
   }, 0);
 
+  // Include remaining balances of investment properties (if loans remain)
+  outstandingLiabilitiesAtRetirement += remainingPropertyLoans;
+
+  // Net worth at retirement: super + all properties (investment + non-investment) + other assets + savings - outstanding liabilities
   const combinedNetworthAtRetirement =
     futureSuper +
     futureShares +
     futurePropertyAssets +
+    futurePropertyValue +
     futureOtherAssets +
     futureSavings -
     outstandingLiabilitiesAtRetirement;
@@ -432,8 +436,8 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // RETIREMENT INCOME
   // ========================================
 
-  // Future rental income (compounded at property growth rate from assumptions)
-  const futureMonthlyRentalIncome = monthlyRentalIncome * Math.pow(1 + r_property, years);
+  // Future rental income (compounded at rent growth rate from assumptions)
+  const futureMonthlyRentalIncome = monthlyRentalIncome * Math.pow(1 + g_rent, years);
   const futureAnnualRentalIncome = futureMonthlyRentalIncome * 12;
 
   // Super withdrawal (safe withdrawal rate)
