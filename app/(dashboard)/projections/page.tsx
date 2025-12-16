@@ -10,6 +10,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useFinancialStore } from '@/lib/store/store';
 import { useClientStorage } from '@/lib/hooks/use-client-storage';
 import { calculateFinancialProjections, type FinancialInputs } from '@/lib/utils/calculateFinancialProjections';
+import { convertClientToInputs } from '@/lib/utils/convertClientToInputs';
 import { Calculator, TriangleAlert, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -181,243 +182,12 @@ export default function ProjectionsPage() {
   const clientBName = clientB ? `${clientB.firstName || ''} ${clientB.lastName || ''}`.trim() || 'Client B' : 'Client B';
 
   // Convert client data to FinancialInputs format
-  const convertClientToInputs = (client: any): FinancialInputs | null => {
-    if (!client) return null;
-
-    // Map legacy fields to new structure
-    const annualIncome = client.annualIncome ?? client.grossSalary ?? 0;
-    const currentAge = client.currentAge ?? 30;
-    const retirementAge = client.retirementAge ?? 65;
-
-    // Convert assets array
-    const assets: Array<{
-      name: string;
-      value: number;
-      type: 'Property' | 'Super' | 'Shares' | 'Cash' | 'Other';
-    }> = [];
-
-    // Add super
-    if (client.superFundValue ?? client.currentSuper ?? 0 > 0) {
-      assets.push({
-        name: 'Superannuation',
-        value: client.superFundValue ?? client.currentSuper ?? 0,
-        type: 'Super' as const
-      });
-    }
-
-    // Add savings/cash
-    if (client.savingsValue ?? client.currentSavings ?? 0 > 0) {
-      assets.push({
-        name: 'Savings',
-        value: client.savingsValue ?? client.currentSavings ?? 0,
-        type: 'Cash' as const
-      });
-    }
-
-    // Add shares
-    if (client.sharesValue ?? client.sharesTotalValue ?? client.currentShares ?? 0 > 0) {
-      assets.push({
-        name: 'Shares',
-        value: client.sharesValue ?? client.sharesTotalValue ?? client.currentShares ?? 0,
-        type: 'Shares' as const
-      });
-    }
-
-    // Add other assets from dynamic array if available
-    if (client.assets && Array.isArray(client.assets)) {
-      client.assets.forEach((asset: any) => {
-        if (asset.currentValue > 0) {
-          let type: 'Property' | 'Super' | 'Shares' | 'Cash' | 'Other' = 'Other';
-          switch (asset.type) {
-            case 'property': type = 'Property'; break;
-            case 'super': type = 'Super'; break;
-            case 'shares': type = 'Shares'; break;
-            case 'savings': type = 'Cash'; break;
-          }
-          assets.push({
-            name: asset.name,
-            value: asset.currentValue,
-            type
-          });
-        }
-      });
-    }
-
-    // Convert liabilities array
-    const liabilities: Array<{
-      lender: string;
-      loanType: string;
-      liabilityType: string;
-      balanceOwing: number;
-      repaymentAmount: number;
-      frequency: 'W' | 'F' | 'M';
-      interestRate: number;
-      loanTerm: number;
-      termRemaining: number;
-    }> = [];
-
-    // Add mortgages from legacy fields
-    if (client.homeBalance ?? 0 > 0) {
-      liabilities.push({
-        lender: client.homeFunder ?? 'Unknown',
-        loanType: 'Mortgage',
-        liabilityType: 'Mortgage',
-        balanceOwing: client.homeBalance,
-        repaymentAmount: client.homeRepayment ?? 0,
-        frequency: 'M' as const,
-        interestRate: client.homeRate ?? 0,
-        loanTerm: 30,
-        termRemaining: 20
-      });
-    }
-
-    // Add investment property loans
-    [1, 2, 3, 4].forEach(i => {
-      const balance = client[`investment${i}Balance`];
-      if (balance > 0) {
-        liabilities.push({
-          lender: client[`investment${i}Funder`] ?? 'Unknown',
-          loanType: 'Mortgage',
-          liabilityType: 'Mortgage',
-          balanceOwing: balance,
-          repaymentAmount: client[`investment${i}Repayment`] ?? 0,
-          frequency: 'M' as const,
-          interestRate: client[`investment${i}Rate`] ?? 0,
-          loanTerm: 30,
-          termRemaining: 25
-        });
-      }
-    });
-
-    // Add other liabilities
-    if (client.personalLoanBalance ?? 0 > 0) {
-      liabilities.push({
-        lender: 'Unknown',
-        loanType: 'Personal Loan',
-        liabilityType: 'Personal Loan',
-        balanceOwing: client.personalLoanBalance,
-        repaymentAmount: client.personalLoanRepayment ?? 0,
-        frequency: 'M' as const,
-        interestRate: 0,
-        loanTerm: 5,
-        termRemaining: 3
-      });
-    }
-
-    if (client.creditCardBalance ?? 0 > 0) {
-      liabilities.push({
-        lender: 'Unknown',
-        loanType: 'Credit Card',
-        liabilityType: 'Credit Card',
-        balanceOwing: client.creditCardBalance,
-        repaymentAmount: 0, // Assume minimum payments
-        frequency: 'M' as const,
-        interestRate: 20,
-        loanTerm: 1,
-        termRemaining: 1
-      });
-    }
-
-    if (client.hecsBalance ?? 0 > 0) {
-      liabilities.push({
-        lender: 'HECS',
-        loanType: 'HECS',
-        liabilityType: 'Other',
-        balanceOwing: client.hecsBalance,
-        repaymentAmount: client.hecsRepayment ?? 0,
-        frequency: 'M' as const,
-        interestRate: 0,
-        loanTerm: 20,
-        termRemaining: 15
-      });
-    }
-
-    // Add from dynamic liabilities array if available
-    if (client.liabilities && Array.isArray(client.liabilities)) {
-      client.liabilities.forEach((liability: any) => {
-        if (liability.balance > 0) {
-          liabilities.push({
-            lender: liability.lender ?? liability.name ?? 'Unknown',
-            loanType: liability.loanType ?? 'Unknown',
-            liabilityType: liability.type === 'mortgage' ? 'Mortgage' :
-                          liability.type === 'personal-loan' ? 'Personal Loan' :
-                          liability.type === 'credit-card' ? 'Credit Card' : 'Other',
-            balanceOwing: liability.balance,
-            repaymentAmount: liability.monthlyPayment ?? 0,
-            frequency: (liability.paymentFrequency ?? 'M') as 'W' | 'F' | 'M',
-            interestRate: liability.interestRate ?? 0,
-            loanTerm: liability.loanTerm ?? 30,
-            termRemaining: liability.termRemaining ?? liability.loanTerm ?? 30
-          });
-        }
-      });
-    }
-
-    // Convert investment properties
-    const investmentProperties: Array<{
-      address: string;
-      purchasePrice: number;
-      currentValue: number;
-      loanAmount: number;
-      interestRate: number;
-      loanTerm: number;
-      weeklyRent: number;
-      annualExpenses: number;
-    }> = [];
-
-    // Add from legacy fields
-    [1, 2, 3, 4].forEach(i => {
-      const value = client[`investment${i}Value`];
-      if (value > 0) {
-        investmentProperties.push({
-          address: `Investment Property ${i}`,
-          purchasePrice: client[`investment${i}Price`] ?? value,
-          currentValue: value,
-          loanAmount: client[`investment${i}Balance`] ?? 0,
-          interestRate: client[`investment${i}Rate`] ?? 0,
-          loanTerm: 30,
-          weeklyRent: 0, // Not available in legacy
-          annualExpenses: 0
-        });
-      }
-    });
-
-    // Add from dynamic properties array if available
-    if (client.properties && Array.isArray(client.properties)) {
-      client.properties.forEach((property: any) => {
-        investmentProperties.push({
-          address: property.address,
-          purchasePrice: property.purchasePrice,
-          currentValue: property.currentValue,
-          loanAmount: property.loanAmount,
-          interestRate: property.interestRate,
-          loanTerm: property.loanTerm,
-          weeklyRent: property.weeklyRent,
-          annualExpenses: property.annualExpenses
-        });
-      });
-    }
-
-    return {
-      annualIncome,
-      rentalIncome: client.rentalIncome ?? 0,
-      dividends: client.dividends ?? 0,
-      frankedDividends: client.frankedDividends ?? 0,
-      capitalGains: client.capitalGains ?? 0,
-      otherIncome: client.otherIncome ?? 0,
-      monthlyExpenses: client.monthlyExpenses ?? 0,
-      assets,
-      liabilities,
-      investmentProperties,
-      currentAge,
-      retirementAge,
-      assumptions: sharedAssumptions
-    };
-  };
+// Use shared converter to ensure inputs are consistent across pages
+  // (moved to `lib/utils/convertClientToInputs.ts`)
 
   // Calculate projections for each client
   const calculateClientProjection = (client: any) => {
-    const inputs = convertClientToInputs(client);
+    const inputs = convertClientToInputs(client, sharedAssumptions);
     if (!inputs) return null;
 
     return calculateFinancialProjections(inputs);
@@ -456,6 +226,7 @@ export default function ProjectionsPage() {
       futureShares: safeAdd(clientAProjection.futureShares, clientBProjection.futureShares),
       futurePropertyEquity: safeAdd(clientAProjection.futurePropertyEquity, clientBProjection.futurePropertyEquity),
       futurePropertyAssets: safeAdd(clientAProjection.futurePropertyAssets, clientBProjection.futurePropertyAssets),
+      futurePropertyValue: safeAdd(clientAProjection.futurePropertyValue || 0, clientBProjection.futurePropertyValue || 0),
       futureOtherAssets: safeAdd(clientAProjection.futureOtherAssets, clientBProjection.futureOtherAssets),
       futureSavings: safeAdd(clientAProjection.futureSavings, clientBProjection.futureSavings),
       combinedNetworthAtRetirement: safeAdd(clientAProjection.futureSuper, clientBProjection.futureSuper) +
@@ -643,7 +414,7 @@ export default function ProjectionsPage() {
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                       <p className="text-sm text-muted-foreground">Property Portfolio</p>
-                      <p className="text-xl font-bold text-purple-600">{formatCurrency((combinedProjection?.futurePropertyEquity || 0) + (combinedProjection?.futurePropertyAssets || 0))}</p>
+                      <p className="text-xl font-bold text-purple-600">{formatCurrency(((combinedProjection?.futurePropertyValue || 0) + (combinedProjection?.futurePropertyAssets || 0)))}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Other Assets</p>
@@ -723,7 +494,7 @@ export default function ProjectionsPage() {
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Property Portfolio Value</p>
-                      <p className="text-2xl font-bold text-purple-600">{formatCurrency(clientAProjection.futurePropertyEquity)}</p>
+                      <p className="text-2xl font-bold text-purple-600">{formatCurrency((clientAProjection.futurePropertyValue || 0) + (clientAProjection.futurePropertyAssets || 0))}</p>
                     </div>
                   </div>
 
@@ -766,7 +537,7 @@ export default function ProjectionsPage() {
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Property Portfolio</p>
-                        <p className="text-xl font-bold text-purple-600">{formatCurrency((clientAProjection.futurePropertyEquity || 0) + (clientAProjection.futurePropertyAssets || 0))}</p>
+                        <p className="text-xl font-bold text-purple-600">{formatCurrency((clientAProjection.futurePropertyValue || 0) + (clientAProjection.futurePropertyAssets || 0))}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Other Assets</p>
@@ -889,7 +660,7 @@ export default function ProjectionsPage() {
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Property Portfolio</p>
-                        <p className="text-xl font-bold text-purple-600">{formatCurrency((clientBProjection.futurePropertyEquity || 0) + (clientBProjection.futurePropertyAssets || 0))}</p>
+                        <p className="text-xl font-bold text-purple-600">{formatCurrency((clientBProjection.futurePropertyValue || 0) + (clientBProjection.futurePropertyAssets || 0))}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Other Assets</p>
