@@ -17,6 +17,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Users } from 'lucide-react';
 
+// Helper function to safely format numbers
+const formatCurrency = (value: number | undefined | null) => {
+  if (value === undefined || value === null || isNaN(value)) return '$0';
+  return `$${Math.round(value).toLocaleString()}`;
+};
+
+const formatNumber = (value: number | undefined | null) => {
+  if (value === undefined || value === null || isNaN(value)) return '0';
+  return Math.round(value).toLocaleString();
+};
+
 // Shared Assumptions Component
 function SharedAssumptionsSection() {
   const financialStore = useFinancialStore();
@@ -38,7 +49,7 @@ function SharedAssumptionsSection() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
           <div>
             <Label className="text-sm text-muted-foreground">Inflation Rate (%)</Label>
             <div className="mt-1 p-2 bg-muted rounded text-sm font-mono">
@@ -419,42 +430,51 @@ export default function ProjectionsPage() {
   const combinedProjection = useMemo(() => {
     if (!showCombined || !clientAProjection || !clientBProjection) return null;
 
+    // Helper function to safely add numbers, defaulting to 0 if NaN
+    const safeAdd = (a: number, b: number) => {
+      const sum = (a || 0) + (b || 0);
+      return isNaN(sum) ? 0 : sum;
+    };
+
     return {
       // Current Position (summed)
-      currentAge: Math.min(clientAProjection.currentAge, clientBProjection.currentAge),
-      retirementAge: Math.max(clientAProjection.retirementAge, clientBProjection.retirementAge),
-      currentSuper: clientAProjection.currentSuper + clientBProjection.currentSuper,
-      currentSavings: clientAProjection.currentSavings + clientBProjection.currentSavings,
-      currentShares: clientAProjection.currentShares + clientBProjection.currentShares,
-      propertyEquity: clientAProjection.propertyEquity + clientBProjection.propertyEquity,
-      currentNetWorth: clientAProjection.currentNetWorth + clientBProjection.currentNetWorth,
-      monthlyDebtPayments: clientAProjection.monthlyDebtPayments + clientBProjection.monthlyDebtPayments,
-      monthlyRentalIncome: clientAProjection.monthlyRentalIncome + clientBProjection.monthlyRentalIncome,
-      currentMonthlyCashflow: clientAProjection.currentMonthlyCashflow + clientBProjection.currentMonthlyCashflow,
-      totalAnnualIncome: clientAProjection.totalAnnualIncome + clientBProjection.totalAnnualIncome,
+      currentAge: Math.min(clientAProjection.currentAge || 0, clientBProjection.currentAge || 0),
+      retirementAge: Math.max(clientAProjection.retirementAge || 65, clientBProjection.retirementAge || 65),
+      currentSuper: safeAdd(clientAProjection.currentSuper, clientBProjection.currentSuper),
+      currentSavings: safeAdd(clientAProjection.currentSavings, clientBProjection.currentSavings),
+      currentShares: safeAdd(clientAProjection.currentShares, clientBProjection.currentShares),
+      propertyEquity: safeAdd(clientAProjection.propertyEquity, clientBProjection.propertyEquity),
+      currentNetWorth: safeAdd(clientAProjection.currentNetWorth, clientBProjection.currentNetWorth),
+      monthlyDebtPayments: safeAdd(clientAProjection.monthlyDebtPayments, clientBProjection.monthlyDebtPayments),
+      monthlyRentalIncome: safeAdd(clientAProjection.monthlyRentalIncome, clientBProjection.monthlyRentalIncome),
+      currentMonthlyCashflow: safeAdd(clientAProjection.currentMonthlyCashflow, clientBProjection.currentMonthlyCashflow),
+      totalAnnualIncome: safeAdd(clientAProjection.totalAnnualIncome, clientBProjection.totalAnnualIncome),
 
       // Future Projections
-      yearsToRetirement: Math.max(clientAProjection.yearsToRetirement, clientBProjection.yearsToRetirement),
-      futureSuper: clientAProjection.futureSuper + clientBProjection.futureSuper,
-      futureShares: clientAProjection.futureShares + clientBProjection.futureShares,
-      futurePropertyEquity: clientAProjection.futurePropertyEquity + clientBProjection.futurePropertyEquity,
-      futureSavings: clientAProjection.futureSavings + clientBProjection.futureSavings,
-      combinedNetworthAtRetirement: clientAProjection.combinedNetworthAtRetirement + clientBProjection.combinedNetworthAtRetirement,
+      yearsToRetirement: Math.max(clientAProjection.yearsToRetirement || 0, clientBProjection.yearsToRetirement || 0),
+      futureSuper: safeAdd(clientAProjection.futureSuper, clientBProjection.futureSuper),
+      futureShares: safeAdd(clientAProjection.futureShares, clientBProjection.futureShares),
+      futurePropertyEquity: safeAdd(clientAProjection.futurePropertyEquity, clientBProjection.futurePropertyEquity),
+      futureSavings: safeAdd(clientAProjection.futureSavings, clientBProjection.futureSavings),
+      combinedNetworthAtRetirement: safeAdd(clientAProjection.combinedNetworthAtRetirement, clientBProjection.combinedNetworthAtRetirement),
 
       // Retirement Income
-      futureMonthlyRentalIncome: clientAProjection.futureMonthlyRentalIncome + clientBProjection.futureMonthlyRentalIncome,
-      annualSuperWithdrawal: clientAProjection.annualSuperWithdrawal + clientBProjection.annualSuperWithdrawal,
-      monthlySuperWithdrawal: clientAProjection.monthlySuperWithdrawal + clientBProjection.monthlySuperWithdrawal,
-      combinedMonthlyCashflowRetirement: clientAProjection.combinedMonthlyCashflowRetirement + clientBProjection.combinedMonthlyCashflowRetirement,
-      projectedAnnualPassiveIncome: clientAProjection.projectedAnnualPassiveIncome + clientBProjection.projectedAnnualPassiveIncome,
+      futureMonthlyRentalIncome: safeAdd(clientAProjection.futureMonthlyRentalIncome, clientBProjection.futureMonthlyRentalIncome),
+      annualSuperWithdrawal: safeAdd(clientAProjection.annualSuperWithdrawal, clientBProjection.annualSuperWithdrawal),
+      monthlySuperWithdrawal: safeAdd(clientAProjection.monthlySuperWithdrawal, clientBProjection.monthlySuperWithdrawal),
+      combinedMonthlyCashflowRetirement: safeAdd(clientAProjection.combinedMonthlyCashflowRetirement, clientBProjection.combinedMonthlyCashflowRetirement),
+      projectedAnnualPassiveIncome: safeAdd(clientAProjection.projectedAnnualPassiveIncome, clientBProjection.projectedAnnualPassiveIncome),
 
       // Target & Surplus/Deficit (use weighted average for surplus/deficit status)
-      requiredAnnualIncome: clientAProjection.requiredAnnualIncome + clientBProjection.requiredAnnualIncome,
-      requiredMonthlyIncome: clientAProjection.requiredMonthlyIncome + clientBProjection.requiredMonthlyIncome,
-      monthlySurplusDeficit: clientAProjection.monthlySurplusDeficit + clientBProjection.monthlySurplusDeficit,
-      status: (clientAProjection.monthlySurplusDeficit + clientBProjection.monthlySurplusDeficit) >= 0 ? 'surplus' : 'deficit',
-      percentageOfTarget: ((clientAProjection.projectedAnnualPassiveIncome + clientBProjection.projectedAnnualPassiveIncome) /
-                          (clientAProjection.requiredAnnualIncome + clientBProjection.requiredAnnualIncome)) * 100,
+      requiredAnnualIncome: safeAdd(clientAProjection.requiredAnnualIncome, clientBProjection.requiredAnnualIncome),
+      requiredMonthlyIncome: safeAdd(clientAProjection.requiredMonthlyIncome, clientBProjection.requiredMonthlyIncome),
+      monthlySurplusDeficit: safeAdd(clientAProjection.monthlySurplusDeficit, clientBProjection.monthlySurplusDeficit),
+      status: (safeAdd(clientAProjection.monthlySurplusDeficit, clientBProjection.monthlySurplusDeficit)) >= 0 ? 'surplus' : 'deficit',
+      percentageOfTarget: (() => {
+        const totalProjected = safeAdd(clientAProjection.projectedAnnualPassiveIncome, clientBProjection.projectedAnnualPassiveIncome);
+        const totalRequired = safeAdd(clientAProjection.requiredAnnualIncome, clientBProjection.requiredAnnualIncome);
+        return totalRequired > 0 ? (totalProjected / totalRequired) * 100 : 0;
+      })(),
     };
   }, [showCombined, clientAProjection, clientBProjection]);
 
@@ -557,19 +577,19 @@ export default function ProjectionsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Years to Retirement</p>
-                      <p className="text-2xl font-bold">{combinedProjection?.yearsToRetirement ?? 0}</p>
+                      <p className="text-2xl font-bold">{formatNumber(combinedProjection?.yearsToRetirement)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Combined Net Worth at Retirement</p>
-                      <p className="text-2xl font-bold text-blue-600">${combinedProjection?.combinedNetworthAtRetirement.toLocaleString() ?? 0}</p>
+                      <p className="text-2xl font-bold text-blue-600">{formatCurrency(combinedProjection?.combinedNetworthAtRetirement)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Combined Monthly Cashflow</p>
-                      <p className="text-2xl font-bold text-green-600">${combinedProjection?.combinedMonthlyCashflowRetirement.toLocaleString() ?? 0}</p>
+                      <p className="text-2xl font-bold text-green-600">{formatCurrency(combinedProjection?.combinedMonthlyCashflowRetirement)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Combined Property Portfolio</p>
-                        <p className="text-xl font-bold text-purple-600">${combinedProjection?.futurePropertyEquity.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-purple-600">{formatCurrency(combinedProjection?.futurePropertyEquity)}</p>
                     </div>
                   </div>
 
@@ -579,11 +599,11 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Required Annual Income (70% of current combined)</p>
-                        <p className="text-xl font-bold">${combinedProjection?.requiredAnnualIncome.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold">{formatCurrency(combinedProjection?.requiredAnnualIncome)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Projected Annual Passive Income</p>
-                        <p className="text-xl font-bold text-green-600">${combinedProjection?.projectedAnnualPassiveIncome.toLocaleString() ?? 0}</p>
+                        <p className="text-xl font-bold text-green-600">{formatCurrency(combinedProjection?.projectedAnnualPassiveIncome)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Monthly Surplus/Deficit</p>
@@ -591,7 +611,7 @@ export default function ProjectionsPage() {
                           combinedProjection?.status === 'deficit' ? 'text-red-600' : 'text-green-600'
                         }`}>
                           {combinedProjection?.status === 'deficit' ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
-                          ${Math.abs(combinedProjection?.monthlySurplusDeficit ?? 0).toLocaleString()}
+                          {formatCurrency(Math.abs(combinedProjection?.monthlySurplusDeficit ?? 0))}
                           <span className="text-sm">{combinedProjection?.status}</span>
                         </div>
                       </div>
@@ -672,19 +692,19 @@ export default function ProjectionsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Years to Retirement</p>
-                      <p className="text-2xl font-bold">{clientAProjection.yearsToRetirement}</p>
+                      <p className="text-2xl font-bold">{formatNumber(clientAProjection.yearsToRetirement)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Net Worth at Retirement</p>
-                      <p className="text-2xl font-bold text-blue-600">${clientAProjection.combinedNetworthAtRetirement.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-blue-600">{formatCurrency(clientAProjection.combinedNetworthAtRetirement)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Monthly Cashflow at Retirement</p>
-                      <p className="text-2xl font-bold text-green-600">${clientAProjection.combinedMonthlyCashflowRetirement.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-green-600">{formatCurrency(clientAProjection.combinedMonthlyCashflowRetirement)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Property Portfolio Value</p>
-                      <p className="text-2xl font-bold text-purple-600">${clientAProjection.futurePropertyEquity.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-purple-600">{formatCurrency(clientAProjection.futurePropertyEquity)}</p>
                     </div>
                   </div>
 
@@ -694,11 +714,11 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Required Annual Income (70% of current)</p>
-                        <p className="text-xl font-bold">${clientAProjection.requiredAnnualIncome.toLocaleString()}</p>
+                        <p className="text-xl font-bold">{formatCurrency(clientAProjection.requiredAnnualIncome)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Projected Annual Passive Income</p>
-                        <p className="text-xl font-bold text-green-600">${clientAProjection.projectedAnnualPassiveIncome.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-green-600">{formatCurrency(clientAProjection.projectedAnnualPassiveIncome)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Monthly Surplus/Deficit</p>
@@ -706,7 +726,7 @@ export default function ProjectionsPage() {
                           clientAProjection.status === 'deficit' ? 'text-red-600' : 'text-green-600'
                         }`}>
                           {clientAProjection.status === 'deficit' ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
-                          ${Math.abs(clientAProjection.monthlySurplusDeficit).toLocaleString()}
+                          {formatCurrency(Math.abs(clientAProjection.monthlySurplusDeficit))}
                           <span className="text-sm">{clientAProjection.status}</span>
                         </div>
                       </div>
@@ -719,19 +739,19 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
-                        <p className="text-xl font-bold text-blue-600">${clientAProjection.futureSuper.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-blue-600">{formatCurrency(clientAProjection.futureSuper)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Shares/Investments</p>
-                        <p className="text-xl font-bold text-green-600">${clientAProjection.futureShares.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-green-600">{formatCurrency(clientAProjection.futureShares)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Property Portfolio</p>
-                        <p className="text-xl font-bold text-purple-600">${clientAProjection.futurePropertyEquity.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-purple-600">{formatCurrency(clientAProjection.futurePropertyEquity)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Savings/Cash</p>
-                        <p className="text-xl font-bold text-orange-600">${clientAProjection.futureSavings.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-orange-600">{formatCurrency(clientAProjection.futureSavings)}</p>
                       </div>
                     </div>
                   </div>
@@ -787,19 +807,19 @@ export default function ProjectionsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Years to Retirement</p>
-                      <p className="text-2xl font-bold">{clientBProjection.yearsToRetirement}</p>
+                      <p className="text-2xl font-bold">{formatNumber(clientBProjection.yearsToRetirement)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Net Worth at Retirement</p>
-                      <p className="text-2xl font-bold text-blue-600">${clientBProjection.combinedNetworthAtRetirement.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-blue-600">{formatCurrency(clientBProjection.combinedNetworthAtRetirement)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Monthly Cashflow at Retirement</p>
-                      <p className="text-2xl font-bold text-green-600">${clientBProjection.combinedMonthlyCashflowRetirement.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-green-600">{formatCurrency(clientBProjection.combinedMonthlyCashflowRetirement)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Property Portfolio Value</p>
-                      <p className="text-2xl font-bold text-purple-600">${clientBProjection.futurePropertyEquity.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-purple-600">{formatCurrency(clientBProjection.futurePropertyEquity)}</p>
                     </div>
                   </div>
 
@@ -809,11 +829,11 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Required Annual Income (70% of current)</p>
-                        <p className="text-xl font-bold">${clientBProjection.requiredAnnualIncome.toLocaleString()}</p>
+                        <p className="text-xl font-bold">{formatCurrency(clientBProjection.requiredAnnualIncome)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Projected Annual Passive Income</p>
-                        <p className="text-xl font-bold text-green-600">${clientBProjection.projectedAnnualPassiveIncome.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-green-600">{formatCurrency(clientBProjection.projectedAnnualPassiveIncome)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Monthly Surplus/Deficit</p>
@@ -821,7 +841,7 @@ export default function ProjectionsPage() {
                           clientBProjection.status === 'deficit' ? 'text-red-600' : 'text-green-600'
                         }`}>
                           {clientBProjection.status === 'deficit' ? <TriangleAlert className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
-                          ${Math.abs(clientBProjection.monthlySurplusDeficit).toLocaleString()}
+                          {formatCurrency(Math.abs(clientBProjection.monthlySurplusDeficit))}
                           <span className="text-sm">{clientBProjection.status}</span>
                         </div>
                       </div>
@@ -834,19 +854,19 @@ export default function ProjectionsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Superannuation</p>
-                        <p className="text-xl font-bold text-blue-600">${clientBProjection.futureSuper.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-blue-600">{formatCurrency(clientBProjection.futureSuper)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Shares/Investments</p>
-                        <p className="text-xl font-bold text-green-600">${clientBProjection.futureShares.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-green-600">{formatCurrency(clientBProjection.futureShares)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Property Portfolio</p>
-                        <p className="text-xl font-bold text-purple-600">${clientBProjection.futurePropertyEquity.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-purple-600">{formatCurrency(clientBProjection.futurePropertyEquity)}</p>
                       </div>
                       <div className="text-center p-4 bg-muted rounded-lg">
                         <p className="text-sm text-muted-foreground">Savings/Cash</p>
-                        <p className="text-xl font-bold text-orange-600">${clientBProjection.futureSavings.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-orange-600">{formatCurrency(clientBProjection.futureSavings)}</p>
                       </div>
                     </div>
                   </div>
