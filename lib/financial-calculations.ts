@@ -386,8 +386,35 @@ export const calculateRetirementProjection = (
 };
 
 /**
- * Validate financial inputs
+ * Calculate future value of growing annuity (contributions increase over time)
+ * Formula: FV = PMT × [((1 + r)^n - (1 + g)^n) / (r - g)]
+ * Where g = growth rate of payments
  */
+export const calculateFutureValueOfGrowingAnnuity = (
+  initialPayment: number,
+  annualRate: number,
+  paymentGrowthRate: number,
+  years: number,
+  paymentsPerYear: number = 12
+): number => {
+  if (initialPayment < 0) throw new Error('Initial payment cannot be negative');
+  if (annualRate < -1 || annualRate > 1) throw new Error('Annual rate must be between -100% and 100%');
+  if (paymentGrowthRate < -1 || paymentGrowthRate > 1) throw new Error('Payment growth rate must be between -100% and 100%');
+  if (years < 0 || years > 100) throw new Error('Years must be between 0 and 100');
+  if (paymentsPerYear < 1 || paymentsPerYear > 365) throw new Error('Payments per year must be between 1 and 365');
+
+  const ratePerPeriod = annualRate / paymentsPerYear;
+  const growthPerPeriod = paymentGrowthRate / paymentsPerYear;
+  const totalPeriods = years * paymentsPerYear;
+
+  if (Math.abs(ratePerPeriod - growthPerPeriod) < 0.000001) {
+    // Edge case: when return rate equals growth rate
+    return Math.round(initialPayment * totalPeriods * Math.pow(1 + ratePerPeriod, totalPeriods - 1) * 100) / 100;
+  }
+
+  const futureValue = initialPayment * ((Math.pow(1 + ratePerPeriod, totalPeriods) - Math.pow(1 + growthPerPeriod, totalPeriods)) / (ratePerPeriod - growthPerPeriod));
+  return Math.round(futureValue * 100) / 100;
+};
 export const validateFinancialInputs = (inputs: any) => {
   if (inputs.annualReturn !== undefined && (inputs.annualReturn < -1 || inputs.annualReturn > 1)) {
     throw new Error('Annual return must be between -100% and 100%');

@@ -209,35 +209,16 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     monthlyDebtPayments;
 
   // ========================================
-  // FUTURE SUPERANNUATION
+  // FUTURE SUPERANNUATION (simplified lump sum calculation)
   // ========================================
 
-  // Part 1: Current super grows with compound interest
-  // Formula: Future Value = Current Balance × (1 + Rate)^Time
-  const futureSuperFromGrowth = calculateFutureValue(currentSuper, r_super, years);
+  // Formula: Super Lump Sum = (Current Balance + (Employment Income × 0.12)) × (1 + Rate)^Years
+  // Super Guarantee Rate: 12% (ATO 2024-25)
+  const annualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE;
+  const superLumpSum = currentSuper + annualSuperContribution;
 
-  // Part 2: Future value of super contributions (growing annuity)
-  // Super Guarantee Formula: Super Amount = OTE × SG Rate
-  // SG Rate: Currently 12% (ATO 2024-25, increased from 11.5% in July 2024)
-  // OTE (Ordinary Time Earnings): Includes normal pay, commissions, shift loadings, bonuses, allowances (pre-tax)
-  // Example: If OTE is $1,000/week, employer pays $120 (12%) into super
-  // Apply Super Guarantee cap: max $30,600 annually (4 quarters × $7,650)
-  const uncappedAnnualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE; // Treating annualIncome as OTE
-  const grossAnnualSuperContribution = Math.min(uncappedAnnualSuperContribution, MAX_ANNUAL_SUPER);
-  const annualSuperContribution = Math.max(0, grossAnnualSuperContribution - 59); // Subtract average admin fee ($59)
-
-  // For growing annuity with salary growth, we need to calculate year by year
-  let futureSuperFromContributions = 0;
-  if (Math.abs(r_super - g_salary) < 0.0001) {
-    // Edge case: when return rate equals salary growth rate
-    futureSuperFromContributions = annualSuperContribution * years * Math.pow(1 + r_super, years - 1);
-  } else {
-    // Growing annuity formula: FV = PMT × [((1 + r)^n - (1 + g)^n) / (r - g)]
-    futureSuperFromContributions = annualSuperContribution *
-      ((Math.pow(1 + r_super, years) - Math.pow(1 + g_salary, years)) / (r_super - g_salary));
-  }
-
-  const futureSuper = Math.round((futureSuperFromGrowth + futureSuperFromContributions) * 100) / 100;
+  // Compound the total super amount for years to retirement
+  const futureSuper = Math.round(calculateFutureValue(superLumpSum, r_super, years) * 100) / 100;
 
   // ========================================
   // FUTURE SHARES
@@ -294,25 +275,23 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   }
 
   // ========================================
-  // FUTURE SAVINGS/CASH
+  // FUTURE SAVINGS/CASH (using standard annuity formula)
   // ========================================
 
   // Part 1: Current savings grow at 3%
   const futureSavingsFromGrowth = calculateFutureValue(currentSavings, 0.03, years);
 
-  // Part 2: Future savings contributions (growing with salary)
+  // Part 2: Future savings contributions (constant annual contributions)
   const savingsRate = inputs.assumptions.savingsRate / 100;
   const annualSavingsContribution = inputs.annualIncome * savingsRate;
 
-  let futureSavingsFromContributions = 0;
-  if (Math.abs(0.03 - g_salary) < 0.0001) {
-    // Edge case: when return rate equals salary growth rate
-    futureSavingsFromContributions = annualSavingsContribution * years * Math.pow(1 + 0.03, years - 1);
-  } else {
-    // Growing annuity formula: FV = PMT × [((1 + r)^n - (1 + g)^n) / (r - g)]
-    futureSavingsFromContributions = annualSavingsContribution *
-      ((Math.pow(1 + 0.03, years) - Math.pow(1 + g_salary, years)) / (0.03 - g_salary));
-  }
+  // Use standard annuity formula for constant contributions
+  const futureSavingsFromContributions = calculateFutureValueOfAnnuity(
+    annualSavingsContribution,
+    0.03, // Conservative savings return
+    years,
+    1 // Annual contributions
+  );
 
   const futureSavings = Math.max(0, Math.round((futureSavingsFromGrowth + futureSavingsFromContributions) * 100) / 100);
 
