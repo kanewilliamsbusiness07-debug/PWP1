@@ -310,7 +310,6 @@ export default function SummaryPage() {
     // Retirement calculations (simplified)
     const currentAge = client?.currentAge || 35;
     const retirementAge = client?.retirementAge || 65;
-    const yearsToRetirement = Math.max(0, retirementAge - currentAge);
     
     // Get superannuation value from assets or legacy field
     let superFundValue = 0;
@@ -331,185 +330,74 @@ export default function SummaryPage() {
       savingsValue = client?.savingsValue || client?.currentSavings || financialStore.cashSavings || 0;
     }
 
-    // Use stored projection results from global state first, then client data
+    // Use stored projection results from global state
     // This ensures Summary page shows the SAME values as the Projections page
-    const clientResults = client?.projectionResults;
-    const storedProjectionResults = globalResults?.[clientKey] || clientResults;
-    
+    const storedProjectionResults = globalResults?.[clientKey];
+
     let projectedRetirementLumpSum: number;
     let projectedRetirementMonthlyCashFlow: number;
     let retirementDeficitSurplus: number;
     let isRetirementDeficit: boolean;
-    
-    if (storedProjectionResults && storedProjectionResults.projectedLumpSum > 0) {
+    let yearsToRetirement: number;
+
+    if (storedProjectionResults) {
       // Use stored values from Projections page for consistency
-      projectedRetirementLumpSum = storedProjectionResults.projectedLumpSum;
-      projectedRetirementMonthlyCashFlow = storedProjectionResults.monthlyPassiveIncome;
-      retirementDeficitSurplus = storedProjectionResults.monthlyDeficitSurplus;
-      isRetirementDeficit = storedProjectionResults.isDeficit;
+      projectedRetirementLumpSum = storedProjectionResults.projectedLumpSum || 0;
+      projectedRetirementMonthlyCashFlow = storedProjectionResults.monthlyPassiveIncome || 0;
+      retirementDeficitSurplus = storedProjectionResults.monthlyDeficitSurplus || 0;
+      isRetirementDeficit = storedProjectionResults.isDeficit || false;
+      yearsToRetirement = storedProjectionResults.yearsToRetirement || 0;
     } else {
-      // Fallback: Calculate using default assumptions if projections haven't been run
-      
-      const currentAssetsForRetirement = {
-        super: superFundValue,
-        shares: sharesValue,
-        properties: propertyEquity,
-        savings: savingsValue,
-      };
-
-      // Use shared assumptions for consistency with projections page
-      const projectionAssumptions = sharedAssumptions ? {
-        inflationRate: sharedAssumptions.inflationRate / 100,
-        propertyGrowthRate: sharedAssumptions.propertyGrowthRate / 100,
-        shareMarketReturn: sharedAssumptions.shareReturn / 100,
-        superReturn: sharedAssumptions.superReturn / 100,
-        withdrawalRate: sharedAssumptions.withdrawalRate / 100,
-        salaryGrowthRate: sharedAssumptions.salaryGrowthRate / 100,
-        expectedRentGrowthRate: sharedAssumptions.rentGrowthRate / 100,
-      } : DEFAULT_ASSUMPTIONS;
-
-      projectedRetirementLumpSum = calculateRetirementLumpSum(
-        currentAssetsForRetirement,
-        projectionAssumptions,
-        yearsToRetirement
-      );
-
-      // Compute projected passive income at retirement (annual), then derive monthly
-      const rentalAnnual = (surplusResult.income.rental || 0) * 12;
-      const projectedPassiveAnnual = calculatePassiveIncome(projectedRetirementLumpSum, rentalAnnual, projectionAssumptions);
-      projectedRetirementMonthlyCashFlow = projectedPassiveAnnual / 12;
-
-      // Calculate debt payments at retirement - only include loans that won't be paid off
-      const liabilities = client?.liabilities || [];
-      const monthlyDebtAtRetirement = calculateDebtPaymentsAtRetirement(liabilities, yearsToRetirement);
-      const annualDebtPaymentsAtRetirement = monthlyDebtAtRetirement * 12;
-      
-      // Calculate retirement deficit/surplus using canonical function
-      const retirementDeficitObj = calculateRetirementDeficitSurplus(projectedPassiveAnnual, annualDebtPaymentsAtRetirement, (surplusResult.income.employment || 0) * 12);
-      retirementDeficitSurplus = retirementDeficitObj.monthlyAmount;
-      isRetirementDeficit = retirementDeficitObj.isDeficit;
+      // No stored results available - use default values
+      projectedRetirementLumpSum = 0;
+      projectedRetirementMonthlyCashFlow = 0;
+      retirementDeficitSurplus = 0;
+      isRetirementDeficit = false;
+      yearsToRetirement = Math.max(0, (client?.retirementAge || 65) - (client?.currentAge || 35));
     }
 
-    // Tax calculations - use stored tax optimization results if available
-    const totalAnnualIncome = (surplusResult.income.total || 0) * 12;
-    const storedTaxResults = client?.taxOptimizationResults;
-    
+    // Tax calculations - use stored results from global state
     let currentTax: number;
     let optimizedTax: number;
     let taxSavings: number;
-    
-    if (storedTaxResults && storedTaxResults.calculatedAt) {
-      // Use stored values from Tax Optimization page for consistency
-      currentTax = storedTaxResults.currentTax;
-      optimizedTax = storedTaxResults.optimizedTax;
-      taxSavings = storedTaxResults.taxSavings;
-      
-      console.log('=== SUMMARY: Using stored tax results ===');
+
+    if (storedProjectionResults?.currentTax !== undefined) {
+      // Use stored values from global state for consistency
+      currentTax = storedProjectionResults.currentTax;
+      optimizedTax = storedProjectionResults.optimizedTax || 0;
+      taxSavings = storedProjectionResults.taxSavings || 0;
+
+      console.log('=== SUMMARY: Using stored tax results from global state ===');
       console.log('Current Tax:', currentTax);
       console.log('Optimized Tax:', optimizedTax);
       console.log('Tax Savings:', taxSavings);
-      console.log('Calculated At:', storedTaxResults.calculatedAt);
     } else {
-      // Fallback: Calculate tax if Tax Optimization page hasn't been run
-      console.log('=== SUMMARY: No stored tax results, using fallback calculation ===');
-      
-      // Tax brackets 2024-25
-      const taxBrackets = [
-        { min: 0, max: 18200, rate: 0, baseAmount: 0 },
-        { min: 18201, max: 45000, rate: 0.16, baseAmount: 0 },
-        { min: 45001, max: 135000, rate: 0.30, baseAmount: 4288 },
-        { min: 135001, max: 190000, rate: 0.37, baseAmount: 31288 },
-        { min: 190001, max: Infinity, rate: 0.45, baseAmount: 51638 }
-      ];
-
-      const MEDICARE_LEVY_RATE = 0.02;
-      const MEDICARE_LEVY_THRESHOLD_SINGLE = 24276;
-      const MEDICARE_LEVY_SURCHARGE_THRESHOLD = 90000;
-
-      const calculateIncomeTax = (taxableIncome: number): number => {
-        if (taxableIncome <= 0) return 0;
-        for (let i = taxBrackets.length - 1; i >= 0; i--) {
-          const bracket = taxBrackets[i];
-          if (taxableIncome >= bracket.min) {
-            const taxableInBracket = taxableIncome - bracket.min;
-            return bracket.baseAmount + (taxableInBracket * bracket.rate);
-          }
-        }
-        return 0;
-      };
-
-      const calculateMedicareLevy = (taxableIncome: number, hasPrivateHealth: boolean): number => {
-        if (taxableIncome <= MEDICARE_LEVY_THRESHOLD_SINGLE) return 0;
-        let medicareLevy = taxableIncome * MEDICARE_LEVY_RATE;
-        if (!hasPrivateHealth && taxableIncome > MEDICARE_LEVY_SURCHARGE_THRESHOLD) {
-          let surchargeRate = 0.01;
-          if (taxableIncome > 105000 && taxableIncome <= 140000) {
-            surchargeRate = 0.0125;
-          } else if (taxableIncome > 140000) {
-            surchargeRate = 0.015;
-          }
-          medicareLevy += taxableIncome * surchargeRate;
-        }
-        return medicareLevy;
-      };
-
-      const totalDeductions = 
-        Number(financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0) +
-        Number(client?.vehicleExpenses || 0) +
-        Number(client?.uniformsAndLaundry || 0) +
-        Number(client?.homeOfficeExpenses || 0) +
-        Number(client?.selfEducationExpenses || 0) +
-        Number(financialStore.investmentExpenses || client?.investmentExpenses || 0) +
-        Number(client?.charityDonations || 0) +
-        Number(client?.accountingFees || 0);
-
-      const rentalExpensesAnnual = Number(client?.rentalExpenses || 0);
-      const rentalIncomeAnnual = (surplusResult.income.rental || 0) * 12;
-      const negativeGearing = Math.max(0, rentalExpensesAnnual - rentalIncomeAnnual);
-
-      const frankedCredits = Number(client?.frankedDividends || 0) * 0.3;
-      const assessableCapitalGains = (Number(client?.capitalGains || 0)) * 0.5;
-
-      let taxableIncome = 
-        totalAnnualIncome +
-        Number(client?.investmentIncome || 0) +
-        rentalIncomeAnnual +
-        Number(client?.frankedDividends || 0) +
-        assessableCapitalGains +
-        Number(client?.otherIncome || 0) -
-        totalDeductions -
-        negativeGearing;
-      taxableIncome = Math.max(0, taxableIncome);
-
-      const incomeTaxBeforeCredits = calculateIncomeTax(taxableIncome);
-      const incomeTax = Math.max(0, incomeTaxBeforeCredits - frankedCredits);
-      const medicareLevy = calculateMedicareLevy(taxableIncome, client?.privateHealthInsurance || false);
-      
-      currentTax = incomeTax + medicareLevy;
-      taxSavings = 0; // No optimization data available
-      optimizedTax = currentTax;
+      // No stored tax results available - use default values
+      currentTax = 0;
+      optimizedTax = 0;
+      taxSavings = 0;
+      console.log('=== SUMMARY: No stored tax results available ===');
     }
 
-    // Recalculate a few legacy-derived values used for recommendations
-    const workExpenses = financialStore.workRelatedExpenses || client?.workRelatedExpenses || 0;
-
-    // Generate recommendations
+    // Generate recommendations based on available data
     const recommendations: string[] = [];
-    if (superFundValue < totalAnnualIncome * 2) {
-      recommendations.push('Increase superannuation contributions through salary sacrifice');
+
+    if (monthlyCashFlow < 0) {
+      recommendations.push('Consider reducing expenses or increasing income to improve cash flow');
     }
-    if (monthlyCashFlow > 0 && investmentProperties < 2) {
-      recommendations.push('Consider additional investment property for negative gearing benefits');
+
+    if (isRetirementDeficit) {
+      recommendations.push('Review retirement strategy - current projections show a deficit');
     }
-    if (workExpenses < annualIncome * 0.05) {
-      recommendations.push('Maximize work-related tax deductions');
+
+    if (totalLiabilities > totalAssets * 0.5) {
+      recommendations.push('High debt levels relative to assets - consider debt reduction strategies');
     }
+
     if (sharesValue < totalAssets * 0.2) {
-      recommendations.push('Review and optimize investment portfolio allocation');
+      recommendations.push('Consider increasing investment in shares for long-term growth');
     }
-    if (!client?.privateHealthInsurance && annualIncome > 90000) {
-      recommendations.push('Consider private health insurance to avoid Medicare Levy Surcharge');
-    }
+
     if (recommendations.length === 0) {
       recommendations.push('Continue current financial strategy');
     }
