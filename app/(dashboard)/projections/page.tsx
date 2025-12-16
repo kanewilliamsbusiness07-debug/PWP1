@@ -49,7 +49,7 @@ function SharedAssumptionsSection() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-10 gap-4">
           <div>
             <Label className="text-sm text-muted-foreground">Inflation Rate (%)</Label>
             <div className="mt-1 p-2 bg-muted rounded text-sm font-mono">
@@ -96,6 +96,18 @@ function SharedAssumptionsSection() {
             <Label className="text-sm text-muted-foreground">Savings Rate (%)</Label>
             <div className="mt-1 p-2 bg-muted rounded text-sm font-mono">
               {sharedAssumptions?.savingsRate ?? 10.0}%
+            </div>
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Super Admin Fee ($)</Label>
+            <div className="mt-1 p-2 bg-muted rounded text-sm font-mono">
+              ${sharedAssumptions?.superAdminFee ?? 59}
+            </div>
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Super Admin Fee (%)</Label>
+            <div className="mt-1 p-2 bg-muted rounded text-sm font-mono">
+              {sharedAssumptions?.superAdminFeePercent ?? 0.08}%
             </div>
           </div>
         </div>
