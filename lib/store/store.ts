@@ -274,8 +274,6 @@ interface SharedAssumptions {
   withdrawalRate: number;
   rentGrowthRate: number;
   savingsRate: number;
-  superAdminFee: number; // Annual admin fee in dollars
-  superAdminFeePercent: number; // Annual admin fee as percentage
   taxYear: number;
   medicareLevyRate: number;
   hecsThreshold: number;
@@ -434,8 +432,6 @@ const initialState: FinancialFields = {
     withdrawalRate: 4.0,
     rentGrowthRate: 3.0,
     savingsRate: 10.0,
-    superAdminFee: 59,
-    superAdminFeePercent: 0.08,
     taxYear: new Date().getFullYear(),
     medicareLevyRate: 2.0,
     hecsThreshold: 51550,

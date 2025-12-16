@@ -51,8 +51,6 @@ export interface Assumptions {
   withdrawalRate: number;
   rentGrowthRate: number;
   savingsRate: number;
-  superAdminFee: number;
-  superAdminFeePercent: number;
 }
 
 export interface FinancialInputs {
@@ -148,7 +146,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   const years = inputs.retirementAge - inputs.currentAge;
 
   // Convert rates to decimals
-  const r_super = Math.max(0, (inputs.assumptions.superReturn - inputs.assumptions.superAdminFeePercent) / 100); // Reduce by admin fee %
+  const r_super = Math.max(0, (inputs.assumptions.superReturn - 0.08) / 100); // Reduce by average admin fee % (0.08%)
   const r_shares = inputs.assumptions.shareReturn / 100;
   const r_property = inputs.assumptions.propertyGrowthRate / 100;
   const g_salary = inputs.assumptions.salaryGrowthRate / 100;
@@ -226,7 +224,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // Apply Super Guarantee cap: max $30,600 annually (4 quarters × $7,650)
   const uncappedAnnualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE; // Treating annualIncome as OTE
   const grossAnnualSuperContribution = Math.min(uncappedAnnualSuperContribution, MAX_ANNUAL_SUPER);
-  const annualSuperContribution = Math.max(0, grossAnnualSuperContribution - inputs.assumptions.superAdminFee); // Subtract admin fee
+  const annualSuperContribution = Math.max(0, grossAnnualSuperContribution - 59); // Subtract average admin fee ($59)
 
   // For growing annuity with salary growth, we need to calculate year by year
   let futureSuperFromContributions = 0;
