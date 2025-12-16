@@ -273,6 +273,7 @@ interface SharedAssumptions {
   propertyGrowthRate: number;
   withdrawalRate: number;
   rentGrowthRate: number;
+  savingsRate: number;
   taxYear: number;
   medicareLevyRate: number;
   hecsThreshold: number;
@@ -430,6 +431,7 @@ const initialState: FinancialFields = {
     propertyGrowthRate: 4.0,
     withdrawalRate: 4.0,
     rentGrowthRate: 3.0,
+    savingsRate: 10.0,
     taxYear: new Date().getFullYear(),
     medicareLevyRate: 2.0,
     hecsThreshold: 51550,

@@ -81,6 +81,12 @@ function SharedAssumptionsSection() {
               {sharedAssumptions?.rentGrowthRate ?? 3.0}%
             </div>
           </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Savings Rate (%)</Label>
+            <div className="mt-1 p-2 bg-muted rounded text-sm font-mono">
+              {sharedAssumptions?.savingsRate ?? 10.0}%
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -437,7 +443,8 @@ export default function ProjectionsPage() {
 
       // Retirement Income
       futureMonthlyRentalIncome: clientAProjection.futureMonthlyRentalIncome + clientBProjection.futureMonthlyRentalIncome,
-      monthlyInvestmentWithdrawal: clientAProjection.monthlyInvestmentWithdrawal + clientBProjection.monthlyInvestmentWithdrawal,
+      annualSuperWithdrawal: clientAProjection.annualSuperWithdrawal + clientBProjection.annualSuperWithdrawal,
+      monthlySuperWithdrawal: clientAProjection.monthlySuperWithdrawal + clientBProjection.monthlySuperWithdrawal,
       combinedMonthlyCashflowRetirement: clientAProjection.combinedMonthlyCashflowRetirement + clientBProjection.combinedMonthlyCashflowRetirement,
       projectedAnnualPassiveIncome: clientAProjection.projectedAnnualPassiveIncome + clientBProjection.projectedAnnualPassiveIncome,
 
