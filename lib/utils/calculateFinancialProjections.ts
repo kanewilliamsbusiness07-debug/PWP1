@@ -107,7 +107,6 @@ export interface ProjectionResults {
   combinedMonthlyCashflowRetirement: number;
 
   // Target & Surplus/Deficit
-  finalAnnualIncome: number;
   requiredAnnualIncome: number;
   requiredMonthlyIncome: number;
   annualSurplusDeficit: number;
@@ -338,11 +337,8 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // TARGET INCOME & SURPLUS/DEFICIT
   // ========================================
 
-  // Final salary after years of growth
-  const finalAnnualIncome = inputs.annualIncome * Math.pow(1 + g_salary, years);
-
-  // Required income is 70% of final salary
-  const requiredAnnualIncome = finalAnnualIncome * RETIREMENT_INCOME_THRESHOLD;
+  // Required income is 70% of CURRENT salary (not projected future salary)
+  const requiredAnnualIncome = inputs.annualIncome * RETIREMENT_INCOME_THRESHOLD;
   const requiredMonthlyIncome = requiredAnnualIncome / 12;
 
   // Surplus or deficit
@@ -392,7 +388,6 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     combinedMonthlyCashflowRetirement,
 
     // Target & Status
-    finalAnnualIncome,
     requiredAnnualIncome,
     requiredMonthlyIncome,
     annualSurplusDeficit,
