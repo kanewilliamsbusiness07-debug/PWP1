@@ -273,9 +273,12 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   let remainingPropertyLoans = 0;
 
   for (const property of inputs.investmentProperties) {
-    // Property value grows with compound interest
-    const futurePropValue = calculateFutureValue(property.currentValue, r_property, years);
-    futurePropertyValue += futurePropValue;
+    // Calculate current equity (current value - loan amount)
+    const currentEquity = property.currentValue - property.loanAmount;
+    
+    // Equity grows with compound interest at property growth rate
+    const futureEquity = calculateFutureValue(currentEquity, r_property, years);
+    futurePropertyValue += calculateFutureValue(property.currentValue, r_property, years);
 
     // Calculate remaining loan balance using CORRECT amortization formula
     const remainingBalance = calculateRemainingLoanBalance(
@@ -286,8 +289,8 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     );
     remainingPropertyLoans += remainingBalance;
 
-    // Equity = Value - Remaining Loan
-    futurePropertyEquity += (futurePropValue - remainingBalance);
+    // Future property equity = grown equity
+    futurePropertyEquity += futureEquity;
   }
 
   // ========================================

@@ -469,7 +469,11 @@ export default function ProjectionsPage() {
       futureMonthlyRentalIncome: safeAdd(clientAProjection.futureMonthlyRentalIncome, clientBProjection.futureMonthlyRentalIncome),
       annualSuperWithdrawal: safeAdd(clientAProjection.annualSuperWithdrawal, clientBProjection.annualSuperWithdrawal),
       monthlySuperWithdrawal: safeAdd(clientAProjection.monthlySuperWithdrawal, clientBProjection.monthlySuperWithdrawal),
-      combinedMonthlyCashflowRetirement: safeAdd(clientAProjection.combinedMonthlyCashflowRetirement, clientBProjection.combinedMonthlyCashflowRetirement),
+      combinedMonthlyCashflowRetirement: 
+        safeAdd(clientAProjection.monthlySuperWithdrawal, clientBProjection.monthlySuperWithdrawal) +
+        safeAdd(clientAProjection.futureMonthlyRentalIncome, clientBProjection.futureMonthlyRentalIncome) -
+        safeAdd(clientAProjection.monthlyDebtPayments, clientBProjection.monthlyDebtPayments) -
+        Math.max(clientA?.monthlyExpenses || 0, clientB?.monthlyExpenses || 0), // Use higher expense amount
       projectedAnnualPassiveIncome: safeAdd(clientAProjection.projectedAnnualPassiveIncome, clientBProjection.projectedAnnualPassiveIncome),
 
       // Target & Surplus/Deficit (use weighted average for surplus/deficit status)
