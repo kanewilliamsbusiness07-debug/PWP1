@@ -103,6 +103,7 @@ export default function ProjectionsPage() {
   const activeClient = useFinancialStore((state) => state.activeClient);
   const clientA = useFinancialStore((state) => state.clientA);
   const clientB = useFinancialStore((state) => state.clientB);
+  const sharedAssumptions = useFinancialStore((state) => state.sharedAssumptions);
   const financialStore = useFinancialStore();
   const { loadRecentClients } = useClientStorage();
 
@@ -179,30 +180,75 @@ export default function ProjectionsPage() {
     const monthlyRentalIncome = client.monthlyRentalIncome ?? (client.rentalIncome ? client.rentalIncome / 12 : 0);
     const monthlyExpenses = client.monthlyExpenses ?? 0;
 
-    // Total current wealth
-    const totalWealth = currentSuper + currentSavings + currentShares + propertyEquity;
+    // Assumptions from shared state or defaults
+    const superReturn = sharedAssumptions.superReturn / 100; // Convert to decimal
+    const shareReturn = sharedAssumptions.shareReturn / 100;
+    const propertyGrowth = sharedAssumptions.propertyGrowthRate / 100;
+    const inflationRate = sharedAssumptions.inflationRate / 100;
+    const salaryGrowthRate = sharedAssumptions.salaryGrowthRate / 100;
+    const withdrawalRate = sharedAssumptions.withdrawalRate / 100;
 
-    // Estimated future value with compound growth (simplified calculation)
-    const superReturn = client.superReturn ?? 7.0;
-    const shareReturn = client.shareReturn ?? 7.0;
-    const propertyGrowth = client.propertyGrowthRate ?? 4.0;
+    // ===== SUPERANNUATION CALCULATION =====
+    // Super guarantee rate (11.5% of salary)
+    const SUPER_GUARANTEE_RATE = 0.115;
 
-    const projectedSuper = currentSuper * Math.pow(1 + superReturn / 100, yearsToRetirement);
-    const projectedShares = currentShares * Math.pow(1 + shareReturn / 100, yearsToRetirement);
-    const projectedProperty = propertyEquity * Math.pow(1 + propertyGrowth / 100, yearsToRetirement);
+    // Initial super contribution
+    const initialSuperContribution = annualIncome * SUPER_GUARANTEE_RATE;
 
-    const projectedLumpSum = projectedSuper + projectedShares + projectedProperty + currentSavings;
+    // Future value of current super balance
+    const projectedSuperFromBalance = currentSuper * Math.pow(1 + superReturn, yearsToRetirement);
 
-    // Required income at retirement (4% rule)
-    const withdrawalRate = client.withdrawalRate ?? 4.0;
-    const requiredIncome = projectedLumpSum * (withdrawalRate / 100);
+    // Future value of growing super contributions
+    // This is the future value of an annuity with growing payments
+    let projectedSuperFromContributions = 0;
+    if (Math.abs(superReturn - salaryGrowthRate) < 0.0001) {
+      // Special case when rates are equal
+      projectedSuperFromContributions = initialSuperContribution * yearsToRetirement * Math.pow(1 + superReturn, yearsToRetirement - 1);
+    } else {
+      projectedSuperFromContributions = initialSuperContribution *
+        ((Math.pow(1 + superReturn, yearsToRetirement) - Math.pow(1 + salaryGrowthRate, yearsToRetirement)) /
+         (superReturn - salaryGrowthRate));
+    }
 
-    // Current passive income
-    const currentPassiveIncome = monthlyRentalIncome * 12;
+    const projectedSuper = projectedSuperFromBalance + projectedSuperFromContributions;
 
-    // Deficit or surplus
+    // ===== SHARES CALCULATION =====
+    // Adjust for inflation (real return)
+    const realShareReturn = (1 + shareReturn) / (1 + inflationRate) - 1;
+    const projectedShares = currentShares * Math.pow(1 + realShareReturn, yearsToRetirement);
+
+    // ===== PROPERTY CALCULATION =====
+    const realPropertyGrowth = (1 + propertyGrowth) / (1 + inflationRate) - 1;
+    const projectedProperty = propertyEquity * Math.pow(1 + realPropertyGrowth, yearsToRetirement);
+
+    // ===== SAVINGS CALCULATION =====
+    // Savings get conservative return (assume 2% real after inflation)
+    const savingsReturn = 0.02; // Conservative real return
+    const projectedSavings = currentSavings * Math.pow(1 + savingsReturn, yearsToRetirement);
+
+    // ===== TOTAL LUMP SUM =====
+    const projectedLumpSum = projectedSuper + projectedShares + projectedProperty + projectedSavings;
+
+    // ===== PASSIVE INCOME =====
+    // Investment withdrawal using 4% rule
+    const investmentWithdrawal = projectedLumpSum * withdrawalRate;
+
+    // Future rental income (grows with inflation)
+    const currentAnnualRental = monthlyRentalIncome * 12;
+    const rentGrowthRate = sharedAssumptions.rentGrowthRate / 100;
+    const realRentGrowth = (1 + rentGrowthRate) / (1 + inflationRate) - 1;
+    const futureAnnualRental = currentAnnualRental * Math.pow(1 + realRentGrowth, yearsToRetirement);
+
+    const currentPassiveIncome = investmentWithdrawal + futureAnnualRental;
+
+    // ===== RETIREMENT INCOME REQUIREMENT =====
+    // Target is 70% of final salary (adjusted for inflation)
+    const finalSalary = annualIncome * Math.pow(1 + salaryGrowthRate, yearsToRetirement);
+    const requiredIncome = finalSalary * 0.70; // 70% replacement ratio
+
+    // ===== DEFICIT OR SURPLUS =====
     const surplus = currentPassiveIncome - requiredIncome;
-    const monthlyDeficitSurplus = Math.abs(surplus) / 12;
+    const monthlyDeficitSurplus = surplus / 12;
     const isDeficit = surplus < 0;
 
     return {
@@ -210,7 +256,7 @@ export default function ProjectionsPage() {
       retirementAge,
       yearsToRetirement,
       annualIncome,
-      totalWealth,
+      totalWealth: currentSuper + currentSavings + currentShares + propertyEquity,
       projectedLumpSum,
       requiredIncome,
       currentPassiveIncome,
@@ -218,7 +264,10 @@ export default function ProjectionsPage() {
       isDeficit,
       projectedSuper,
       projectedShares,
-      projectedProperty
+      projectedProperty,
+      projectedSavings,
+      investmentWithdrawal,
+      futureAnnualRental
     };
   };
 
