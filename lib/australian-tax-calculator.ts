@@ -22,28 +22,28 @@ export const ATO_TAX_BRACKETS_2024_25: TaxBracket[] = [
     description: 'Tax-free threshold',
   },
   {
-    min: 18201,
+    min: 18200,
     max: 45000,
     rate: 0.16,
     baseTax: 0,
     description: '16% rate',
   },
   {
-    min: 45001,
+    min: 45000,
     max: 135000,
     rate: 0.30,
     baseTax: 4288,
     description: '30% rate',
   },
   {
-    min: 135001,
+    min: 135000,
     max: 190000,
     rate: 0.37,
     baseTax: 31288,
     description: '37% rate',
   },
   {
-    min: 190001,
+    min: 190000,
     max: null,
     rate: 0.45,
     baseTax: 51638,
@@ -65,35 +65,17 @@ export const calculateIncomeTax = (taxableIncome: number): number => {
   // Round to 2 decimal places
   taxableIncome = Math.round(taxableIncome * 100) / 100;
 
-  // Tax-free threshold
-  if (taxableIncome <= 18200) {
-    return 0;
+  // Find the appropriate bracket
+  for (const bracket of ATO_TAX_BRACKETS_2024_25) {
+    if (taxableIncome >= bracket.min && (bracket.max === null || taxableIncome <= bracket.max)) {
+      const taxableInBracket = taxableIncome - bracket.min;
+      const tax = bracket.baseTax + (taxableInBracket * bracket.rate);
+      return Math.round(tax * 100) / 100;
+    }
   }
 
-  // $18,201 – $45,000: 16c for each $1 over $18,200
-  if (taxableIncome <= 45000) {
-    const taxableAmount = taxableIncome - 18200;
-    return Math.round(taxableAmount * 0.16 * 100) / 100;
-  }
-
-  // $45,001 – $135,000: $4,288 plus 30c for each $1 over $45,000
-  if (taxableIncome <= 135000) {
-    const taxableAmount = taxableIncome - 45000;
-    const tax = 4288 + (taxableAmount * 0.30);
-    return Math.round(tax * 100) / 100;
-  }
-
-  // $135,001 – $190,000: $31,288 plus 37c for each $1 over $135,000
-  if (taxableIncome <= 190000) {
-    const taxableAmount = taxableIncome - 135000;
-    const tax = 31288 + (taxableAmount * 0.37);
-    return Math.round(tax * 100) / 100;
-  }
-
-  // $190,001 and over: $51,638 plus 45c for each $1 over $190,000
-  const taxableAmount = taxableIncome - 190000;
-  const tax = 51638 + (taxableAmount * 0.45);
-  return Math.round(tax * 100) / 100;
+  // Should not reach here if brackets are properly configured
+  throw new Error('Invalid taxable income or bracket configuration');
 };
 
 /**

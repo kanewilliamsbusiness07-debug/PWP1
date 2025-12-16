@@ -147,7 +147,7 @@ describe('Australian Tax Calculator', () => {
 
     test('Last bracket has no upper limit', () => {
       const lastBracket = ATO_TAX_BRACKETS_2024_25[4];
-      expect(lastBracket.min).toBe(190001);
+      expect(lastBracket.min).toBe(190000);
       expect(lastBracket.max).toBeNull();
       expect(lastBracket.rate).toBe(0.45);
       expect(lastBracket.baseTax).toBe(51638);

@@ -1,17 +1,24 @@
-/**
- * Financial Projections Calculator
- *
- * Uses industry-standard financial formulas verified against online calculators
- * Implements proper compound interest, annuity calculations, and loan amortization
- */
+// ============================================
+// TYPES & INTERFACES
+// ============================================
 
-import {
-  calculateFutureValue,
-  calculateFutureValueOfAnnuity,
-  calculateRemainingLoanBalance,
-  calculateSafeWithdrawal,
-  validateFinancialInputs,
-} from '@/lib/financial-calculations';
+export interface Asset {
+  name: string;
+  value: number;
+  type: 'Property' | 'Super' | 'Shares' | 'Cash' | 'Other';
+}
+
+export interface Liability {
+  lender: string;
+  loanType: string;
+  liabilityType: string;
+  balanceOwing: number;
+  repaymentAmount: number;
+  frequency: 'W' | 'F' | 'M'; // Weekly, Fortnightly, Monthly
+  interestRate: number; // Annual percentage
+  loanTerm: number; // Years
+  termRemaining: number; // Years remaining
+}
 
 export interface InvestmentProperty {
   address: string;
@@ -22,24 +29,6 @@ export interface InvestmentProperty {
   loanTerm: number; // Years
   weeklyRent: number;
   annualExpenses: number;
-}
-
-export interface Liability {
-  lender: string;
-  loanType: string;
-  liabilityType: string;
-  balanceOwing: number;
-  repaymentAmount: number;
-  frequency: 'W' | 'F' | 'M'; // Weekly, Fortnightly, Monthly
-  interestRate: number;
-  loanTerm: number;
-  termRemaining: number;
-}
-
-export interface Asset {
-  name: string;
-  value: number;
-  type: 'Property' | 'Super' | 'Shares' | 'Cash' | 'Other';
 }
 
 export interface Assumptions {
@@ -79,7 +68,7 @@ export interface FinancialInputs {
 }
 
 export interface ProjectionResults {
-  // Current Position
+  // Current Position Outputs
   currentAge: number;
   retirementAge: number;
   currentSuper: number;
@@ -94,19 +83,19 @@ export interface ProjectionResults {
   currentMonthlyCashflow: number;
   totalAnnualIncome: number;
 
-  // Future Projections
+  // Future Projection Outputs
   yearsToRetirement: number;
   futureSuper: number;
   futureShares: number;
-  futurePropertyValue: number; // Total property value
-  futurePropertyEquity: number; // Property value - remaining loans
-  remainingPropertyLoans: number; // How much loan is left
-  futurePropertyAssets: number; // General property assets
-  futureOtherAssets: number; // Other assets
+  futurePropertyValue: number;
+  futurePropertyEquity: number;
+  remainingPropertyLoans: number;
+  futurePropertyAssets: number;
+  futureOtherAssets: number;
   futureSavings: number;
   combinedNetworthAtRetirement: number;
 
-  // Retirement Income
+  // Retirement Income Outputs
   futureMonthlyRentalIncome: number;
   futureAnnualRentalIncome: number;
   annualSuperWithdrawal: number;
@@ -114,7 +103,7 @@ export interface ProjectionResults {
   projectedAnnualPassiveIncome: number;
   combinedMonthlyCashflowRetirement: number;
 
-  // Target & Surplus/Deficit
+  // Analysis & Status Outputs
   finalAnnualIncome: number;
   requiredAnnualIncome: number;
   requiredMonthlyIncome: number;
@@ -124,39 +113,101 @@ export interface ProjectionResults {
   percentageOfTarget: number;
 }
 
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Calculate remaining loan balance using standard amortization formula
+ */
+function calculateRemainingLoanBalance(
+  initialLoan: number,
+  annualInterestRate: number,
+  loanTermYears: number,
+  yearsPassed: number
+): number {
+  const monthlyRate = annualInterestRate / 100 / 12;
+  const totalMonths = loanTermYears * 12;
+  const monthsPassed = yearsPassed * 12;
+  const remainingMonths = totalMonths - monthsPassed;
+
+  // If loan is paid off
+  if (remainingMonths <= 0) return 0;
+
+  // Calculate monthly payment
+  const monthlyPayment = initialLoan *
+    (monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) /
+    (Math.pow(1 + monthlyRate, totalMonths) - 1);
+
+  // Calculate remaining balance
+  const remainingBalance = monthlyPayment *
+    ((1 - Math.pow(1 + monthlyRate, -remainingMonths)) / monthlyRate);
+
+  return remainingBalance;
+}
+
+/**
+ * Calculate future value with compound interest
+ */
+function calculateFutureValue(
+  principal: number,
+  rate: number,
+  years: number
+): number {
+  return principal * Math.pow(1 + rate, years);
+}
+
+/**
+ * Calculate future value of annuity (series of regular payments)
+ */
+function calculateFutureValueOfAnnuity(
+  payment: number,
+  rate: number,
+  years: number,
+  growthRate: number = 0
+): number {
+  if (Math.abs(rate - growthRate) < 0.0001) {
+    // Edge case: when rate equals growth rate
+    return payment * years * Math.pow(1 + rate, years - 1);
+  }
+
+  // Growing annuity formula
+  return payment *
+    ((Math.pow(1 + rate, years) - Math.pow(1 + growthRate, years)) / (rate - growthRate));
+}
+
+// ============================================
+// MAIN CALCULATION FUNCTION
+// ============================================
+
 export function calculateFinancialProjections(inputs: FinancialInputs): ProjectionResults {
-  // Validate inputs
-  validateFinancialInputs({
-    annualReturn: inputs.assumptions.superReturn / 100,
-    years: inputs.retirementAge - inputs.currentAge,
-    amount: inputs.annualIncome,
-    currentAge: inputs.currentAge,
-    retirementAge: inputs.retirementAge,
-  });
 
   // ========================================
   // CONSTANTS
   // ========================================
-  const SUPER_GUARANTEE_RATE = 0.12; // Super Guarantee Rate: 12% (ATO 2024-25, increased from 11.5% in July 2024)
-  const QUARTERLY_EARNINGS_CAP = 63750; // ATO 2024-25 quarterly earnings cap
-  const MAX_QUARTERLY_SUPER = QUARTERLY_EARNINGS_CAP * SUPER_GUARANTEE_RATE; // $7,650 quarterly maximum
-  const MAX_ANNUAL_SUPER = MAX_QUARTERLY_SUPER * 4; // $30,600 annual maximum
-  const RETIREMENT_INCOME_THRESHOLD = 0.70;
+  const SUPER_GUARANTEE_RATE = 0.12; // 12% for 2024-25
+  const RETIREMENT_INCOME_THRESHOLD = 0.70; // 70% of final income
 
+  // ========================================
+  // RATE CONVERSIONS
+  // ========================================
   const years = inputs.retirementAge - inputs.currentAge;
 
-  // Convert rates to decimals
-  const r_super = Math.max(0, (inputs.assumptions.superReturn - 0.08) / 100); // Reduce by average admin fee % (0.08%)
+  // Super return minus admin fees (0.08% = 0.0008)
+  const r_super = (inputs.assumptions.superReturn - 0.08) / 100;
   const r_shares = inputs.assumptions.shareReturn / 100;
   const r_property = inputs.assumptions.propertyGrowthRate / 100;
   const g_salary = inputs.assumptions.salaryGrowthRate / 100;
   const g_rent = inputs.assumptions.rentGrowthRate / 100;
   const inflation = inputs.assumptions.inflationRate / 100;
+  const withdrawalRate = inputs.assumptions.withdrawalRate / 100;
+  const savingsRate = inputs.assumptions.savingsRate / 100;
 
   // ========================================
   // CURRENT POSITION CALCULATIONS
   // ========================================
 
+  // Aggregate assets by type
   const currentSuper = inputs.assets
     .filter(a => a.type === 'Super')
     .reduce((sum, a) => sum + a.value, 0);
@@ -169,31 +220,47 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     .filter(a => a.type === 'Shares')
     .reduce((sum, a) => sum + a.value, 0);
 
-  // Current property equity (value - loan)
+  // Property assets (non-investment properties in asset list)
+  const currentPropertyAssets = inputs.assets
+    .filter(a => a.type === 'Property')
+    .reduce((sum, a) => sum + a.value, 0);
+
+  // Other assets (cash equivalents, bonds, etc.)
+  const currentOtherAssets = inputs.assets
+    .filter(a => a.type === 'Other')
+    .reduce((sum, a) => sum + a.value, 0);
+
+  // Investment property equity (value - loan)
   const propertyEquity = inputs.investmentProperties
     .reduce((sum, p) => sum + (p.currentValue - p.loanAmount), 0);
 
-  // Total assets and liabilities
+  // Totals
   const totalAssets = inputs.assets.reduce((sum, a) => sum + a.value, 0);
   const totalLiabilities = inputs.liabilities.reduce((sum, l) => sum + l.balanceOwing, 0);
   const currentNetWorth = totalAssets - totalLiabilities;
 
-  // Monthly debt payments (converted from various frequencies)
+  // Monthly debt payments (convert all to monthly)
   const monthlyDebtPayments = inputs.liabilities.reduce((sum, l) => {
     let monthly = 0;
     switch (l.frequency) {
-      case 'W': monthly = l.repaymentAmount * 52 / 12; break;
-      case 'F': monthly = l.repaymentAmount * 26 / 12; break;
-      case 'M': monthly = l.repaymentAmount; break;
+      case 'W': // Weekly
+        monthly = l.repaymentAmount * 52 / 12;
+        break;
+      case 'F': // Fortnightly
+        monthly = l.repaymentAmount * 26 / 12;
+        break;
+      case 'M': // Monthly
+        monthly = l.repaymentAmount;
+        break;
     }
     return sum + monthly;
   }, 0);
 
-  // Monthly rental income
+  // Monthly rental income from investment properties
   const monthlyRentalIncome = inputs.investmentProperties
     .reduce((sum, p) => sum + (p.weeklyRent * 52 / 12), 0);
 
-  // Total annual income
+  // Total annual income (all sources)
   const totalAnnualIncome =
     inputs.annualIncome +
     inputs.rentalIncome +
@@ -209,91 +276,139 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     monthlyDebtPayments;
 
   // ========================================
-  // FUTURE SUPERANNUATION (simplified lump sum calculation)
+  // FUTURE SUPERANNUATION
   // ========================================
 
-  // Formula: Super Lump Sum = (Current Balance + (Employment Income × 0.12)) × (1 + Rate)^Years
-  // Super Guarantee Rate: 12% (ATO 2024-25)
-  const annualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE;
-  const superLumpSum = currentSuper + annualSuperContribution;
+  // Annual super contribution (capped at maximum)
+  const QUARTERLY_EARNINGS_CAP = 63750;
+  const MAX_ANNUAL_SUPER = 30600;
 
-  // Compound the total super amount for years to retirement
-  const futureSuper = Math.round(calculateFutureValue(superLumpSum, r_super, years) * 100) / 100;
+  let annualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE;
+  if (annualSuperContribution > MAX_ANNUAL_SUPER) {
+    annualSuperContribution = MAX_ANNUAL_SUPER;
+  }
+
+  // Part 1: Current super balance grows
+  const futureSuperFromGrowth = calculateFutureValue(
+    currentSuper,
+    r_super,
+    years
+  );
+
+  // Part 2: Future contributions (growing annuity)
+  const futureSuperFromContributions = calculateFutureValueOfAnnuity(
+    annualSuperContribution,
+    r_super,
+    years,
+    g_salary
+  );
+
+  const futureSuper = futureSuperFromGrowth + futureSuperFromContributions;
 
   // ========================================
   // FUTURE SHARES
   // ========================================
 
-  const futureShares = calculateFutureValue(currentShares, r_shares, years);
+  const futureShares = calculateFutureValue(
+    currentShares,
+    r_shares,
+    years
+  );
 
   // ========================================
-  // FUTURE PROPERTY ASSETS (from general assets)
+  // FUTURE PROPERTY ASSETS (Non-Investment Properties)
   // ========================================
 
-  const currentPropertyAssets = inputs.assets
-    .filter(a => a.type === 'Property')
-    .reduce((sum, a) => sum + a.value, 0);
-
-  const futurePropertyAssets = calculateFutureValue(currentPropertyAssets, r_property, years);
+  const futurePropertyAssets = calculateFutureValue(
+    currentPropertyAssets,
+    r_property,
+    years
+  );
 
   // ========================================
   // FUTURE OTHER ASSETS
   // ========================================
 
-  const currentOtherAssets = inputs.assets
-    .filter(a => a.type === 'Other')
-    .reduce((sum, a) => sum + a.value, 0);
-
-  const futureOtherAssets = calculateFutureValue(currentOtherAssets, 0.03, years); // 3% return
+  // Other assets grow at conservative 3% rate
+  const futureOtherAssets = calculateFutureValue(
+    currentOtherAssets,
+    0.03,
+    years
+  );
 
   // ========================================
-  // FUTURE PROPERTY EQUITY (FIXED - PROPER COMPOUNDING)
+  // FUTURE INVESTMENT PROPERTY EQUITY
   // ========================================
 
-  let futurePropertyEquity = 0;
   let futurePropertyValue = 0;
   let remainingPropertyLoans = 0;
+  let futurePropertyEquity = 0;
 
   for (const property of inputs.investmentProperties) {
-    // STEP 1: Calculate future property value with compound growth
-    // Formula: FV = Current Value × (1 + growth rate)^years
-    const propFutureValue = calculateFutureValue(property.currentValue, r_property, years);
-    futurePropertyValue += propFutureValue;
+    // Property value grows with compound interest
+    const futurePropValue = calculateFutureValue(
+      property.currentValue,
+      r_property,
+      years
+    );
+    futurePropertyValue += futurePropValue;
 
-    // STEP 2: Calculate remaining loan balance using amortization
+    // Calculate remaining loan balance
     const remainingBalance = calculateRemainingLoanBalance(
       property.loanAmount,
-      property.interestRate / 100, // Convert percentage to decimal
+      property.interestRate,
       property.loanTerm,
       years
     );
     remainingPropertyLoans += remainingBalance;
 
-    // STEP 3: Future equity = Future Value - Remaining Loan
-    const propFutureEquity = propFutureValue - remainingBalance;
-    futurePropertyEquity += Math.max(0, propFutureEquity); // Don't allow negative equity
+    // Equity = Value - Remaining Loan
+    futurePropertyEquity += (futurePropValue - remainingBalance);
   }
 
   // ========================================
-  // FUTURE SAVINGS/CASH (using standard annuity formula)
+  // FUTURE SAVINGS
   // ========================================
 
-  // Part 1: Current savings grow at 3%
-  const futureSavingsFromGrowth = calculateFutureValue(currentSavings, 0.03, years);
-
-  // Part 2: Future savings contributions (constant annual contributions)
-  const savingsRate = inputs.assumptions.savingsRate / 100;
-  const annualSavingsContribution = inputs.annualIncome * savingsRate;
-
-  // Use standard annuity formula for constant contributions
-  const futureSavingsFromContributions = calculateFutureValueOfAnnuity(
-    annualSavingsContribution,
-    0.03, // Conservative savings return
-    years,
-    1 // Annual contributions
+  // Part 1: Current savings grow
+  const futureSavingsFromGrowth = calculateFutureValue(
+    currentSavings,
+    r_super,
+    years
   );
 
-  const futureSavings = Math.max(0, Math.round((futureSavingsFromGrowth + futureSavingsFromContributions) * 100) / 100);
+  // Part 2: Future savings contributions
+  // Savings rate applied to annual income
+  const annualSavingsContribution = inputs.annualIncome * savingsRate;
+
+  const futureSavingsFromContributions = calculateFutureValueOfAnnuity(
+    annualSavingsContribution,
+    r_super,
+    years,
+    g_salary
+  );
+
+  // Part 3: Net cashflow accumulated
+  const initialAnnualCashflow = currentMonthlyCashflow * 12;
+
+  // Only add if positive cashflow
+  let futureSavingsFromCashflow = 0;
+  if (initialAnnualCashflow > 0) {
+    const effectiveCashflowGrowth = g_rent - inflation;
+    futureSavingsFromCashflow = calculateFutureValueOfAnnuity(
+      initialAnnualCashflow,
+      r_super,
+      years,
+      effectiveCashflowGrowth
+    );
+  }
+
+  const futureSavings = Math.max(
+    0,
+    futureSavingsFromGrowth +
+    futureSavingsFromContributions +
+    futureSavingsFromCashflow
+  );
 
   // ========================================
   // COMBINED NET WORTH AT RETIREMENT
@@ -302,9 +417,9 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   const combinedNetworthAtRetirement =
     futureSuper +
     futureShares +
+    futurePropertyEquity +
     futurePropertyAssets +
     futureOtherAssets +
-    futurePropertyEquity +
     futureSavings;
 
   // ========================================
@@ -313,39 +428,40 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
 
   // Future rental income (grows with rent growth rate)
   const futureMonthlyRentalIncome = monthlyRentalIncome * Math.pow(1 + g_rent, years);
-  const futureAnnualRentalIncome = Math.round(futureMonthlyRentalIncome * 12 * 100) / 100;
+  const futureAnnualRentalIncome = futureMonthlyRentalIncome * 12;
 
-  // Super withdrawal using withdrawal rate
-  const withdrawalRate = inputs.assumptions.withdrawalRate / 100;
+  // Super withdrawal (safe withdrawal rate)
   const annualSuperWithdrawal = futureSuper * withdrawalRate;
-  const monthlySuperWithdrawal = Math.round((annualSuperWithdrawal / 12) * 100) / 100;
+  const monthlySuperWithdrawal = annualSuperWithdrawal / 12;
 
-  // Calculate remaining loan payments at retirement
-  let futureMonthlyLoanPayments = 0;
-  for (const liability of inputs.liabilities) {
-    // Only include loans that will still be outstanding at retirement
-    if (liability.termRemaining > years) {
-      // Calculate monthly payment for remaining term
-      const monthlyRate = liability.interestRate / 100 / 12;
-      const remainingMonths = (liability.termRemaining - years) * 12;
-      const monthlyPayment = (liability.balanceOwing * monthlyRate * Math.pow(1 + monthlyRate, remainingMonths)) /
-                            (Math.pow(1 + monthlyRate, remainingMonths) - 1);
+  // Total passive income
+  const projectedAnnualPassiveIncome =
+    futureAnnualRentalIncome +
+    annualSuperWithdrawal;
 
-      // Convert to monthly based on frequency
-      switch (liability.frequency) {
-        case 'W': futureMonthlyLoanPayments += monthlyPayment * 52 / 12; break;
-        case 'F': futureMonthlyLoanPayments += monthlyPayment * 26 / 12; break;
-        case 'M': futureMonthlyLoanPayments += monthlyPayment; break;
+  // Future monthly expenses (adjusted for inflation)
+  const futureMonthlyExpenses = inputs.monthlyExpenses * Math.pow(1 + inflation, years);
+
+  // Future loan payments (if any loans remain)
+  const futureMonthlyLoanPayments = inputs.liabilities.reduce((sum, l) => {
+    if (years < l.termRemaining) {
+      // Loan still active
+      let monthly = 0;
+      switch (l.frequency) {
+        case 'W': monthly = l.repaymentAmount * 52 / 12; break;
+        case 'F': monthly = l.repaymentAmount * 26 / 12; break;
+        case 'M': monthly = l.repaymentAmount; break;
       }
+      return sum + monthly;
     }
-  }
+    return sum;
+  }, 0);
 
-  // Monthly cashflow at retirement: super withdrawal + rent - loan payments - expenses
+  // Monthly cashflow at retirement
   const combinedMonthlyCashflowRetirement =
-    monthlySuperWithdrawal +
-    futureMonthlyRentalIncome -
-    futureMonthlyLoanPayments -
-    inputs.monthlyExpenses; // Expenses stay the same
+    (projectedAnnualPassiveIncome / 12) -
+    futureMonthlyExpenses -
+    futureMonthlyLoanPayments;
 
   // ========================================
   // TARGET INCOME & SURPLUS/DEFICIT
@@ -354,21 +470,18 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // Final salary after years of growth
   const finalAnnualIncome = inputs.annualIncome * Math.pow(1 + g_salary, years);
 
-  // Required income is 70% of current salary (not projected future salary)
-  const requiredAnnualIncome = inputs.annualIncome * RETIREMENT_INCOME_THRESHOLD;
-  const requiredMonthlyIncome = Math.round((requiredAnnualIncome / 12) * 100) / 100;
-
-  // Annual retirement income for surplus/deficit calculation
-  const projectedAnnualPassiveIncome = (monthlySuperWithdrawal + futureMonthlyRentalIncome) * 12;
+  // Required income is 70% of final salary
+  const requiredAnnualIncome = finalAnnualIncome * RETIREMENT_INCOME_THRESHOLD;
+  const requiredMonthlyIncome = requiredAnnualIncome / 12;
 
   // Surplus or deficit
-  const annualSurplusDeficit = Math.round((projectedAnnualPassiveIncome - requiredAnnualIncome) * 100) / 100;
-  const monthlySurplusDeficit = Math.round((annualSurplusDeficit / 12) * 100) / 100;
+  const annualSurplusDeficit = projectedAnnualPassiveIncome - requiredAnnualIncome;
+  const monthlySurplusDeficit = annualSurplusDeficit / 12;
   const status: 'surplus' | 'deficit' = annualSurplusDeficit >= 0 ? 'surplus' : 'deficit';
-  const percentageOfTarget = Math.round((projectedAnnualPassiveIncome / requiredAnnualIncome) * 10000) / 100;
+  const percentageOfTarget = (projectedAnnualPassiveIncome / requiredAnnualIncome) * 100;
 
   // ========================================
-  // RETURN ALL RESULTS
+  // RETURN COMPLETE RESULTS
   // ========================================
 
   return {
@@ -391,9 +504,9 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     yearsToRetirement: years,
     futureSuper,
     futureShares,
-    futurePropertyValue, // Total property value
-    futurePropertyEquity, // Property value - remaining loans
-    remainingPropertyLoans, // How much loan is left
+    futurePropertyValue,
+    futurePropertyEquity,
+    remainingPropertyLoans,
     futurePropertyAssets,
     futureOtherAssets,
     futureSavings,
@@ -407,7 +520,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     projectedAnnualPassiveIncome,
     combinedMonthlyCashflowRetirement,
 
-    // Target & Status
+    // Analysis & Status
     finalAnnualIncome,
     requiredAnnualIncome,
     requiredMonthlyIncome,
@@ -416,4 +529,50 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     status,
     percentageOfTarget,
   };
+}
+
+// ============================================
+// VERIFICATION FUNCTION
+// ============================================
+
+export function verifyCalculations(inputs: FinancialInputs) {
+  const results = calculateFinancialProjections(inputs);
+
+  console.log('=== FINANCIAL PROJECTIONS VERIFICATION ===');
+  console.log('\n📊 CURRENT POSITION:');
+  console.log(`Age: ${results.currentAge} → Retirement: ${results.retirementAge} (${results.yearsToRetirement} years)`);
+  console.log(`Current Net Worth: $${results.currentNetWorth.toLocaleString()}`);
+  console.log(`  - Super: $${results.currentSuper.toLocaleString()}`);
+  console.log(`  - Shares: $${results.currentShares.toLocaleString()}`);
+  console.log(`  - Property Equity: $${results.propertyEquity.toLocaleString()}`);
+  console.log(`  - Savings: $${results.currentSavings.toLocaleString()}`);
+  console.log(`Current Monthly Cashflow: $${results.currentMonthlyCashflow.toLocaleString()}`);
+
+  console.log('\n🎯 FUTURE PROJECTIONS:');
+  console.log(`Combined Net Worth at Retirement: $${results.combinedNetworthAtRetirement.toLocaleString()}`);
+  console.log(`  - Future Super: $${results.futureSuper.toLocaleString()}`);
+  console.log(`  - Future Shares: $${results.futureShares.toLocaleString()}`);
+  console.log(`  - Future Property Equity: $${results.futurePropertyEquity.toLocaleString()}`);
+  console.log(`  - Future Property Assets: $${results.futurePropertyAssets.toLocaleString()}`);
+  console.log(`  - Future Savings: $${results.futureSavings.toLocaleString()}`);
+  console.log(`  - Future Other Assets: $${results.futureOtherAssets.toLocaleString()}`);
+  console.log(`Remaining Property Loans: $${results.remainingPropertyLoans.toLocaleString()}`);
+
+  console.log('\n💰 RETIREMENT INCOME:');
+  console.log(`Projected Annual Passive Income: $${results.projectedAnnualPassiveIncome.toLocaleString()}`);
+  console.log(`  - Super Withdrawal: $${results.annualSuperWithdrawal.toLocaleString()}/year`);
+  console.log(`  - Rental Income: $${results.futureAnnualRentalIncome.toLocaleString()}/year`);
+  console.log(`Monthly Passive Income: $${(results.projectedAnnualPassiveIncome / 12).toLocaleString()}`);
+  console.log(`Monthly Cashflow: $${results.combinedMonthlyCashflowRetirement.toLocaleString()}`);
+
+  console.log('\n✅ RETIREMENT STATUS:');
+  console.log(`Required Annual Income (70% rule): $${results.requiredAnnualIncome.toLocaleString()}`);
+  console.log(`Projected Annual Income: $${results.projectedAnnualPassiveIncome.toLocaleString()}`);
+  console.log(`Annual ${results.status.toUpperCase()}: $${Math.abs(results.annualSurplusDeficit).toLocaleString()}`);
+  console.log(`Monthly ${results.status.toUpperCase()}: $${Math.abs(results.monthlySurplusDeficit).toLocaleString()}`);
+  console.log(`Percentage of Target: ${results.percentageOfTarget.toFixed(1)}%`);
+
+  console.log('\n==========================================\n');
+
+  return results;
 }
