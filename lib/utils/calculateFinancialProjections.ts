@@ -266,7 +266,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   const futureOtherAssets = calculateFutureValue(currentOtherAssets, 0.03, years); // 3% return
 
   // ========================================
-  // FUTURE PROPERTY EQUITY (CORRECTED)
+  // FUTURE PROPERTY EQUITY (FIXED - PROPER COMPOUNDING)
   // ========================================
 
   let futurePropertyEquity = 0;
@@ -274,24 +274,23 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   let remainingPropertyLoans = 0;
 
   for (const property of inputs.investmentProperties) {
-    // Calculate current equity (current value - loan amount)
-    const currentEquity = property.currentValue - property.loanAmount;
-    
-    // Equity grows with compound interest at property growth rate
-    const futureEquity = calculateFutureValue(currentEquity, r_property, years);
-    futurePropertyValue += calculateFutureValue(property.currentValue, r_property, years);
+    // STEP 1: Calculate future property value with compound growth
+    // Formula: FV = Current Value × (1 + growth rate)^years
+    const propFutureValue = calculateFutureValue(property.currentValue, r_property, years);
+    futurePropertyValue += propFutureValue;
 
-    // Calculate remaining loan balance using CORRECT amortization formula
+    // STEP 2: Calculate remaining loan balance using amortization
     const remainingBalance = calculateRemainingLoanBalance(
       property.loanAmount,
-      property.interestRate,
+      property.interestRate / 100, // Convert percentage to decimal
       property.loanTerm,
       years
     );
     remainingPropertyLoans += remainingBalance;
 
-    // Future property equity = grown equity
-    futurePropertyEquity += futureEquity;
+    // STEP 3: Future equity = Future Value - Remaining Loan
+    const propFutureEquity = propFutureValue - remainingBalance;
+    futurePropertyEquity += Math.max(0, propFutureEquity); // Don't allow negative equity
   }
 
   // ========================================
