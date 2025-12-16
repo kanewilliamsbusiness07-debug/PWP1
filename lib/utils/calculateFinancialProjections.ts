@@ -1,10 +1,17 @@
 /**
  * Financial Projections Calculator
  *
- * Comprehensive calculation engine for retirement planning projections
- * Implements proper compound interest formulas and data aggregation
- * Verified against ASIC Moneysmart standards
+ * Uses industry-standard financial formulas verified against online calculators
+ * Implements proper compound interest, annuity calculations, and loan amortization
  */
+
+import {
+  calculateFutureValue,
+  calculateFutureValueOfAnnuity,
+  calculateRemainingLoanBalance,
+  calculateSafeWithdrawal,
+  validateFinancialInputs,
+} from '@/lib/financial-calculations';
 
 export interface InvestmentProperty {
   address: string;
@@ -107,6 +114,7 @@ export interface ProjectionResults {
   combinedMonthlyCashflowRetirement: number;
 
   // Target & Surplus/Deficit
+  finalAnnualIncome: number;
   requiredAnnualIncome: number;
   requiredMonthlyIncome: number;
   annualSurplusDeficit: number;
@@ -115,38 +123,16 @@ export interface ProjectionResults {
   percentageOfTarget: number;
 }
 
-/**
- * Calculate remaining loan balance using proper amortization formula
- */
-function calculateRemainingLoanBalance(
-  initialLoan: number,
-  annualInterestRate: number,
-  loanTermYears: number,
-  yearsPassed: number
-): number {
-  const monthlyRate = annualInterestRate / 100 / 12;
-  const totalMonths = loanTermYears * 12;
-  const monthsPassed = yearsPassed * 12;
-  const remainingMonths = totalMonths - monthsPassed;
-
-  // If loan is fully paid off
-  if (remainingMonths <= 0) return 0;
-
-  // Calculate monthly payment using amortization formula
-  const monthlyPayment = initialLoan *
-    (monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) /
-    (Math.pow(1 + monthlyRate, totalMonths) - 1);
-
-  // Calculate remaining balance
-  // Formula: Balance = Payment × [(1 - (1 + r)^(-n)) / r]
-  // where n = remaining months, r = monthly rate
-  const remainingBalance = monthlyPayment *
-    ((1 - Math.pow(1 + monthlyRate, -remainingMonths)) / monthlyRate);
-
-  return remainingBalance;
-}
-
 export function calculateFinancialProjections(inputs: FinancialInputs): ProjectionResults {
+  // Validate inputs
+  validateFinancialInputs({
+    annualReturn: inputs.assumptions.superReturn / 100,
+    years: inputs.retirementAge - inputs.currentAge,
+    amount: inputs.annualIncome,
+    currentAge: inputs.currentAge,
+    retirementAge: inputs.retirementAge,
+  });
+
   // ========================================
   // CONSTANTS
   // ========================================
@@ -223,28 +209,29 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // ========================================
 
   // Part 1: Current super grows with compound interest
-  const futureSuperFromGrowth = currentSuper * Math.pow(1 + r_super, years);
+  const futureSuperFromGrowth = calculateFutureValue(currentSuper, r_super, years);
 
   // Part 2: Future value of super contributions (growing annuity)
   const annualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE;
 
+  // For growing annuity with salary growth, we need to calculate year by year
   let futureSuperFromContributions = 0;
   if (Math.abs(r_super - g_salary) < 0.0001) {
     // Edge case: when return rate equals salary growth rate
     futureSuperFromContributions = annualSuperContribution * years * Math.pow(1 + r_super, years - 1);
   } else {
-    // Growing annuity formula
+    // Growing annuity formula: FV = PMT × [((1 + r)^n - (1 + g)^n) / (r - g)]
     futureSuperFromContributions = annualSuperContribution *
       ((Math.pow(1 + r_super, years) - Math.pow(1 + g_salary, years)) / (r_super - g_salary));
   }
 
-  const futureSuper = futureSuperFromGrowth + futureSuperFromContributions;
+  const futureSuper = Math.round((futureSuperFromGrowth + futureSuperFromContributions) * 100) / 100;
 
   // ========================================
   // FUTURE SHARES
   // ========================================
 
-  const futureShares = currentShares * Math.pow(1 + r_shares, years);
+  const futureShares = calculateFutureValue(currentShares, r_shares, years);
 
   // ========================================
   // FUTURE PROPERTY EQUITY (CORRECTED)
@@ -255,8 +242,8 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   let remainingPropertyLoans = 0;
 
   for (const property of inputs.investmentProperties) {
-    // Property value grows with compound interest (using property growth rate from assumptions)
-    const futurePropValue = property.currentValue * Math.pow(1 + r_property, years);
+    // Property value grows with compound interest
+    const futurePropValue = calculateFutureValue(property.currentValue, r_property, years);
     futurePropertyValue += futurePropValue;
 
     // Calculate remaining loan balance using CORRECT amortization formula
@@ -277,7 +264,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // ========================================
 
   // Part 1: Current savings grow
-  const futureSavingsFromGrowth = currentSavings * Math.pow(1 + r_super, years);
+  const futureSavingsFromGrowth = calculateFutureValue(currentSavings, r_super, years);
 
   // Part 2: Net cashflow accumulated
   const initialAnnualCashflow = currentMonthlyCashflow * 12;
@@ -296,7 +283,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     }
   }
 
-  const futureSavings = Math.max(0, futureSavingsFromGrowth + futureSavingsFromCashflow);
+  const futureSavings = Math.max(0, Math.round((futureSavingsFromGrowth + futureSavingsFromCashflow) * 100) / 100);
 
   // ========================================
   // COMBINED NET WORTH AT RETIREMENT
@@ -314,18 +301,18 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
 
   // Future rental income (grows with rent growth rate)
   const futureMonthlyRentalIncome = monthlyRentalIncome * Math.pow(1 + g_rent, years);
-  const futureAnnualRentalIncome = futureMonthlyRentalIncome * 12;
+  const futureAnnualRentalIncome = Math.round(futureMonthlyRentalIncome * 12 * 100) / 100;
 
   // Investment withdrawal (safe withdrawal rate)
   const withdrawalRate = inputs.assumptions.withdrawalRate / 100;
-  const annualInvestmentWithdrawal = combinedNetworthAtRetirement * withdrawalRate;
-  const monthlyInvestmentWithdrawal = annualInvestmentWithdrawal / 12;
+  const annualInvestmentWithdrawal = calculateSafeWithdrawal(combinedNetworthAtRetirement, withdrawalRate);
+  const monthlyInvestmentWithdrawal = Math.round((annualInvestmentWithdrawal / 12) * 100) / 100;
 
   // Total passive income
   const projectedAnnualPassiveIncome =
     futureAnnualRentalIncome +
     annualInvestmentWithdrawal;
-  const projectedMonthlyPassiveIncome = projectedAnnualPassiveIncome / 12;
+  const projectedMonthlyPassiveIncome = Math.round((projectedAnnualPassiveIncome / 12) * 100) / 100;
 
   // Monthly cashflow at retirement (income - expenses, no debt if loans paid off)
   const futureMonthlyExpenses = inputs.monthlyExpenses * Math.pow(1 + inflation, years);
@@ -337,15 +324,18 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // TARGET INCOME & SURPLUS/DEFICIT
   // ========================================
 
-  // Required income is 70% of CURRENT salary (not projected future salary)
+  // Final salary after years of growth
+  const finalAnnualIncome = inputs.annualIncome * Math.pow(1 + g_salary, years);
+
+  // Required income is 70% of current salary (not projected future salary)
   const requiredAnnualIncome = inputs.annualIncome * RETIREMENT_INCOME_THRESHOLD;
-  const requiredMonthlyIncome = requiredAnnualIncome / 12;
+  const requiredMonthlyIncome = Math.round((requiredAnnualIncome / 12) * 100) / 100;
 
   // Surplus or deficit
-  const annualSurplusDeficit = projectedAnnualPassiveIncome - requiredAnnualIncome;
-  const monthlySurplusDeficit = annualSurplusDeficit / 12;
+  const annualSurplusDeficit = Math.round((projectedAnnualPassiveIncome - requiredAnnualIncome) * 100) / 100;
+  const monthlySurplusDeficit = Math.round((annualSurplusDeficit / 12) * 100) / 100;
   const status: 'surplus' | 'deficit' = annualSurplusDeficit >= 0 ? 'surplus' : 'deficit';
-  const percentageOfTarget = (projectedAnnualPassiveIncome / requiredAnnualIncome) * 100;
+  const percentageOfTarget = Math.round((projectedAnnualPassiveIncome / requiredAnnualIncome) * 10000) / 100;
 
   // ========================================
   // RETURN ALL RESULTS
@@ -388,6 +378,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
     combinedMonthlyCashflowRetirement,
 
     // Target & Status
+    finalAnnualIncome,
     requiredAnnualIncome,
     requiredMonthlyIncome,
     annualSurplusDeficit,
