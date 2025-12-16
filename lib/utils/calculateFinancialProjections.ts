@@ -135,10 +135,10 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // ========================================
   // CONSTANTS
   // ========================================
-  const SUPER_GUARANTEE_RATE = 0.12; // CORRECT: 12% for 2024-25 (was 11.5%)
-  const QUARTERLY_EARNINGS_CAP = 63750; // ATO 2024-25 quarterly cap
-  const MAX_QUARTERLY_SUPER = QUARTERLY_EARNINGS_CAP * SUPER_GUARANTEE_RATE; // $7,650
-  const MAX_ANNUAL_SUPER = MAX_QUARTERLY_SUPER * 4; // $30,600
+  const SUPER_GUARANTEE_RATE = 0.12; // Super Guarantee Rate: 12% (ATO 2024-25, increased from 11.5% in July 2024)
+  const QUARTERLY_EARNINGS_CAP = 63750; // ATO 2024-25 quarterly earnings cap
+  const MAX_QUARTERLY_SUPER = QUARTERLY_EARNINGS_CAP * SUPER_GUARANTEE_RATE; // $7,650 quarterly maximum
+  const MAX_ANNUAL_SUPER = MAX_QUARTERLY_SUPER * 4; // $30,600 annual maximum
   const RETIREMENT_INCOME_THRESHOLD = 0.70;
 
   const years = inputs.retirementAge - inputs.currentAge;
@@ -211,11 +211,16 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // ========================================
 
   // Part 1: Current super grows with compound interest
+  // Formula: Future Value = Current Balance × (1 + Rate)^Time
   const futureSuperFromGrowth = calculateFutureValue(currentSuper, r_super, years);
 
   // Part 2: Future value of super contributions (growing annuity)
+  // Super Guarantee Formula: Super Amount = OTE × SG Rate
+  // SG Rate: Currently 12% (ATO 2024-25, increased from 11.5% in July 2024)
+  // OTE (Ordinary Time Earnings): Includes normal pay, commissions, shift loadings, bonuses, allowances (pre-tax)
+  // Example: If OTE is $1,000/week, employer pays $120 (12%) into super
   // Apply Super Guarantee cap: max $30,600 annually (4 quarters × $7,650)
-  const uncappedAnnualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE;
+  const uncappedAnnualSuperContribution = inputs.annualIncome * SUPER_GUARANTEE_RATE; // Treating annualIncome as OTE
   const annualSuperContribution = Math.min(uncappedAnnualSuperContribution, MAX_ANNUAL_SUPER);
 
   // For growing annuity with salary growth, we need to calculate year by year
