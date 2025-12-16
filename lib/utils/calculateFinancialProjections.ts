@@ -255,7 +255,7 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   let remainingPropertyLoans = 0;
 
   for (const property of inputs.investmentProperties) {
-    // Property value grows with compound interest
+    // Property value grows with compound interest (using property growth rate from assumptions)
     const futurePropValue = property.currentValue * Math.pow(1 + r_property, years);
     futurePropertyValue += futurePropValue;
 

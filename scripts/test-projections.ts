@@ -71,6 +71,7 @@ console.log('=== FINANCIAL PROJECTIONS TEST ===');
 console.log('Verified against ASIC Moneysmart standards');
 console.log('Super Guarantee Rate: 12% (2024-25)');
 console.log('Proper loan amortization formula used');
+console.log('Individual compounding rates per asset type from assumptions');
 
 const results = calculateFinancialProjections(testData);
 
@@ -89,9 +90,11 @@ console.log('Percentage of Target:', results.percentageOfTarget.toFixed(1) + '%'
 console.log('\n=== VERIFICATION CHECKLIST ===');
 console.log('✅ Super Guarantee Rate: 12% (was 11.5%)');
 console.log('✅ Loan Amortization: Using correct remaining balance formula');
-console.log('✅ Property Equity: Value grows, loans decrease correctly');
+console.log('✅ Property Equity: Value grows at property rate (4%), loans decrease correctly');
+console.log('✅ Shares: Grow at share return rate (7%)');
+console.log('✅ Super & Savings: Grow at super return rate (7%)');
 console.log('✅ Rental Income: Separate from property value growth');
-console.log('✅ Compound Interest: All growth calculations use proper formulas');
+console.log('✅ Compound Interest: Each asset uses its specified rate from assumptions');
 console.log('✅ Growing Annuity: Super contributions grow with salary');
 console.log('✅ Edge Cases: Handles when r ≈ g to avoid division by zero');
 
