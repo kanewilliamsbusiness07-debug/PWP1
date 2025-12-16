@@ -331,6 +331,7 @@ export default function SummaryPage() {
 
     // Use stored projection results from global state first, then client data
     // This ensures Summary page shows the SAME values as the Projections page
+    const clientResults = client?.projectionResults;
     const storedProjectionResults = globalResults?.[clientKey] || clientResults;
     
     let projectedRetirementLumpSum: number;
