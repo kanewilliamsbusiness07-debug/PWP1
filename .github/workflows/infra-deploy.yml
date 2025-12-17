@@ -1,0 +1,44 @@
+name: Infra Deploy (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      bucket_name:
+        description: 'S3 bucket name to deploy (must be globally unique)'
+        required: true
+        type: string
+
+jobs:
+  deploy-infra:
+    name: Deploy CloudFormation templates (manual)
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "Missing AWS credentials in repository secrets (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY).";
+            exit 1;
+          fi
+
+      - name: Configure AWS CLI
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy DynamoDB CloudFormation
+        run: |
+          aws cloudformation deploy --template-file infrastructure/dynamodb-tables.yaml --stack-name fincalc-dynamodb --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+
+      - name: Deploy S3 CloudFormation
+        run: |
+          aws cloudformation deploy --template-file infrastructure/s3-pdf-bucket.yaml --stack-name fincalc-pdf-bucket --parameter-overrides BucketName='${{ github.event.inputs.bucket_name }}' --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+
+      - name: Print Next Steps
+        run: |
+          echo "Deployment finished. Set Amplify env vars: AWS_S3_BUCKET='${{ github.event.inputs.bucket_name }}' and DDB_* table names from CloudFormation outputs."
