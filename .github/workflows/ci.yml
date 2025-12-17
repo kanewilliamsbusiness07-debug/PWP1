@@ -24,6 +24,8 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm ci
+      - name: Run YAML validator (prebuild:ci)
+        run: npm run prebuild:ci
       - name: Start LocalStack (wait)
         run: |
           docker run -d -p 4566:4566 -e SERVICES=s3,dynamodb localstack/localstack:1.4 || true
