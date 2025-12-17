@@ -5,7 +5,8 @@ import type { DefaultSession } from 'next-auth';
 import type { Adapter } from 'next-auth/adapters';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { verifyPassword } from '@/lib/auth/password';
-import prisma from '@/lib/prisma';
+import { ddbDocClient } from '@/lib/aws/clients';
+import { QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 const nextAuthSecret = process.env.NEXTAUTH_SECRET ?? process.env.JWT_SECRET;
 const isProduction = process.env.NODE_ENV === 'production';
@@ -63,36 +64,30 @@ export const authConfig = {
             throw new Error('Missing credentials');
           }
 
-          // Check if database is configured
-          if (!process.env.DATABASE_URL) {
-            console.error('[AUTH] DATABASE_URL is not set');
-            throw new Error('Database connection not configured. Please check your environment variables.');
+          // Ensure users table env var is configured
+          if (!process.env.DDB_USERS_TABLE) {
+            console.error('[AUTH] DDB_USERS_TABLE is not set');
+            throw new Error('User storage not configured. Please set DDB_USERS_TABLE in environment variables.');
           }
 
           console.log('[AUTH] Attempting login for email:', credentials.email.toLowerCase());
 
-          // Find user in database
-          let user;
+          // Find user in DynamoDB users table via email-index
+          const usersTable = process.env.DDB_USERS_TABLE;
+          let user: any = null;
           try {
-            user = await prisma.user.findUnique({
-              where: { email: credentials.email.toLowerCase() }
-            });
-            console.log('[AUTH] User lookup result:', user ? `User found (id: ${user.id}, active: ${user.isActive})` : 'User not found');
-          } catch (dbError: any) {
-            console.error('[AUTH] Database error during login:', {
-              code: dbError.code,
-              message: dbError.message,
-              stack: dbError.stack
-            });
-            // Check for common database connection errors
-            if (dbError.code === 'P1001' || dbError.message?.includes('connect') || dbError.message?.includes('timeout')) {
-              throw new Error('Unable to connect to database. Please check your database configuration.');
+            if (usersTable) {
+              const qRes: any = await ddbDocClient.send(new QueryCommand({ TableName: usersTable, IndexName: 'email-index', KeyConditionExpression: 'email = :email', ExpressionAttributeValues: { ':email': credentials.email.toLowerCase() } } as any));
+              const items = qRes.Items || [];
+              user = items[0] || null;
             }
+          } catch (dbError: any) {
+            console.error('[AUTH] DynamoDB error during login:', dbError);
             throw new Error('Database error occurred. Please try again later.');
           }
 
           if (!user) {
-            console.error('[AUTH] User not found in database for email:', credentials.email.toLowerCase());
+            console.error('[AUTH] User not found for email:', credentials.email.toLowerCase());
             throw new Error('Invalid email or password');
           }
 
@@ -102,7 +97,7 @@ export const authConfig = {
           }
 
           // Check if account is locked
-          if (user.lockedUntil && user.lockedUntil > new Date()) {
+          if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
             throw new Error('Account is temporarily locked. Please try again later.');
           }
 
@@ -114,17 +109,14 @@ export const authConfig = {
           if (!isValidPassword) {
             console.error('[AUTH] Invalid password for user:', user.id);
             // Increment login attempts
-            const newAttempts = user.loginAttempts + 1;
+            const newAttempts = (user.loginAttempts || 0) + 1;
             const shouldLock = newAttempts >= 5;
 
             try {
-              await prisma.user.update({
-                where: { id: user.id },
-                data: {
-                  loginAttempts: newAttempts,
-                  lockedUntil: shouldLock ? new Date(Date.now() + 30 * 60 * 1000) : null // 30 minutes
-                }
-              });
+              const usersTableName = process.env.DDB_USERS_TABLE as string;
+              if (usersTableName) {
+                await ddbDocClient.send(new UpdateCommand({ TableName: usersTableName, Key: { id: user.id }, UpdateExpression: 'SET loginAttempts = :la, lockedUntil = :lu', ExpressionAttributeValues: { ':la': newAttempts, ':lu': shouldLock ? new Date(Date.now() + 30 * 60 * 1000).toISOString() : null } } as any));
+              }
             } catch (updateError) {
               console.error('[AUTH] Error updating login attempts:', updateError);
               // Continue even if update fails
@@ -135,14 +127,10 @@ export const authConfig = {
 
           // Reset login attempts on successful login
           try {
-            await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                loginAttempts: 0,
-                lockedUntil: null,
-                lastLogin: new Date()
-              }
-            });
+            const usersTableName = process.env.DDB_USERS_TABLE as string;
+            if (usersTableName) {
+              await ddbDocClient.send(new UpdateCommand({ TableName: usersTableName, Key: { id: user.id }, UpdateExpression: 'SET loginAttempts = :la, lockedUntil = :lu, lastLogin = :ll', ExpressionAttributeValues: { ':la': 0, ':lu': null, ':ll': new Date().toISOString() } } as any));
+            }
           } catch (updateError) {
             console.error('Error updating last login:', updateError);
             // Continue even if update fails

@@ -33,10 +33,28 @@ Your app cannot connect to the database or authenticate users because server-sid
 
 Click **"Add variable"** or **"Manage variables"** and add these **ONE BY ONE**:
 
-#### Variable 1: DATABASE_URL
+#### Variable 1: AWS_REGION & Storage Tables
 ```
-Key: DATABASE_URL
-Value: postgres://bbe2e42e19dff62fe30b7dc49ade4c9d4aed1a0e40f0d9e7aeae0c6926939076:sk_0NXlA8O-TQFjlJpL0qoNo@db.prisma.io:5432/postgres?sslmode=require&pool=true
+Key: AWS_REGION
+Value: us-east-1
+```
+Click **Save**
+
+```
+Key: AWS_S3_BUCKET
+Value: your-unique-s3-bucket-name
+```
+Click **Save**
+
+```
+Key: DDB_CLIENTS_TABLE
+Value: ClientsTable
+```
+Click **Save**
+
+```
+Key: DDB_PDF_EXPORTS_TABLE
+Value: PdfExportsTable
 ```
 Click **Save**
 
@@ -83,9 +101,7 @@ Value: production
 Click **Save**
 
 ### Step 4: Verify All Variables Are Listed
-After adding all 7 variables, you should see a table/list showing:
-- All 7 variables
-- The branch/environment they're set for (should include `fix-amplify-deploy`)
+After adding the variables, you should see a table/list showing the variables and the branch/environment they're set for (should include `fix-amplify-deploy`).
 
 ### Step 5: REDEPLOY (MOST IMPORTANT!)
 
@@ -102,7 +118,7 @@ After adding all 7 variables, you should see a table/list showing:
 
 ### Step 6: Verify Variables Are Loaded
 
-After deployment completes, visit:
+After deployment completes, visit the diagnostic endpoint:
 ```
 https://fix-amplify-deploy.d3ry622jxpwz6.amplifyapp.com/api/env-check
 ```
@@ -111,7 +127,10 @@ https://fix-amplify-deploy.d3ry622jxpwz6.amplifyapp.com/api/env-check
 ```json
 {
   "required": {
-    "DATABASE_URL": "SET (value hidden)",
+    "AWS_REGION": "SET",
+    "AWS_S3_BUCKET": "SET",
+    "DDB_CLIENTS_TABLE": "SET",
+    "DDB_PDF_EXPORTS_TABLE": "SET",
     "NEXTAUTH_SECRET": "SET",
     "NEXTAUTH_URL": "https://fix-amplify-deploy.d3ry622jxpwz6.amplifyapp.com",
     "JWT_SECRET": "SET",
@@ -158,7 +177,10 @@ If you don't see "Environment variables" in App settings:
 
 - [ ] Opened Amplify Console → App settings → Environment variables
 - [ ] Selected branch `fix-amplify-deploy` (or "all branches")
-- [ ] Added DATABASE_URL
+- [ ] Added AWS_REGION
+- [ ] Added AWS_S3_BUCKET
+- [ ] Added DDB_CLIENTS_TABLE
+- [ ] Added DDB_PDF_EXPORTS_TABLE
 - [ ] Added NEXTAUTH_SECRET
 - [ ] Added NEXTAUTH_URL
 - [ ] Added JWT_SECRET

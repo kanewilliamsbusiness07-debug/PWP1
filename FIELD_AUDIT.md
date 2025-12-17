@@ -178,13 +178,13 @@
 - `employmentIncome` - separate field (should be unified)
 - `grossSalary` - in ClientData interface (should be unified)
 
-### Database Schema (prisma/schema.prisma)
-- `annualIncome` - canonical field
+### Storage Schema (infrastructure/dynamodb-tables.yaml)
+- `annualIncome` - canonical field (stored in the Clients table)
 - `grossSalary` - synonym field
-- `employmentIncome` - synonym field  
+- `employmentIncome` - synonym field
 - `grossIncome` - synonym field
 
-**Note:** Database already has synonym support, but application code doesn't consistently use canonical names.
+**Note:** The application maps synonyms to canonical names on save; refer to `lib/utils/field-mapping.ts` and the DynamoDB table definitions in `infrastructure/dynamodb-tables.yaml`.
 
 ---
 

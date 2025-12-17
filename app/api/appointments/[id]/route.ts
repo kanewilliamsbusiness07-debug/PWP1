@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { ddbDocClient } from '@/lib/aws/clients';
+import { GetCommand, UpdateCommand, DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import type { Session } from 'next-auth';
@@ -18,18 +20,20 @@ export async function GET(
     const params = await context.params;
     const appointmentId = params.id;
 
-    const appointment = await prisma.appointment.findFirst({
-      where: {
-        id: appointmentId,
-        userId: session.user.id
-      },
-      include: {
-        client: true
-      }
-    });
+    const apptTable = process.env.DDB_APPOINTMENTS_TABLE;
+    if (!apptTable) return NextResponse.json({ error: 'Server not configured: DDB_APPOINTMENTS_TABLE missing' }, { status: 500 });
 
-    if (!appointment) {
-      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
+    const getRes: any = await ddbDocClient.send(new GetCommand({ TableName: apptTable, Key: { id: appointmentId } } as any));
+    const appointment = getRes.Item;
+    if (!appointment || appointment.userId !== session.user.id) return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
+
+    // Optionally fetch client details
+    const clientsTable = process.env.DDB_CLIENTS_TABLE;
+    if (clientsTable && appointment.clientId) {
+      try {
+        const cRes: any = await ddbDocClient.send(new GetCommand({ TableName: clientsTable, Key: { id: appointment.clientId } } as any));
+        if (cRes && cRes.Item) appointment.client = { id: cRes.Item.id, firstName: cRes.Item.firstName, lastName: cRes.Item.lastName, email: cRes.Item.email };
+      } catch (cErr) { /* ignore */ }
     }
 
     return NextResponse.json(appointment);
@@ -54,77 +58,45 @@ export async function PATCH(
     const appointmentId = params.id;
     const data = await req.json();
 
-    // Verify appointment belongs to user
-    const existingAppointment = await prisma.appointment.findFirst({
-      where: {
-        id: appointmentId,
-        userId: session.user.id
-      }
-    });
+    // Verify appointment exists and belongs to user
+    const apptTable = process.env.DDB_APPOINTMENTS_TABLE;
+    if (!apptTable) return NextResponse.json({ error: 'Server not configured: DDB_APPOINTMENTS_TABLE missing' }, { status: 500 });
 
-    if (!existingAppointment) {
-      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
-    }
+    const getRes: any = await ddbDocClient.send(new GetCommand({ TableName: apptTable, Key: { id: appointmentId } } as any));
+    const existingAppointment = getRes.Item;
+    if (!existingAppointment || existingAppointment.userId !== session.user.id) return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
 
     // Check for conflicts if dates are being changed
+    const newStart = data.startDateTime ? new Date(data.startDateTime) : new Date(existingAppointment.startDateTime);
+    const newEnd = data.endDateTime ? new Date(data.endDateTime) : new Date(existingAppointment.endDateTime);
+
     if (data.startDateTime || data.endDateTime) {
-      const startDateTime = data.startDateTime ? new Date(data.startDateTime) : existingAppointment.startDateTime;
-      const endDateTime = data.endDateTime ? new Date(data.endDateTime) : existingAppointment.endDateTime;
-
-      const conflictingAppointment = await prisma.appointment.findFirst({
-        where: {
-          userId: session.user.id,
-          id: { not: appointmentId },
-          status: { not: 'CANCELLED' },
-          OR: [
-            {
-              startDateTime: {
-                gte: startDateTime,
-                lt: endDateTime
-              }
-            },
-            {
-              endDateTime: {
-                gt: startDateTime,
-                lte: endDateTime
-              }
-            }
-          ]
-        }
+      const scanRes: any = await ddbDocClient.send(new ScanCommand({ TableName: apptTable } as any));
+      const existing = (scanRes.Items || []).filter((it:any) => it.userId === session.user.id && it.id !== appointmentId && it.status !== 'CANCELLED');
+      const conflict = existing.find((it:any) => {
+        const s = new Date(it.startDateTime);
+        const e = new Date(it.endDateTime);
+        return (s < newEnd && e > newStart);
       });
-
-      if (conflictingAppointment) {
-        return NextResponse.json(
-          { error: 'Appointment conflicts with existing appointment' },
-          { status: 409 }
-        );
-      }
+      if (conflict) return NextResponse.json({ error: 'Appointment conflicts with existing appointment' }, { status: 409 });
     }
 
-    // Update appointment
-    const updateData: any = {};
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.startDateTime !== undefined) updateData.startDateTime = new Date(data.startDateTime);
-    if (data.endDateTime !== undefined) updateData.endDateTime = new Date(data.endDateTime);
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.notes !== undefined) updateData.notes = data.notes;
+    // Build update expression
+    const updates: any = [];
+    const exprAttr: any = { ':updatedAt': new Date().toISOString() };
+    let updateExpr = 'SET updatedAt = :updatedAt';
+    if (data.title !== undefined) { updateExpr += ', title = :title'; exprAttr[':title'] = data.title; }
+    if (data.description !== undefined) { updateExpr += ', description = :description'; exprAttr[':description'] = data.description; }
+    if (data.startDateTime !== undefined) { updateExpr += ', startDateTime = :startDateTime'; exprAttr[':startDateTime'] = new Date(data.startDateTime).toISOString(); }
+    if (data.endDateTime !== undefined) { updateExpr += ', endDateTime = :endDateTime'; exprAttr[':endDateTime'] = new Date(data.endDateTime).toISOString(); }
+    if (data.status !== undefined) { updateExpr += ', status = :status'; exprAttr[':status'] = data.status; }
+    if (data.notes !== undefined) { updateExpr += ', notes = :notes'; exprAttr[':notes'] = data.notes; }
 
-    const appointment = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: updateData,
-      include: {
-        client: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        }
-      }
-    });
+    await ddbDocClient.send(new UpdateCommand({ TableName: apptTable, Key: { id: appointmentId }, UpdateExpression: updateExpr, ExpressionAttributeValues: exprAttr } as any));
 
+    // Return updated record
+    const updatedRes: any = await ddbDocClient.send(new GetCommand({ TableName: apptTable, Key: { id: appointmentId } } as any));
+    const appointment = updatedRes.Item;
     return NextResponse.json(appointment);
   } catch (error) {
     console.error('Error updating appointment:', error);
@@ -146,23 +118,14 @@ export async function DELETE(
     const params = await context.params;
     const appointmentId = params.id;
 
-    // Verify appointment belongs to user
-    const appointment = await prisma.appointment.findFirst({
-      where: {
-        id: appointmentId,
-        userId: session.user.id
-      }
-    });
+    const apptTable = process.env.DDB_APPOINTMENTS_TABLE;
+    if (!apptTable) return NextResponse.json({ error: 'Server not configured: DDB_APPOINTMENTS_TABLE missing' }, { status: 500 });
 
-    if (!appointment) {
-      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
-    }
+    const getRes: any = await ddbDocClient.send(new GetCommand({ TableName: apptTable, Key: { id: appointmentId } } as any));
+    const appointment = getRes.Item;
+    if (!appointment || appointment.userId !== session.user.id) return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
 
-    // Delete appointment
-    await prisma.appointment.delete({
-      where: { id: appointmentId }
-    });
-
+    await ddbDocClient.send(new DeleteCommand({ TableName: apptTable, Key: { id: appointmentId } } as any));
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting appointment:', error);

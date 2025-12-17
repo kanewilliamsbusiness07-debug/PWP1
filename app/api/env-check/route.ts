@@ -12,10 +12,10 @@ export async function GET() {
   
   // Filter to show only relevant ones (hide sensitive values)
   const relevantVars: Record<string, string> = {};
-  const sensitiveKeys = ['DATABASE_URL', 'NEXTAUTH_SECRET', 'JWT_SECRET', 'ENCRYPTION_KEY', 'CRON_SECRET', 'SMTP_PASSWORD'];
+  const sensitiveKeys = ['AWS_S3_BUCKET', 'NEXTAUTH_SECRET', 'JWT_SECRET', 'ENCRYPTION_KEY', 'CRON_SECRET', 'SMTP_PASSWORD'];
   
   Object.keys(allEnvVars).forEach(key => {
-    if (key.includes('DATABASE') || 
+    if (key.includes('AWS') || 
         key.includes('NEXTAUTH') || 
         key.includes('JWT') || 
         key.includes('ENCRYPTION') || 
@@ -23,7 +23,8 @@ export async function GET() {
         key.includes('NODE') ||
         key.includes('AMPLIFY') ||
         key.includes('NEXT') ||
-        key.includes('SMTP')) {
+        key.includes('SMTP') ||
+        key.includes('DDB')) {
       if (sensitiveKeys.includes(key)) {
         relevantVars[key] = allEnvVars[key] ? 'SET (value hidden)' : 'NOT SET';
       } else {
@@ -33,7 +34,6 @@ export async function GET() {
   });
 
   // Check Amplify-specific environment variables
-  // AWS_AMPLIFY_DEPLOYMENT_ID is set when running on Amplify
   const isRunningOnAmplify = Boolean(process.env.AWS_AMPLIFY_DEPLOYMENT_ID || process.env.AMPLIFY_APP_ID || process.env.CODEBUILD_BUILD_ID);
   
   const amplifyVars = {
@@ -47,6 +47,8 @@ export async function GET() {
   // Count total environment variables
   const totalEnvVars = Object.keys(allEnvVars).length;
 
+  const serverReady = Boolean(process.env.AWS_S3_BUCKET && process.env.DDB_CLIENTS_TABLE);
+
   return NextResponse.json({
     success: true,
     summary: {
@@ -54,14 +56,18 @@ export async function GET() {
       isAmplify: isRunningOnAmplify,
       nodeEnv: process.env.NODE_ENV || 'NOT SET',
       publicVarsAvailable: Boolean(process.env.NEXT_PUBLIC_SITE_URL),
-      serverVarsAvailable: Boolean(process.env.DATABASE_URL),
-      diagnosis: !process.env.DATABASE_URL 
-        ? 'Server-side environment variables are NOT SET. Only NEXT_PUBLIC_* variables are available, which means server-side variables need to be configured in Amplify Console.'
-        : 'Environment variables appear to be configured correctly.',
+      serverVarsAvailable: serverReady,
+      diagnosis: !serverReady 
+        ? 'Server-side environment variables are NOT SET or storage tables are missing. Ensure AWS_S3_BUCKET and DDB_* variables are configured and that DynamoDB/S3 are provisioned.'
+        : 'Environment variables and storage configuration appear to be correct.',
     },
     amplify: amplifyVars,
     required: {
-      DATABASE_URL: process.env.DATABASE_URL ? 'SET (value hidden)' : 'NOT SET',
+      AWS_REGION: process.env.AWS_REGION || 'NOT SET',
+      AWS_S3_BUCKET: process.env.AWS_S3_BUCKET ? 'SET (value hidden)' : 'NOT SET',
+      DDB_CLIENTS_TABLE: process.env.DDB_CLIENTS_TABLE || 'NOT SET',
+      DDB_PDF_EXPORTS_TABLE: process.env.DDB_PDF_EXPORTS_TABLE || 'NOT SET',
+      DDB_USERS_TABLE: process.env.DDB_USERS_TABLE || 'NOT SET',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET' : 'NOT SET',
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'NOT SET',
       NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'NOT SET',
@@ -71,32 +77,36 @@ export async function GET() {
     },
     allRelevant: relevantVars,
     troubleshooting: {
-      issue: process.env.DATABASE_URL 
+      issue: serverReady 
         ? 'Environment variables appear to be set correctly' 
-        : 'CRITICAL: Server-side environment variables are NOT SET. Only NEXT_PUBLIC_SITE_URL is available, which means server-side variables (DATABASE_URL, NEXTAUTH_SECRET, etc.) are missing.',
+        : 'CRITICAL: Server-side environment variables or storage tables are not configured. Check AWS_S3_BUCKET and DDB_* variables and ensure infrastructure is provisioned.',
       currentStatus: {
         publicVariables: 'Available (NEXT_PUBLIC_SITE_URL is set)',
-        serverVariables: 'MISSING (DATABASE_URL, NEXTAUTH_SECRET, etc. are not set)',
-        explanation: 'NEXT_PUBLIC_* variables are embedded at build time and available to both client and server. Server-side variables must be set in Amplify Console and are only available at runtime after redeployment.'
+        serverVariables: serverReady ? 'Available' : 'MISSING (AWS_S3_BUCKET or DDB_* not set)',
+        explanation: 'NEXT_PUBLIC_* variables are embedded at build time and are often available; server-side variables and storage configuration must be set in Amplify Console and infrastructure must be provisioned.'
       },
       steps: [
         '1. Go to AWS Amplify Console → Your App → App settings → Environment variables',
         '2. Click "Manage variables" or "Add variable"',
-        '3. IMPORTANT: Look for a branch/environment selector - ensure "fix-amplify-deploy" is selected',
+        '3. IMPORTANT: Look for a branch/environment selector - ensure the correct branch is selected',
         '4. Add ALL server-side variables (see list below)',
         '5. After adding ALL variables, click "Save"',
-        '6. CRITICAL: Go to Deployments → Click "Redeploy this version" on latest deployment',
-        '7. Wait for deployment to complete (5-10 minutes)',
-        '8. Check this endpoint again - all variables should show "SET"',
+        '6. Ensure DynamoDB tables and S3 bucket are provisioned (deploy CloudFormation or run `amplify push`)',
+        '7. CRITICAL: Go to Deployments → Click "Redeploy this version" on latest deployment',
+        '8. Wait for deployment to complete (5-10 minutes)',
+        '9. Check this endpoint again - all variables should show "SET"',
       ],
       requiredVariables: [
-        'DATABASE_URL',
+        'AWS_REGION',
+        'AWS_S3_BUCKET',
+        'DDB_CLIENTS_TABLE',
+        'DDB_PDF_EXPORTS_TABLE',
+        'DDB_USERS_TABLE',
         'NEXTAUTH_SECRET',
         'NEXTAUTH_URL',
         'JWT_SECRET',
         'ENCRYPTION_KEY',
-        'CRON_SECRET',
-        'NODE_ENV=production'
+        'CRON_SECRET'
       ],
       note: 'Environment variables are ONLY loaded when a new deployment starts. You MUST redeploy after adding/updating variables. The fact that NEXT_PUBLIC_SITE_URL is set but server variables are not suggests they were not configured in Amplify Console or the app was not redeployed after setting them.'
     }

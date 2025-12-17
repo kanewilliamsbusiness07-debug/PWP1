@@ -32,8 +32,8 @@ A comprehensive financial planning platform designed for Australian financial ad
 ## 🛠 Tech Stack
 
 - **Frontend**: Next.js 13+, React, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Next.js API Routes, Prisma ORM
-- **Database**: PostgreSQL with Redis for caching
+- **Backend**: Next.js API Routes, AWS DynamoDB (+ S3 for file storage)
+- **Storage**: DynamoDB for metadata and S3 for file artifacts (Redis optional for caching)
 - **Authentication**: JWT with refresh tokens, bcrypt password hashing
 - **PDF Generation**: Puppeteer for server-side PDF creation
 - **Email**: SMTP/SendGrid integration
@@ -77,10 +77,13 @@ A comprehensive financial planning platform designed for Australian financial ad
 
 ### Alternative: Manual Environment Setup
 
-If you prefer to set environment variables manually:
+If you prefer to set environment variables manually for local development (or when using LocalStack):
 
 ```powershell
-$env:DATABASE_URL="postgres://bbe2e42e19dff62fe30b7dc49ade4c9d4aed1a0e40f0d9e7aeae0c6926939076:sk_zWEMokrgWkBTPV5adw6WL@db.prisma.io:5432/postgres?sslmode=require"
+$env:AWS_REGION="us-east-1"
+$env:AWS_S3_BUCKET="local-pdf-bucket"
+$env:DDB_CLIENTS_TABLE="ClientsTable"
+$env:DDB_PDF_EXPORTS_TABLE="PdfExportsTable"
 $env:NEXTAUTH_SECRET="development-nextauth-secret-key-32-chars"
 $env:NEXTAUTH_URL="http://localhost:3000"
 $env:JWT_SECRET="development-jwt-secret-key-32-characters"
@@ -105,7 +108,10 @@ Update the environment variables in `.env.local`:
 
 ```bash
 # Required Configuration
-DATABASE_URL="postgresql://user:password@localhost:5432/fincalc_pro"
+AWS_REGION="us-east-1"
+AWS_S3_BUCKET="your-pdf-bucket-name"
+DDB_CLIENTS_TABLE="ClientsTable"
+DDB_PDF_EXPORTS_TABLE="PdfExportsTable"
 NEXTAUTH_SECRET="your-32-character-nextauth-secret"
 NEXTAUTH_URL="http://localhost:3000"
 JWT_SECRET="your-32-character-jwt-secret"
@@ -120,34 +126,24 @@ SMTP_FROM="noreply@yourdomain.com"
 SMTP_PORT="587"
 ```
 
-### 3. Database Setup
+### 3. Storage Setup
 
-Set up your PostgreSQL database connection string in `.env.local` before running any Prisma commands:
-
-```bash
-cp env.example .env.local   # if you haven't created one yet
-# edit .env.local and set DATABASE_URL to your database connection string
-# Example: DATABASE_URL="postgresql://username:password@host:5432/database?sslmode=require"
-npx prisma migrate deploy   # or prisma db seed / npm run dev
-```
-
-**Note:** Never commit actual database credentials to the repository. Use environment variables or secure secret management.
-
-For local Docker-based Postgres, use the instructions below.
+This project uses **DynamoDB** (metadata) and **S3** (file storage). For local development you can either configure AWS credentials to use real resources, or mock AWS services with LocalStack.
 
 ```bash
-# Start PostgreSQL (if using Docker)
-docker run -d --name postgres \
-  -e POSTGRES_DB=fincalc_pro \
-  -e POSTGRES_USER=fincalc_user \
-  -e POSTGRES_PASSWORD=secure_password \
-  -p 5432:5432 postgres:15
+# Copy environment template and fill required AWS vars
+cp env.example .env.local
+# Set at minimum:
+# AWS_REGION, AWS_S3_BUCKET, DDB_CLIENTS_TABLE, DDB_PDF_EXPORTS_TABLE
 
-# Run migrations
-npx prisma migrate dev
-npx prisma db seed
+# Optional: run the migration dry-run to generate a report
+npm run migrate:prisma-to-ddb:dry
+# Review the generated report in tmp/migration-report-*.json
+
+# If you manage infrastructure with CloudFormation, you can use the included helper to deploy templates in `infrastructure/` before running real migrations:
+# npm run infra:deploy:amplify:sh -- <your-unique-bucket-name>  # Linux/Mac
+# npm run infra:deploy:amplify -- -BucketName <your-unique-bucket-name>  # Windows (PowerShell)
 ```
-
 ### 4. Start Development Server
 
 ```bash
@@ -220,14 +216,15 @@ docker-compose --env-file .env.production -f docker-compose.yml -f docker-compos
 
 Deploy to AWS Amplify for managed hosting with automatic CI/CD:
 
-1. **Set up PostgreSQL database** (AWS RDS or external provider)
+1. **Create or deploy infrastructure** first (DynamoDB tables & S3 bucket). You can deploy the CloudFormation templates in `infrastructure/` or use the Amplify Console / Amplify CLI to provision resources.
 2. **Connect your Git repository** to AWS Amplify Console
-3. **Configure environment variables** in Amplify Console:
-   - `DATABASE_URL` - PostgreSQL connection string
+3. **Configure environment variables** in Amplify Console (minimum required):
+   - `AWS_S3_BUCKET` - name of S3 bucket for PDFs
+   - `DDB_CLIENTS_TABLE`, `DDB_PDF_EXPORTS_TABLE`, `DDB_USERS_TABLE`, etc. (see `env.production.example`)
    - `NEXTAUTH_URL` - Your Amplify app URL
    - `NEXTAUTH_SECRET` - Generate with: `openssl rand -base64 32`
 4. **Set App root** to `project` in Amplify Console
-5. **Deploy** - Amplify will automatically build and deploy on every push
+5. **Deploy** - Amplify will automatically build and deploy on every push (ensure infra and env vars are configured first)
 
 See [AMPLIFY_DEPLOYMENT.md](./AMPLIFY_DEPLOYMENT.md) for detailed instructions.
 
@@ -438,18 +435,15 @@ Or use Vercel Cron:
 }
 ```
 
-### Database Maintenance
+### Persistence & Maintenance
 
-```bash
-# Backup
-pg_dump fincalc_pro > backup_$(date +%Y%m%d).sql
+This project uses **DynamoDB** and **S3** for persistence. Typical maintenance tasks are:
 
-# Optimize
-npx prisma db execute --file scripts/optimize-db.sql
+- Backups: Use DynamoDB point-in-time recovery (PITR) or on-demand export to S3
+- Cleanup: Use TTLs on tables or scheduled jobs to remove old audit logs
+- Optimization: Monitor CloudWatch metrics (Read/Write capacity) and enable autoscaling as needed
 
-# Clean old logs (older than 1 year)
-npx prisma db execute --file scripts/cleanup-audit-logs.sql
-```
+Refer to AWS documentation for full maintenance procedures for DynamoDB and S3.
 
 ## 🤝 Contributing
 

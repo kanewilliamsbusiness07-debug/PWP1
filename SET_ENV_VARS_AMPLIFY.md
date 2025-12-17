@@ -49,9 +49,21 @@ You should see something like:
 
 Click **"Add variable"** and add each of these (one at a time):
 
-#### Variable 1: DATABASE_URL
-- **Key:** `DATABASE_URL`
-- **Value:** `postgres://bbe2e42e19dff62fe30b7dc49ade4c9d4aed1a0e40f0d9e7aeae0c6926939076:sk_0NXlA8O-TQFjlJpL0qoNo@db.prisma.io:5432/postgres?sslmode=require&pool=true`
+#### Variable 1: AWS_REGION & Storage Tables
+- **Key:** `AWS_REGION`
+- **Value:** `us-east-1`
+- Click **Save**
+
+- **Key:** `AWS_S3_BUCKET`
+- **Value:** `your-unique-s3-bucket-name`
+- Click **Save**
+
+- **Key:** `DDB_CLIENTS_TABLE`
+- **Value:** `ClientsTable`
+- Click **Save**
+
+- **Key:** `DDB_PDF_EXPORTS_TABLE`
+- **Value:** `PdfExportsTable`
 - Click **Save**
 
 #### Variable 2: NEXTAUTH_SECRET
@@ -116,7 +128,9 @@ https://fix-amplify-deploy.d3ry622jxpwz6.amplifyapp.com/api/env-check
 
 You should now see:
 - All variables showing `"SET"` or `"SET (value hidden)"`
-- `DATABASE_URL: "SET (value hidden)"`
+- `AWS_S3_BUCKET: "SET (value hidden)"`
+- `DDB_CLIENTS_TABLE: "SET"`
+- `DDB_PDF_EXPORTS_TABLE: "SET"`
 - `NEXTAUTH_SECRET: "SET"`
 - etc.
 

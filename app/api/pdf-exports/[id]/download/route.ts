@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { ddbDocClient, s3Client } from '@/lib/aws/clients';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { GetCommand } from '@aws-sdk/lib-dynamodb';
+import { Readable } from 'stream';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import type { Session } from 'next-auth';
@@ -20,46 +24,38 @@ export async function GET(
     const params = await context.params;
     const exportId = params.id;
 
-    const pdfExport = await prisma.pdfExport.findFirst({
-      where: {
-        id: exportId,
-        userId: session.user.id
-      }
-    });
+    // Fetch metadata from DynamoDB
+    const pdfTable = process.env.DDB_PDF_EXPORTS_TABLE;
+    if (!pdfTable) {
+      return NextResponse.json({ error: 'Server not configured: DDB_PDF_EXPORTS_TABLE missing' }, { status: 500 });
+    }
 
-    if (!pdfExport) {
+    const getRes: any = await ddbDocClient.send(new GetCommand({ TableName: pdfTable, Key: { id: exportId } } as any));
+    const pdfExport = getRes.Item;
+
+    if (!pdfExport || pdfExport.userId !== session.user.id) {
       return NextResponse.json({ error: 'PDF export not found' }, { status: 404 });
     }
 
-    // Read file from disk
-    // Handle both absolute paths and relative paths
-    let filePath: string;
-    if (pdfExport.filePath.startsWith('/') && !pdfExport.filePath.startsWith(process.cwd())) {
-      // Path starts with / but is not absolute from cwd - treat as relative
-      filePath = join(process.cwd(), pdfExport.filePath);
-    } else if (pdfExport.filePath.startsWith('/')) {
-      // Absolute path from cwd
-      filePath = pdfExport.filePath;
-    } else {
-      // Relative path
-      filePath = join(process.cwd(), pdfExport.filePath);
-    }
-    
-    try {
-      const fileBuffer = await readFile(filePath);
+    const s3Key = pdfExport.s3Key;
+    if (!s3Key) return NextResponse.json({ error: 'No S3 key for this export' }, { status: 404 });
 
-      // Return file as response
-      return new NextResponse(fileBuffer, {
-        headers: {
-          'Content-Type': pdfExport.mimeType || 'application/pdf',
-          'Content-Disposition': `attachment; filename="${pdfExport.fileName}"`,
-          'Content-Length': pdfExport.fileSize?.toString() || fileBuffer.length.toString()
-        }
-      });
-    } catch (fileError) {
-      console.error('Error reading PDF file:', fileError);
-      console.error('Attempted file path:', filePath);
-      return NextResponse.json({ error: 'PDF file not found on server' }, { status: 404 });
+    try {
+      const bucket = process.env.AWS_S3_BUCKET;
+      if (!bucket) return NextResponse.json({ error: 'Server not configured: AWS_S3_BUCKET missing' }, { status: 500 });
+
+      const getObj = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: s3Key }));
+      const bodyStream = (getObj.Body as any) as Readable;
+
+      const headers: Record<string,string> = {
+        'Content-Type': pdfExport.mimeType || 'application/pdf',
+        'Content-Disposition': `attachment; filename="${pdfExport.fileName}"`
+      };
+
+      return new NextResponse(bodyStream, { headers });
+    } catch (err) {
+      console.error('Error fetching PDF from S3:', err);
+      return NextResponse.json({ error: 'PDF file not found in S3' }, { status: 404 });
     }
   } catch (error) {
     console.error('Error downloading PDF:', error);

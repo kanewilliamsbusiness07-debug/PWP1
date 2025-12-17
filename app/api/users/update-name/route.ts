@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { ddbDocClient } from '@/lib/aws/clients';
+import { UpdateCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import type { Session } from 'next-auth';
@@ -21,10 +22,13 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
-      data: { name: name.trim() }
-    });
+    const usersTable = process.env.DDB_USERS_TABLE;
+    if (!usersTable) return NextResponse.json({ error: 'Server not configured: DDB_USERS_TABLE missing' }, { status: 500 });
+
+    await ddbDocClient.send(new UpdateCommand({ TableName: usersTable, Key: { id: session.user.id }, UpdateExpression: 'SET #name = :n', ExpressionAttributeNames: { '#name': 'name' }, ExpressionAttributeValues: { ':n': name.trim() } } as any));
+
+    const g: any = await ddbDocClient.send(new GetCommand({ TableName: usersTable, Key: { id: session.user.id } } as any));
+    const updatedUser = g.Item;
 
     return NextResponse.json({
       success: true,

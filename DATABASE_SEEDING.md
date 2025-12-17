@@ -9,14 +9,14 @@ The database is automatically seeded during the Amplify build process. This ensu
 ### Automatic Seeding During Build
 
 1. **During Amplify Build** (`amplify.yml`):
-   - After Prisma Client is generated
-   - After database migrations are run
-   - The seed script automatically runs: `npx prisma db seed`
+   - After infrastructure is provisioned (DynamoDB tables & S3)
+   - Optional: Run migration dry-run to validate data transfer
+   - The seed script runs: `npm run seed:dynamodb`
 
-2. **Seed Script** (`prisma/seed.ts`):
-   - Creates/updates the default admin user
-   - Uses `upsert` so it's safe to run multiple times
-   - Won't overwrite existing data (only updates password hash if needed)
+2. **Seed Script** (`scripts/seed-users.ts`):
+   - Creates/updates the default admin user in the `Users` DynamoDB table
+   - Safe to run multiple times (updates password hash and active status)
+   - Will not overwrite unrelated fields unless necessary
 
 ### Default User Created
 
@@ -31,11 +31,16 @@ After seeding, you can login with:
 
 ### 1. Environment Variables Must Be Set
 
-The seed script requires `DATABASE_URL` to be set in Amplify Console:
+The seed script requires AWS environment variables to be set in Amplify Console:
 
 1. Go to **AWS Amplify Console** → Your App → **App settings** → **Environment variables**
-2. Ensure `DATABASE_URL` is set for your branch
-3. Format: `postgresql://username:password@host:port/database?sslmode=require`
+2. Ensure the following are set for your branch (see `env.production.example`):
+   - `AWS_REGION`
+   - `AWS_S3_BUCKET`
+   - `DDB_CLIENTS_TABLE`
+   - `DDB_PDF_EXPORTS_TABLE`
+   - `DDB_USERS_TABLE`
+   - `NEXTAUTH_SECRET`
 
 ### 2. Database Must Be Accessible
 
@@ -49,9 +54,9 @@ The seeding happens in this order:
 
 ```yaml
 1. Install dependencies (npm ci)
-2. Generate Prisma Client (npx prisma generate)
-3. Run migrations (npx prisma migrate deploy)
-4. Seed database (npx prisma db seed) ← Creates default user here
+2. Ensure infrastructure is deployed (DynamoDB tables & S3)
+3. Optionally run migration dry-run to generate report (`npm run migrate:prisma-to-ddb:dry`)
+4. Seed Users table (npm run seed:dynamodb) ← Creates default user here
 5. Build Next.js app (npm run build)
 ```
 
@@ -90,9 +95,9 @@ You should see:
 
 **Solutions:**
 
-1. **Check DATABASE_URL is set:**
-   - Verify in Amplify Console → Environment variables
-   - Ensure it's set for the correct branch
+1. **Check AWS env vars are set:**
+   - Verify in Amplify Console → Environment variables (see `env.production.example`)
+   - Ensure they're set for the correct branch
    - Redeploy after setting variables
 
 2. **Check build logs:**
@@ -100,9 +105,9 @@ You should see:
    - Look for seed script output
    - Check for error messages
 
-3. **Verify database connection:**
-   - Test connection from your local machine using the same DATABASE_URL
-   - Check database security groups/firewall rules
+3. **Verify table access:**
+   - Test access using AWS Console or the seeder script (`npm run seed:dynamodb`)
+   - Ensure IAM permissions and region are correct
 
 ### Seed Script Runs But User Not Created
 
@@ -113,21 +118,18 @@ You should see:
 **Solutions:**
 
 1. **Check seed script output in build logs:**
-   - Look for `✅ Database seed completed successfully!`
+   - Look for `✅ Users seed completed successfully!`
    - Check for any error messages
 
 2. **Manually run seed:**
    ```bash
-   # Set DATABASE_URL
-   export DATABASE_URL="your-connection-string"
-   
-   # Run seed
-   npx prisma db seed
+   # Ensure AWS env vars and tables exist
+   npm run seed:dynamodb
    ```
 
-3. **Check database directly:**
-   - Connect to your database
-   - Query: `SELECT * FROM "User" WHERE email = 'allan@pwp2026.com.au';`
+3. **Check table directly:**
+   - Use the DynamoDB Console to inspect the Users table
+   - Confirm an item exists with `email = 'allan@pwp2026.com.au'`
 
 ### Seed Script Fails Silently
 
@@ -145,72 +147,50 @@ The seed script is designed to **not fail the build** if seeding fails. This is 
 
 If automatic seeding doesn't work, you can seed manually:
 
-### Option 1: Using Prisma CLI
+### Manual Seeding Options
+
+If automatic seeding does not work during build, you can seed the Users table manually:
+
+Option A: **Use the seeder script**
 
 ```bash
-# Set DATABASE_URL
-export DATABASE_URL="your-connection-string"
-
-# Run seed
-npx prisma db seed
+# Ensure AWS env vars and tables exist
+npm run seed:dynamodb
 ```
 
-### Option 2: Using Prisma Studio
+Option B: **Use the AWS Console**
 
-```bash
-# Open Prisma Studio
-npx prisma studio
+- Open the DynamoDB Console → select the Users table
+- Create a new item with the required attributes:
+  - `id` (uuid)
+  - `email`: `allan@pwp2026.com.au`
+  - `passwordHash`: (generate with bcrypt)
+  - `name`: `Allan Kutup`
+  - `role`: `ADVISOR`
+  - `isMasterAdmin`: `true`
+  - `isActive`: `true`
 
-# Manually create user with:
-# - Email: allan@pwp2026.com.au
-# - Password hash: (generate using bcrypt.hash('123456', 12))
-# - Name: Allan Kutup
-# - Role: ADVISOR
-# - isMasterAdmin: true
-# - isActive: true
-```
+Option C: **Use a one-off script (recommended for automation)**
 
-### Option 3: Direct SQL
+- Use `scripts/seed-users.ts` as a reference for creating/updating the default user.
 
-```sql
--- Generate password hash first (use Node.js):
--- const bcrypt = require('bcryptjs');
--- bcrypt.hash('123456', 12).then(hash => console.log(hash));
-
-INSERT INTO "User" (
-  id, email, "passwordHash", name, role, 
-  "isMasterAdmin", "isActive", "createdAt", "updatedAt"
-)
-VALUES (
-  'clx' || substr(md5(random()::text), 1, 10), -- Generate random ID
-  'allan@pwp2026.com.au',
-  '$2a$12$...', -- Your generated hash here
-  'Allan Kutup',
-  'ADVISOR',
-  true,
-  true,
-  NOW(),
-  NOW()
-)
-ON CONFLICT (email) DO NOTHING;
-```
 
 ## Seed Script Features
 
-The seed script (`prisma/seed.ts`) includes:
+The seed script (`scripts/seed-users.ts`) includes:
 
 - ✅ **Idempotent**: Safe to run multiple times
-- ✅ **Error handling**: Won't fail build if database is unavailable
+- ✅ **Error handling**: Won't fail build if tables are unavailable
 - ✅ **Detailed logging**: Shows what's happening
-- ✅ **Environment check**: Verifies DATABASE_URL is set
-- ✅ **User count**: Shows total users after seeding
+- ✅ **Environment check**: Verifies required AWS env vars are set
+- ✅ **User count**: Logs total users after seeding
 
 ## Customization
 
 To modify the default user or add more users:
 
-1. Edit `prisma/seed.ts`
-2. Add more `upsert` calls for additional users
+1. Edit `scripts/seed-users.ts`
+2. Add more `PutCommand` calls for additional users or adjust the seeder logic
 3. Commit and push to trigger new deployment
 4. Seed will run automatically on next build
 

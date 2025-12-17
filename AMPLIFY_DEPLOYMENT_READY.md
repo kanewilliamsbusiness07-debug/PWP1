@@ -204,7 +204,7 @@ SMTP_PORT=587
 - [x] `package.json` - Build scripts present, Node 20 specified
 - [x] `.nvmrc` - Node 20 specified
 - [x] `next.config.js` - Configured for Amplify Hosting
-- [x] `prisma/schema.prisma` - Uses `env("DATABASE_URL")`
+- [x] `infrastructure/dynamodb-tables.yaml` - CloudFormation templates for DynamoDB tables and S3 bucket
 
 ### Amplify Metadata ✅
 - [x] `amplify/team-provider-info.json` - Created with dev and prod
@@ -218,11 +218,11 @@ SMTP_PORT=587
 - [x] `.gitignore` - Updated to allow amplify metadata
 
 ### Build Configuration ✅
-- [x] PreBuild phase - npm ci, Prisma generate, env validation
+- [x] PreBuild phase - npm ci, env validation
 - [x] Build phase - npm run build
 - [x] PostBuild phase - Verification commands
 - [x] Artifacts - `.next` directory
-- [x] Cache - node_modules, .next/cache, .prisma
+- [x] Cache - node_modules, .next/cache
 
 ### Documentation ✅
 - [x] `AMPLIFY_DEPLOYMENT.md` - Updated
@@ -253,12 +253,13 @@ openssl rand -base64 32
 openssl rand -hex 32
 ```
 
-### 3. Run Database Migrations
+### 3. Provision Infrastructure & (Optional) Migration
 
-Before first deployment, run migrations manually:
+Before first deployment, ensure DynamoDB tables and S3 bucket are provisioned (deploy CloudFormation templates or run `amplify push`).
 
+If migrating from Prisma/Postgres, run a migration dry-run first:
 ```bash
-npx prisma migrate deploy
+npm run migrate:prisma-to-ddb:dry
 ```
 
 ### 4. Deploy

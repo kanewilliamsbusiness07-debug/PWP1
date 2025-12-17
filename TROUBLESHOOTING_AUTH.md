@@ -49,15 +49,14 @@ This will show:
 The database hasn't been seeded. You need to run the seed script:
 
 1. **Option A: Run seed during build** (already configured in `amplify.yml`)
-   - The build should automatically run `npx prisma db seed`
-   - Check build logs to verify it ran successfully
+   - The build may automatically run a seed step. Verify build logs for the seed output
+   - For DynamoDB/S3 deployment, the recommended seed is `npm run seed:dynamodb`
 
 2. **Option B: Run seed manually**
-   - Connect to your database using the DATABASE_URL
-   - Run: `npx prisma db seed`
-   - Or use Prisma Studio: `npx prisma studio`
+   - Ensure your AWS env vars are set and DynamoDB tables exist (deploy templates in `infrastructure/` if needed)
+   - Run: `npm run seed:dynamodb`
 
-3. **Option C: Create user via SQL**
+3. **Option C: Create user via DynamoDB**
    ```sql
    -- Connect to your PostgreSQL database and run:
    INSERT INTO "User" (id, email, "passwordHash", name, role, "isMasterAdmin", "isActive", "createdAt", "updatedAt")
@@ -86,10 +85,10 @@ The database hasn't been seeded. You need to run the seed script:
 - CloudWatch logs show `Database error during login`
 
 **Solution:**
-1. Verify `DATABASE_URL` is correct in Amplify Console
-2. Check if your database allows connections from AWS IPs
-3. For Prisma Data Platform, ensure the connection string is correct
-4. Test connection from your local machine using the same DATABASE_URL
+1. Verify DynamoDB table names and AWS env vars are set in Amplify Console (e.g., `DDB_USERS_TABLE`)
+2. Ensure DynamoDB is accessible from the Amplify environment and the correct region is set
+3. Test table access using AWS CLI or a small local script (e.g., `npm run seed:dynamodb` with dry-run)
+4. Check CloudWatch logs for detailed errors
 
 ### Issue 3: "Invalid password" (but user exists)
 
@@ -100,7 +99,7 @@ The database hasn't been seeded. You need to run the seed script:
 
 **Solution:**
 1. The password hash might be incorrect
-2. Re-seed the database: `npx prisma db seed`
+2. Re-seed the database: `npm run seed:dynamodb`
 3. Or reset the password hash in the database
 
 ### Issue 4: "Account is locked"

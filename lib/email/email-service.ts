@@ -5,7 +5,8 @@
  */
 
 import nodemailer from 'nodemailer';
-import prisma from '@/lib/prisma';
+import { ddbDocClient } from '@/lib/aws/clients';
+import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { decryptField } from '@/lib/encryption';
 
 interface EmailAttachment {
@@ -27,9 +28,15 @@ interface EmailOptions {
  * Get email transporter for a user's integrated email
  */
 async function getEmailTransporter(userId: string) {
-  const emailIntegration = await prisma.emailIntegration.findUnique({
-    where: { userId }
-  });
+  // Try to load email integration for this user from DynamoDB
+  const emailIntegrationTable = process.env.DDB_EMAIL_INTEGRATIONS_TABLE;
+  let emailIntegration: any = null;
+  if (emailIntegrationTable) {
+    try {
+      const qRes: any = await ddbDocClient.send(new QueryCommand({ TableName: emailIntegrationTable, IndexName: 'userId-index', KeyConditionExpression: 'userId = :uid', ExpressionAttributeValues: { ':uid': userId } } as any));
+      emailIntegration = (qRes.Items || [])[0] || null;
+    } catch (err) { /* ignore and fallback to env */ }
+  }
 
   // If user has an active email integration, use it
   if (emailIntegration && emailIntegration.isActive) {
@@ -47,8 +54,8 @@ async function getEmailTransporter(userId: string) {
 
       return nodemailer.createTransport({
         host: emailIntegration.smtpHost,
-        port: emailIntegration.smtpPort,
-        secure: emailIntegration.smtpPort === 465,
+        port: Number(emailIntegration.smtpPort),
+        secure: Number(emailIntegration.smtpPort) === 465,
         auth: {
           user: emailIntegration.smtpUser || emailIntegration.email,
           pass: password
@@ -85,10 +92,17 @@ export async function sendEmail(
   userId: string,
   options: EmailOptions
 ): Promise<void> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { emailIntegration: true }
-  });
+  // Load user profile from DynamoDB
+  const usersTable = process.env.DDB_USERS_TABLE;
+  let user: any = null;
+  if (usersTable) {
+    try {
+      const g: any = await ddbDocClient.send(new GetCommand({ TableName: usersTable, Key: { id: userId } } as any));
+      user = g.Item;
+    } catch (err) {
+      console.error('Error fetching user from DynamoDB:', err);
+    }
+  }
 
   if (!user) {
     throw new Error('User not found');
@@ -97,7 +111,7 @@ export async function sendEmail(
   const transporter = await getEmailTransporter(userId);
   
   // Determine the from email: user integration > env var > default
-  const fromEmail = user.emailIntegration?.email || process.env.SMTP_FROM || process.env.SMTP_USER || 'admin@pwp2026.com.au';
+  const fromEmail = user.email || process.env.SMTP_FROM || process.env.SMTP_USER || 'admin@pwp2026.com.au';
   const fromName = user.name || process.env.SMTP_FROM_NAME || 'Perpetual Wealth Partners';
 
   const recipients = Array.isArray(options.to) ? options.to : [options.to];
@@ -125,12 +139,22 @@ export async function sendTemplatedEmail(
   mergeFields: Record<string, string>,
   to: string | string[]
 ): Promise<void> {
-  const template = await prisma.emailTemplate.findFirst({
-    where: {
-      userId,
-      name: templateName
+  // Load template from DynamoDB templates table
+  const templatesTable = process.env.DDB_EMAIL_TEMPLATES_TABLE;
+  let template: any = null;
+  if (templatesTable) {
+    try {
+      // Try a query by userId + name index if available
+      const qRes: any = await ddbDocClient.send(new QueryCommand({ TableName: templatesTable, IndexName: 'userId-name-index', KeyConditionExpression: 'userId = :uid and #name = :name', ExpressionAttributeValues: { ':uid': userId, ':name': templateName }, ExpressionAttributeNames: { '#name': 'name' } } as any));
+      template = (qRes.Items || [])[0] || null;
+    } catch (err) {
+      // Fallback to a scan (inefficient but acceptable for small sets)
+      console.warn('Template query failed, falling back to scan', err);
+      const scanRes: any = await ddbDocClient.send({ TableName: templatesTable } as any);
+      const candidates = (scanRes.Items || []).filter((t:any) => t.userId === userId && t.name === templateName);
+      template = candidates[0] || null;
     }
-  });
+  }
 
   if (!template) {
     throw new Error(`Email template "${templateName}" not found`);

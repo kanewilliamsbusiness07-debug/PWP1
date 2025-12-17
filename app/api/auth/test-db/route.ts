@@ -5,7 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { ddbDocClient } from '@/lib/aws/clients';
+import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,28 +38,30 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Test database connection
+    // Test DynamoDB connectivity by scanning users table (if configured)
+    const usersTable = process.env.DDB_USERS_TABLE;
     let dbConnected = false;
-    try {
-      await prisma.$connect();
-      dbConnected = true;
-    } catch (error: any) {
-      return NextResponse.json({
-        success: false,
-        error: 'Database connection failed',
-        details: {
-          message: error.message,
-          code: error.code,
-          databaseUrlSet: process.env.DATABASE_URL ? 'YES (hidden)' : 'NO'
-        }
-      }, { status: 500 });
+    let userCheck: any = null;
+    if (usersTable) {
+      try {
+        const scanRes = await ddbDocClient.send(new ScanCommand({ TableName: usersTable, Limit: 1 } as any));
+        dbConnected = true;
+      } catch (err: any) {
+        return NextResponse.json({
+          success: false,
+          error: 'DynamoDB connection failed',
+          details: {
+            message: err.message
+          }
+        }, { status: 500 });
+      }
     }
 
     const results: any = {
       success: true,
       database: {
         connected: dbConnected,
-        url: process.env.DATABASE_URL ? 'SET (hidden)' : 'NOT SET'
+        type: usersTable ? 'DynamoDB' : 'Not configured'
       },
       environment: {
         nodeEnv: process.env.NODE_ENV,
@@ -71,46 +74,32 @@ export async function GET(request: NextRequest) {
     // If email provided, check if user exists
     if (email) {
       try {
-        const user = await prisma.user.findUnique({
-          where: { email: email.toLowerCase() },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            isActive: true,
-            role: true,
-            loginAttempts: true,
-            lockedUntil: true,
-            createdAt: true
+        if (usersTable) {
+          const scanRes = await ddbDocClient.send(new ScanCommand({ TableName: usersTable, FilterExpression: 'email = :e', ExpressionAttributeValues: { ':e': email.toLowerCase() } } as any));
+          const users = scanRes.Items || [];
+          if (users.length > 0) {
+            const u = users[0];
+            results.user = { exists: true, id: u.id, email: u.email, name: u.name, isActive: u.isActive, role: u.role, loginAttempts: u.loginAttempts || 0, lockedUntil: u.lockedUntil || null, createdAt: u.createdAt };
+          } else {
+            results.user = { exists: false, message: 'User not found in DynamoDB' };
           }
-        });
-
-        results.user = user ? {
-          exists: true,
-          ...user,
-          lockedUntil: user.lockedUntil?.toISOString() || null
-        } : {
-          exists: false,
-          message: 'User not found in database'
-        };
+        } else {
+          results.user = { error: 'DynamoDB users table not configured' };
+        }
       } catch (error: any) {
-        results.user = {
-          exists: false,
-          error: error.message
-        };
+        results.user = { exists: false, error: error.message };
       }
     } else {
       // Count total users
-      try {
-        const userCount = await prisma.user.count();
-        results.user = {
-          totalUsers: userCount,
-          message: userCount === 0 ? 'No users found in database. Run: npx prisma db seed' : `${userCount} user(s) found`
-        };
-      } catch (error: any) {
-        results.user = {
-          error: error.message
-        };
+      if (usersTable) {
+        try {
+          const scanRes = await ddbDocClient.send(new ScanCommand({ TableName: usersTable } as any));
+          results.user = { totalUsers: (scanRes.Items || []).length, message: `${(scanRes.Items || []).length} user(s) found` };
+        } catch (error: any) {
+          results.user = { error: error.message };
+        }
+      } else {
+        results.user = { message: 'DynamoDB users table not configured' };
       }
     }
 

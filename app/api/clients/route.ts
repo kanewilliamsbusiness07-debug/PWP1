@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { ddbDocClient } from '@/lib/aws/clients';
+import { PutCommand, QueryCommand, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import type { Session } from 'next-auth';
@@ -29,20 +31,39 @@ export async function GET(req: NextRequest) {
     console.log('Recent only:', recent);
 
     if (recent) {
-      // Get recently accessed clients
-      const recentAccess = await prisma.recentClientAccess.findMany({
-        where: { userId: session.user.id },
-        orderBy: { accessedAt: 'desc' },
-        take: limit,
-        include: {
-          client: true
-        }
-      });
+      // Get recent client accesses from DynamoDB
+      const recentTable = process.env.DDB_RECENT_CLIENT_ACCESS_TABLE;
+      const clientsTable = process.env.DDB_CLIENTS_TABLE;
+      if (recentTable && clientsTable) {
+        try {
+          const q = {
+            TableName: recentTable,
+            IndexName: 'userId-accessedAt-index',
+            KeyConditionExpression: 'userId = :uid',
+            ExpressionAttributeValues: { ':uid': session.user.id },
+            ScanIndexForward: false,
+            Limit: limit
+          } as any;
 
-      const clients = recentAccess.map(ra => ra.client);
-      console.log('Found recent clients:', clients.length);
-      console.log('=== CLIENTS API GET COMPLETE (RECENT) ===');
-      return NextResponse.json(clients);
+          const res = await ddbDocClient.send(new QueryCommand(q));
+          const items = res.Items || [];
+          const clientIds = items.map((it:any) => it.clientId).filter(Boolean);
+
+          // Batch get clients (simple sequential gets to avoid complexity)
+          const clients: any[] = [];
+          for (const cid of clientIds) {
+            const g = await ddbDocClient.send(new GetCommand({ TableName: clientsTable, Key: { id: cid } } as any));
+            if (g && g.Item) clients.push(g.Item);
+          }
+
+          return NextResponse.json(clients);
+        } catch (e) {
+          console.warn('Recent clients lookup failed, falling back to empty');
+          return NextResponse.json([]);
+        }
+      }
+
+      return NextResponse.json([]);
     }
 
     // Get all clients for this user
@@ -58,31 +79,46 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    const clients = await prisma.client.findMany({
-      where,
-      orderBy: { updatedAt: 'desc' },
-      take: limit
-    });
+    // Query DynamoDB clients table - prefer a GSI for userId, fall back to scan
+    const clientsTable = process.env.DDB_CLIENTS_TABLE;
+    try {
+      if (clientsTable) {
+        // Attempt to query using a GSI (userId-updatedAt-index)
+        try {
+          const q: any = {
+            TableName: clientsTable,
+            IndexName: 'userId-updatedAt-index',
+            KeyConditionExpression: 'userId = :uid',
+            ExpressionAttributeValues: { ':uid': session.user.id },
+            ScanIndexForward: false,
+            Limit: limit
+          };
+          if (search) {
+            // No direct support in key condition - fallback to scan
+            throw new Error('search-not-supported-in-query');
+          }
+          const qRes = await ddbDocClient.send(new QueryCommand(q));
+          const items = qRes.Items || [];
+          return NextResponse.json(items);
+        } catch (qErr) {
+          // Fallback to a scan and filter for search & userId
+          const scanParams: any = { TableName: clientsTable };
+          const scanRes = await ddbDocClient.send(new ScanCommand(scanParams));
+          const all = scanRes.Items || [];
+          const filtered = all.filter((c: any) => c.userId === session.user.id && (!search || (
+            (c.firstName || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.lastName || '').toLowerCase().includes(search.toLowerCase()) ||
+            (c.email || '').toLowerCase().includes(search.toLowerCase())
+          ))).slice(0, limit);
+          return NextResponse.json(filtered);
+        }
+      }
 
-    console.log('Found clients in database:', clients.length);
-    console.log('First client:', clients[0] || 'none');
-    if (clients.length > 0) {
-      console.log('Sample client data:', {
-        id: clients[0].id,
-        name: `${clients[0].firstName} ${clients[0].lastName}`,
-        email: clients[0].email,
-        createdAt: clients[0].createdAt,
-        updatedAt: clients[0].updatedAt
-      });
+      return NextResponse.json([]);
+    } catch (err) {
+      console.error('Error querying clients table:', err);
+      return NextResponse.json([]);
     }
-    
-    // CRITICAL: Check what format you're returning
-    const response = NextResponse.json(clients); // Should return array directly
-    
-    console.log('Returning response - clients array length:', clients.length);
-    console.log('=== CLIENTS API GET COMPLETE ===');
-    
-    return response;
   } catch (error: any) {
     console.error('=== CLIENTS API ERROR ===');
     console.error('Error:', error);
@@ -159,31 +195,30 @@ export async function POST(req: NextRequest) {
 
     console.log('[Clients API POST] Final client data:', JSON.stringify(clientData, null, 2));
 
-    // Create client with prepared data
-    const client = await prisma.client.create({
-      data: clientData
-    });
+    // Create client in DynamoDB
+    const clientsTable = process.env.DDB_CLIENTS_TABLE;
+    if (!clientsTable) return NextResponse.json({ error: 'Server not configured: DDB_CLIENTS_TABLE missing' }, { status: 500 });
 
-    // Track recent access
-    await prisma.recentClientAccess.upsert({
-      where: {
-        userId_clientId: {
-          userId: session.user.id,
-          clientId: client.id
-        }
-      },
-      update: {
-        accessedAt: new Date()
-      },
-      create: {
-        userId: session.user.id,
-        clientId: client.id,
-        accessedAt: new Date()
-      }
-    });
+    const clientId = uuidv4();
+    const now = new Date().toISOString();
+    const item = {
+      id: clientId,
+      userId: session.user.id,
+      createdAt: now,
+      updatedAt: now,
+      ...clientData
+    } as any;
 
-    console.log('[Clients API POST] Client created successfully:', client.id);
-    return NextResponse.json(client);
+    await ddbDocClient.send(new PutCommand({ TableName: clientsTable, Item: item }));
+
+    // Track recent access in its own table
+    const recentTable = process.env.DDB_RECENT_CLIENT_ACCESS_TABLE;
+    if (recentTable) {
+      await ddbDocClient.send(new PutCommand({ TableName: recentTable, Item: { userId: session.user.id, clientId, accessedAt: new Date().toISOString(), id: `${session.user.id}#${clientId}` } } as any));
+    }
+
+    console.log('[Clients API POST] Client created successfully:', clientId);
+    return NextResponse.json(item);
   } catch (error) {
     console.error('[Clients API POST] Error creating client:', error);
     console.error('[Clients API POST] Error details:', error instanceof Error ? error.message : String(error));

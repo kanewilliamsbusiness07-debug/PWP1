@@ -35,7 +35,7 @@ Commands in `amplify.yml` contained unquoted strings with YAML reserved characte
 - `- node --version` → `- 'node -v'`
 - `- npm --version` → `- 'npm --version'`
 - `- npm ci` → `- 'npm ci'`
-- `- npx prisma generate` → `- 'npx prisma generate'`
+`
 - `- node scripts/validate-env.js || echo "..."` → `- 'node scripts/validate-env.js || echo "..."'`
 - `- npm run build` → `- 'npm run build'`
 
