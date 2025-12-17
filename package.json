@@ -137,10 +137,8 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "aws-sdk-client-mock": "^1.9.0"
+    "vitest": "^3.2.4"
   },
-
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "jsdom",
