@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { ddbDocClient } from '@/lib/aws/clients';
+import { QueryCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { s3Client } from '@/lib/aws/clients';
+import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import type { Session } from 'next-auth';
@@ -29,33 +33,45 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-      const exports = await prisma.pdfExport.findMany({
-        where,
-        include: {
-          client: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true
-            }
+      const pdfTable = process.env.DDB_PDF_EXPORTS_TABLE;
+      if (pdfTable) {
+        // Try to query by userId using a GSI on userId (if available)
+        try {
+          const params: any = {
+            TableName: pdfTable,
+            IndexName: 'userId-createdAt-index',
+            KeyConditionExpression: 'userId = :uid',
+            ExpressionAttributeValues: { ':uid': session.user.id },
+            ScanIndexForward: false,
+            Limit: limit
+          };
+          // Optionally filter by clientId
+          if (clientId) {
+            params.FilterExpression = 'clientId = :cid';
+            params.ExpressionAttributeValues[':cid'] = clientId;
           }
-        },
-        orderBy: { createdAt: 'desc' },
-        take: limit
-      });
 
-      console.log(`[PDF Exports API] Returning ${exports.length} exports`);
-      
-      // Return array directly instead of wrapped object
-      return NextResponse.json(exports);
-    } catch (dbError: any) {
-      // Handle case where table might not exist or there's a database error
-      if (dbError?.code === 'P2021' || dbError?.message?.includes('does not exist') || dbError?.message?.includes('relation') || dbError?.message?.includes('table')) {
-        console.warn('[PDF Exports API] Table may not exist yet, returning empty array');
-        return NextResponse.json([]);
+          const res = await ddbDocClient.send(new QueryCommand(params));
+          const items = res.Items || [];
+          return NextResponse.json(items);
+        } catch (qErr) {
+          console.warn('[PDF Exports API] Query error, falling back to scan', qErr);
+          // Fallback to scan
+        }
+
+        // Fallback to scan
+        const scanRes = await ddbDocClient.send({
+          TableName: pdfTable
+        } as any);
+        const filtered = (scanRes.Items || []).filter((it: any) => it.userId === session.user.id && (!clientId || it.clientId === clientId)).slice(0, limit);
+        return NextResponse.json(filtered);
       }
-      throw dbError;
+
+      // If no table configured, return empty array
+      return NextResponse.json([]);
+    } catch (dbError: any) {
+      console.error('[PDF Exports API] DynamoDB error:', dbError);
+      return NextResponse.json([]);
     }
   } catch (error: any) {
     console.error('[PDF Exports API] Error getting PDF exports:', error);

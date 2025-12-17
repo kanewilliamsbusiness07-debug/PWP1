@@ -1,0 +1,54 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "IAM role for PDF generator function with S3 and DynamoDB access",
+  "Parameters": {
+    "PdfBucketName": { "Type": "String" },
+    "PdfTableName": { "Type": "String" }
+  },
+  "Resources": {
+    "PdfGeneratorRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": [ "lambda.amazonaws.com" ] },
+              "Action": [ "sts:AssumeRole" ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "PdfGeneratorS3DDBPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [ "s3:PutObject", "s3:GetObject", "s3:DeleteObject" ],
+                  "Resource": [ { "Fn::Sub": "arn:aws:s3:::${PdfBucketName}/*" }, { "Fn::Sub": "arn:aws:s3:::${PdfBucketName}" } ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [ "dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:Query", "dynamodb:Scan", "dynamodb:UpdateItem", "dynamodb:DeleteItem" ],
+                  "Resource": [ { "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${PdfTableName}" } ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [ "logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents" ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "PdfGeneratorRoleArn": { "Value": { "Fn::GetAtt": [ "PdfGeneratorRole", "Arn" ] } }
+  }
+}

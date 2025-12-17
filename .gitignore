@@ -38,12 +38,13 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Prisma
-/lib/generated/prisma
-/prisma/dev.db
-/prisma/dev.db-journal
-/prisma/*.db
-/prisma/*.db-journal
+# Legacy Prisma removed from repository
+# Generic database files still ignored
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+/prisma/
 
 # Database
 *.db

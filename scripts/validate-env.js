@@ -9,7 +9,10 @@
  */
 
 const requiredAlways = [
-  'DATABASE_URL',
+  'AWS_REGION',
+  'AWS_S3_BUCKET',
+  'DDB_PDF_EXPORTS_TABLE',
+  'DDB_CLIENTS_TABLE',
   'NEXTAUTH_SECRET',
   'NEXT_PUBLIC_SITE_URL'
 ];
@@ -17,7 +20,8 @@ const requiredAlways = [
 // Scan for additional env vars used in the codebase
 const additionalRequired = [
   'NEXTAUTH_URL',
-  'JWT_SECRET'
+  'JWT_SECRET',
+  'DDB_USERS_TABLE'
 ];
 
 const requiredProduction = [

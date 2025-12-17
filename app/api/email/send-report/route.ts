@@ -3,9 +3,11 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import type { Session } from 'next-auth';
 import { sendEmail } from '@/lib/email/email-service';
-import prisma from '@/lib/prisma';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
+import { ddbDocClient, s3Client } from '@/lib/aws/clients';
+import { GetCommand } from '@aws-sdk/lib-dynamodb';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { Readable } from 'stream';
+import { toBuffer } from 'stream-buffers';
 
 interface SummaryData {
   clientName: string;
@@ -375,28 +377,34 @@ export async function POST(req: NextRequest) {
     // Prepare email recipients (client + account holder)
     const recipients = [clientEmail, session.user.email];
 
-    // Fetch PDF attachment if pdfId is provided
+    // Fetch PDF attachment if pdfId is provided (DynamoDB + S3)
     let pdfAttachment = null;
     if (pdfId) {
-      const pdfExport = await prisma.pdfExport.findFirst({
-        where: {
-          id: pdfId,
-          userId: session.user.id,
-        },
-      });
-
-      if (pdfExport) {
-        try {
-          const filePath = join(process.cwd(), pdfExport.filePath);
-          const fileBuffer = await readFile(filePath);
-          pdfAttachment = {
-            filename: pdfExport.fileName,
-            content: fileBuffer,
-            contentType: pdfExport.mimeType || 'application/pdf',
-          };
-        } catch (error) {
-          console.error('Error reading PDF file:', error);
-          // Continue without attachment if file read fails
+      const pdfTable = process.env.DDB_PDF_EXPORTS_TABLE;
+      if (pdfTable) {
+        const res: any = await ddbDocClient.send(new GetCommand({ TableName: pdfTable, Key: { id: pdfId } } as any));
+        const pdfExport = res.Item;
+        if (pdfExport && pdfExport.userId === session.user.id && pdfExport.s3Key) {
+          try {
+            const bucket = process.env.AWS_S3_BUCKET;
+            const getObj = await s3Client.send(new GetObjectCommand({ Bucket: bucket!, Key: pdfExport.s3Key }));
+            const body = getObj.Body as Readable;
+            const buffer = await toBuffer.createWriteStream();
+            await new Promise<void>((resolve, reject) => {
+              body.on('data', (chunk) => buffer.write(chunk));
+              body.on('end', () => { buffer.end(); resolve(); });
+              body.on('error', (err) => reject(err));
+            });
+            const fileBuffer = buffer.getContents() as Buffer;
+            pdfAttachment = {
+              filename: pdfExport.fileName,
+              content: fileBuffer,
+              contentType: pdfExport.mimeType || 'application/pdf',
+            };
+          } catch (error) {
+            console.error('Error fetching PDF from S3:', error);
+            // Continue without attachment if fetch fails
+          }
         }
       }
     }

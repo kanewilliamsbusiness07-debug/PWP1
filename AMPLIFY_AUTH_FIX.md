@@ -19,7 +19,10 @@ The authentication failure is typically caused by:
 2. **Required variables** (must be set for each branch/environment):
 
 ```
-DATABASE_URL=postgresql://username:password@host:port/database?schema=public
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your-pdf-bucket-name
+DDB_CLIENTS_TABLE=your-clients-table-name
+DDB_PDF_EXPORTS_TABLE=your-pdf-exports-table-name
 NEXTAUTH_SECRET=<generated-secret-32-chars>
 NEXTAUTH_URL=https://your-app-id.amplifyapp.com
 NEXT_PUBLIC_SITE_URL=https://your-app-id.amplifyapp.com
@@ -63,11 +66,10 @@ openssl rand -hex 32
    - If using RDS, ensure security group allows connections from Amplify
    - Test connection from your local machine first
 
-3. **Run database migrations:**
+3. **Provision storage & seed users:**
    ```bash
-   # Connect to your database and run:
-   npx prisma migrate deploy
-   npx prisma db seed
+   # Ensure DynamoDB & S3 are provisioned then seed users
+   npm run seed:dynamodb
    ```
 
 ## Step 4: Check Your Amplify Domain
@@ -89,7 +91,7 @@ The seed script creates a default user:
 To verify or create users:
 ```bash
 # Connect to your database and run:
-npx prisma db seed
+npm run seed:dynamodb
 ```
 
 Or manually create a user through your database client.
@@ -123,15 +125,15 @@ After updating environment variables:
 ### Issue: "NEXTAUTH_SECRET is not set"
 **Solution:** Add `NEXTAUTH_SECRET` environment variable in Amplify Console with a 32+ character secret.
 
-### Issue: "Database connection not configured"
+### Issue: "DynamoDB tables not configured or inaccessible"
 **Solution:** 
-- Verify `DATABASE_URL` is set correctly
-- Check database security groups allow Amplify connections
-- Test database connection from your local machine
+- Verify DynamoDB table names are set in environment variables (e.g., `DDB_USERS_TABLE`)
+- Ensure DynamoDB and S3 are provisioned and reachable from the Amplify environment
+- Test table access from a local script or via AWS Console
 
 ### Issue: "Invalid email or password"
 **Solution:**
-- Verify user exists in database: run `npx prisma db seed`
+- Verify user exists in DynamoDB: run `npm run seed:dynamodb`
 - Check if account is locked (too many failed attempts)
 - Verify password hash is correct
 

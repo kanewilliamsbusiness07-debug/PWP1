@@ -5,26 +5,30 @@ This guide will help you deploy FinCalc Pro to AWS Amplify.
 ## Prerequisites
 
 1. AWS Account with Amplify access
-2. PostgreSQL database (AWS RDS recommended)
+2. Infrastructure for storage: DynamoDB tables and an S3 bucket for PDFs
 3. Git repository (GitHub, GitLab, Bitbucket, or AWS CodeCommit)
 
-## Step 1: Set Up PostgreSQL Database
+## Step 1: Provision Storage
 
-> **Note:** The Prisma schema is configured for PostgreSQL. For local development with SQLite, you can temporarily change the `provider` in `prisma/schema.prisma` to `"sqlite"` and use `DATABASE_URL="file:./dev.db"`. However, for production on Amplify, PostgreSQL is required.
+> **Note:** This project uses DynamoDB for metadata and S3 for file storage. You can deploy the CloudFormation templates in `infrastructure/` or use the Amplify CLI to provision resources.
 
-### Option A: AWS RDS PostgreSQL
+### Option A: Use CloudFormation (recommended helper)
 
-1. Create an RDS PostgreSQL instance in AWS Console
-2. Note the connection details:
-   - Endpoint
-   - Port (default: 5432)
-   - Database name
-   - Username
-   - Password
+1. Deploy the templates using the included helper script:
 
-### Option B: External PostgreSQL
+```bash
+# Linux/Mac
+npm run infra:deploy:amplify:sh -- <your-unique-bucket-name>
+# Windows (PowerShell)
+npm run infra:deploy:amplify -- -BucketName <your-unique-bucket-name>
+```
 
-Use any PostgreSQL database provider (e.g., Supabase, Neon, Railway).
+2. The helper runs both the DynamoDB and S3 templates and prints guidance on the created resources.
+3. Note resource names and set them as environment variables in Amplify (see `env.production.example`)
+
+### Option B: Use Amplify CLI
+
+- Use `amplify add storage` or `amplify push` to provision tables and buckets as required by your account setup.
 
 ## Step 2: Create Amplify App
 
@@ -47,7 +51,7 @@ frontend:
     preBuild:
       commands:
         - npm ci
-        - npx prisma generate
+        - Optional: npm run migrate:prisma-to-ddb:dry
         - node scripts/validate-env.js || echo "Warning: Some environment variables may be missing. Amplify will inject them at runtime."
     build:
       commands:
@@ -114,24 +118,30 @@ Amplify Hosting automatically injects the environment variables you define in th
 
 > **Note:** Environment names in SSM paths must be valid (lowercase, alphanumeric only). Branch names with hyphens cannot be used as environment names.
 
-## Step 5: Database Migrations
+## Step 5: Infrastructure & Migration
 
 ### Initial Setup
 
-Before the first deployment, run migrations manually:
+Before the first deployment, ensure DynamoDB tables and S3 bucket are provisioned (deploy CloudFormation templates or use `amplify push`).
+
+If you are migrating existing data from PostgreSQL/Prisma, run the migration dry-run and review the generated report first:
 
 ```bash
-# Connect to your database and run:
-npx prisma migrate deploy
+# Generates a dry-run report in tmp/
+npm run migrate:prisma-to-ddb:dry
 ```
 
-**Note:** Database migrations should be run manually before the first deployment. The build process will generate the Prisma client but will not run migrations automatically.
+When ready, run a targeted migration (choose models with `--models`) to copy data into DynamoDB and S3:
+
+```bash
+npm run migrate:prisma-to-ddb -- --models=pdfs,clients
+```
 
 ### Seed Database (Optional)
 
-After migrations, seed initial data:
+After infra is provisioned, seed initial data:
 ```bash
-npx prisma db seed
+npm run seed:dynamodb
 ```
 
 ## Step 6: Deploy
@@ -153,7 +163,7 @@ npx prisma db seed
 
 - Ensure `DATABASE_URL` is correctly set
 - Verify database is accessible from Amplify (check security groups for RDS)
-- Check that Prisma client is generated: `npx prisma generate`
+- Check that infrastructure is deployed or migration dry-run completed
 
 ### Database Connection Issues
 

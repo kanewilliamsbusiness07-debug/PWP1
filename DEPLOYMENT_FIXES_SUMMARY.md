@@ -123,8 +123,9 @@ project-root/
 ├── env.production.example           [NEW]
 ├── next.config.js                   [VERIFIED: Amplify-compatible]
 ├── package.json                     [VERIFIED: Node 20, scripts correct]
-├── prisma/
-│   └── schema.prisma                [VERIFIED: Uses env("DATABASE_URL")]
+├── infrastructure/
+│   ├── dynamodb-tables.yaml        [NEW: CloudFormation for DynamoDB tables]
+│   └── s3-pdf-bucket.yaml          [NEW: CloudFormation for S3 bucket]
 └── scripts/
     ├── validate-env.js              [VERIFIED: Amplify-aware]
     ├── validate-yaml.js             [EXISTS: YAML validation]
@@ -142,7 +143,7 @@ project-root/
 | **amplify.yml** | ✅ Valid | All commands quoted, proper structure |
 | **Node Version** | ✅ Consistent | Node 20 in .nvmrc and package.json |
 | **Next.js Config** | ✅ Compatible | Configured for Amplify Hosting |
-| **Prisma Config** | ✅ Correct | Uses env("DATABASE_URL") |
+| **DynamoDB & S3** | ✅ Templates provided | CloudFormation templates available in `infrastructure/` (deploy before running migration) |
 | **Build Scripts** | ✅ Complete | All required scripts present |
 | **Environment Vars** | ✅ Validated | Validation script in place |
 | **SSM Paths** | ✅ Correct | Using valid environment names |
@@ -177,13 +178,14 @@ project-root/
    - Add all variables from `env.production.example`
    - Generate secrets using provided commands
 
-2. **Run Database Migrations**
-   - Connect to PostgreSQL database
-   - Run: `npx prisma migrate deploy`
+2. **Deploy Infrastructure & Run Migration**
+   - Deploy CloudFormation templates or use `amplify push` to create DynamoDB tables and S3 bucket (see `infrastructure/`)
+   - Run the migration dry-run and review the report: `npm run migrate:prisma-to-ddb:dry`
+   - When ready, run the real migration (select models with `--models`): `npm run migrate:prisma-to-ddb -- --models=pdfs,clients`
 
 3. **Deploy**
    - Push code to Git repository
-   - Amplify will automatically build and deploy
+   - Amplify will automatically build and deploy (ensure infra and env vars are in place first)
 
 ---
 
@@ -194,8 +196,8 @@ project-root/
 2. PreBuild Phase:
    - Detects Node 20 (from .nvmrc)
    - Runs: npm ci
-   - Generates: Prisma client
-   - Validates: Environment variables (warns if missing, doesn't fail)
+   - Validates: required environment variables (warns if missing)
+   - Optional: Runs migration dry-run (`npm run migrate:prisma-to-ddb:dry`) to produce a report for review
 3. Build Phase:
    - Runs: npm run build
    - Next.js compiles application
@@ -219,8 +221,8 @@ project-root/
 - Environment name must be valid (lowercase, alphanumeric only)
 - Recommended: Use Amplify Console environment variables instead
 
-### Database
-- Must be PostgreSQL (Prisma configured for PostgreSQL)
+### Storage & Metadata
+- Uses **S3** for file storage and **DynamoDB** for metadata. Deploy the templates in `infrastructure/` before running the migration.
 - Must be accessible from Amplify IP ranges
 - Run migrations manually before first deployment
 

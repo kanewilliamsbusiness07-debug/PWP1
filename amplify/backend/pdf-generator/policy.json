@@ -1,0 +1,31 @@
+{
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::${aws:bucketName}/*",
+        "arn:aws:s3:::${aws:bucketName}"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:GetItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${aws:pdfTable}",
+        "arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${aws:pdfTable}/*"
+      ]
+    }
+  ]
+}

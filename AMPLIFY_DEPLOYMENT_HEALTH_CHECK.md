@@ -24,9 +24,9 @@
 
 **Commands**:
 - ✅ `npm ci` - Installs dependencies
-- ✅ `npx prisma generate` - Generates Prisma client
 - ✅ `node scripts/validate-env.js` - Validates environment variables
 - ✅ `npm run build` - Builds Next.js application
+- ✅ Optional: `npm run migrate:prisma-to-ddb:dry` - Generate migration dry-run report for review
 - ✅ All commands properly quoted to prevent YAML parsing errors
 
 **Status**: ✅ Production-ready
@@ -77,12 +77,12 @@
 
 **Status**: ✅ Configuration hardened
 
-### 6. Prisma Configuration ✓
+### 6. Storage Configuration ✓
 
-**Schema**: `prisma/schema.prisma`
-- ✅ Uses `env("DATABASE_URL")` (no hardcoded credentials)
-- ✅ PostgreSQL provider configured
-- ✅ Client generation in preBuild phase
+**Storage**: DynamoDB + S3
+- ✅ CloudFormation templates available (`infrastructure/dynamodb-tables.yaml`, `infrastructure/s3-pdf-bucket.yaml`)
+- ✅ Deploy these before running migrations or seeding
+- ✅ Seed step available: `npm run seed:dynamodb`
 
 **Status**: ✅ Production-ready
 
@@ -110,8 +110,8 @@
 Before deploying to Amplify, ensure:
 
 - [ ] All environment variables are set in Amplify Console
-- [ ] Database is accessible from Amplify (check security groups)
-- [ ] Database migrations have been run manually
+- [ ] DynamoDB & S3 infrastructure is provisioned (deploy CloudFormation or use Amplify)
+- [ ] (Optional) Migration dry-run has been generated and reviewed (`npm run migrate:prisma-to-ddb:dry`)
 - [ ] Secrets are generated (NEXTAUTH_SECRET, JWT_SECRET, ENCRYPTION_KEY)
 - [ ] NEXTAUTH_URL matches your Amplify app URL
 - [ ] AMPLIFY_HOSTING=true is set in environment variables
@@ -160,7 +160,7 @@ Successful build should show:
 
 ### Issue: "Prisma client not generated"
 
-**Cause**: Missing `npx prisma generate` in preBuild
+**Cause**: Missing migration dry-run or missing infra provisioning in preBuild
 
 **Solution**: ✅ Fixed - Prisma generation added to preBuild phase
 

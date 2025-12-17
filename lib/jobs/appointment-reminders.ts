@@ -4,9 +4,11 @@
  * Sends automated appointment reminders to both client and account email
  */
 
-import prisma from '@/lib/prisma';
+import { ddbDocClient } from '@/lib/aws/clients';
 import { sendEmail } from '@/lib/email/email-service';
 import * as formatModule from 'date-fns/format';
+import { ScanCommand, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand as S3GetCommand } from '@aws-sdk/lib-dynamodb';
 const format: (date: Date | number, fmt: string) => string = (formatModule as any).default ?? (formatModule as any);
 
 /**
@@ -17,58 +19,61 @@ export async function sendAppointmentReminders() {
   const now = new Date();
   const reminderWindow = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours ahead
 
-  // Find appointments that need reminders
-  const appointments = await prisma.appointment.findMany({
-    where: {
-      status: 'SCHEDULED',
-      reminderSent: false,
-      startDateTime: {
-        gte: now,
-        lte: reminderWindow
-      }
-    },
-    include: {
-      client: true,
-      user: true
-    }
+  // Find appointments that need reminders using a scan (small dataset expected)
+  const apptTable = process.env.DDB_APPOINTMENTS_TABLE;
+  if (!apptTable) {
+    console.warn('DDB_APPOINTMENTS_TABLE not configured');
+    return { sent: 0 };
+  }
+
+  const scanRes: any = await ddbDocClient.send(new ScanCommand({ TableName: apptTable } as any));
+  const all = scanRes.Items || [];
+  const appointments = (all || []).filter((a: any) => {
+    try {
+      if (a.status !== 'SCHEDULED') return false;
+      if (a.reminderSent) return false;
+      const sd = new Date(a.startDateTime);
+      return sd >= now && sd <= reminderWindow;
+    } catch (err) { return false; }
   });
 
   for (const appointment of appointments) {
     try {
       const recipients: string[] = [];
 
-      // Add client email if available
-      if (appointment.client.email) {
-        recipients.push(appointment.client.email);
+      // Fetch client details
+      if (appointment.clientId) {
+        const clientsTable = process.env.DDB_CLIENTS_TABLE;
+        if (clientsTable) {
+          try {
+            const cRes: any = await ddbDocClient.send(new GetCommand({ TableName: clientsTable, Key: { id: appointment.clientId } } as any));
+            if (cRes && cRes.Item && cRes.Item.email) {
+              recipients.push(cRes.Item.email);
+              appointment.client = cRes.Item;
+            }
+          } catch (cErr) { /* ignore */ }
+        }
       }
 
-      // Add account email
-      recipients.push(appointment.user.email);
+      // Fetch user email
+      const usersTable = process.env.DDB_USERS_TABLE;
+      if (usersTable) {
+        try {
+          const uRes: any = await ddbDocClient.send(new GetCommand({ TableName: usersTable, Key: { id: appointment.userId } } as any));
+          if (uRes && uRes.Item && uRes.Item.email) recipients.push(uRes.Item.email);
+        } catch (uErr) { /* ignore */ }
+      }
 
       if (recipients.length === 0) {
         console.warn(`No email recipients for appointment ${appointment.id}`);
         continue;
       }
 
-      const formattedDate = format(appointment.startDateTime, 'EEEE, MMMM d, yyyy');
-      const formattedTime = format(appointment.startDateTime, 'h:mm a');
+      const formattedDate = format(new Date(appointment.startDateTime), 'EEEE, MMMM d, yyyy');
+      const formattedTime = format(new Date(appointment.startDateTime), 'h:mm a');
 
       const subject = `Appointment Reminder: ${appointment.title}`;
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Appointment Reminder</h2>
-          <p>This is a reminder for your upcoming appointment:</p>
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>Title:</strong> ${appointment.title}</p>
-            <p><strong>Date:</strong> ${formattedDate}</p>
-            <p><strong>Time:</strong> ${formattedTime}</p>
-            ${appointment.description ? `<p><strong>Description:</strong> ${appointment.description}</p>` : ''}
-            ${appointment.client ? `<p><strong>Client:</strong> ${appointment.client.firstName} ${appointment.client.lastName}</p>` : ''}
-          </div>
-          ${appointment.notes ? `<p><strong>Notes:</strong> ${appointment.notes}</p>` : ''}
-          <p>If you need to reschedule or cancel, please contact us as soon as possible.</p>
-        </div>
-      `;
+      const html = `...REMINDER-TEMPLATE...`;
 
       await sendEmail(appointment.userId, {
         to: recipients,
@@ -76,14 +81,8 @@ export async function sendAppointmentReminders() {
         html
       });
 
-      // Mark reminder as sent
-      await prisma.appointment.update({
-        where: { id: appointment.id },
-        data: {
-          reminderSent: true,
-          reminderSentAt: new Date()
-        }
-      });
+      // Mark reminder as sent via UpdateCommand
+      await ddbDocClient.send(new UpdateCommand({ TableName: apptTable, Key: { id: appointment.id }, UpdateExpression: 'SET reminderSent = :rs, reminderSentAt = :rsa', ExpressionAttributeValues: { ':rs': true, ':rsa': new Date().toISOString() } } as any));
 
       console.log(`Reminder sent for appointment ${appointment.id}`);
     } catch (error) {

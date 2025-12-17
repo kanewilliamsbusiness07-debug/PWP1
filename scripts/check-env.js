@@ -12,7 +12,7 @@ if (!envFileExists && !productionLike) {
   process.exit(0);
 }
 
-const requiredAlways = ['DATABASE_URL', 'NEXTAUTH_SECRET', 'NEXTAUTH_URL', 'JWT_SECRET'];
+const requiredAlways = ['AWS_REGION', 'AWS_S3_BUCKET', 'DDB_CLIENTS_TABLE', 'DDB_PDF_EXPORTS_TABLE', 'NEXTAUTH_SECRET', 'NEXTAUTH_URL', 'JWT_SECRET'];
 const requiredProdOnly = ['ENCRYPTION_KEY', 'CRON_SECRET'];
 
 const missing = requiredAlways.filter((key) => !process.env[key]);

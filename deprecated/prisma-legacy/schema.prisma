@@ -1,0 +1,5 @@
+// Archived Prisma schema (moved)
+//
+// The repository has migrated from Prisma/Postgres to DynamoDB/S3. The schema
+// is preserved here for reference only. Do not use this schema in active
+// development or deployments.

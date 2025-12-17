@@ -66,14 +66,30 @@ This document summarizes all the new features and changes implemented to extend 
 - **Real Session Data**: `useAuth` hook now uses actual NextAuth session instead of demo user
 - **Proper Loading States**: Correctly handles authentication loading states
 
-## 📋 Database Migration
+## 📋 Infrastructure & Data Migration
 
-Run the following to apply database changes from the repository root:
+This project no longer uses Prisma/Postgres. Instead, the application stores files in **S3** and metadata in **DynamoDB**.
+
+To prepare for data migration and deployment:
+
+1. Deploy infrastructure (CloudFormation or Amplify):
+   - S3 bucket: use `infrastructure/s3-pdf-bucket.yaml` or `amplify` resources
+   - DynamoDB tables: use `infrastructure/dynamodb-tables.yaml`
+2. Set environment variables (see `env.production.example`) and ensure the following are configured:
+   - `AWS_S3_BUCKET`, `DDB_PDF_EXPORTS_TABLE`, `DDB_CLIENTS_TABLE`, `DDB_USERS_TABLE`, `DDB_EMAIL_TEMPLATES_TABLE`, `DDB_EMAIL_INTEGRATIONS_TABLE`, `DDB_APPOINTMENTS_TABLE`, `DDB_RECENT_CLIENT_ACCESS_TABLE`, `AWS_REGION`
+3. Run a dry-run migration to generate a report without modifying production data:
 
 ```bash
-npx prisma migrate dev --name add_crm_features
-npx prisma generate
+npm run migrate:prisma-to-ddb:dry
 ```
+
+4. Review the report in `tmp/migration-report-*.json`, and when ready, run the real migration (choose models with `--models` or migrate all):
+
+```bash
+npm run migrate:prisma-to-ddb -- --models=pdfs,clients
+```
+
+> Tip: The migration script is idempotent and safe to re-run.
 
 ## 🔧 Configuration Required
 
@@ -109,7 +125,7 @@ Set up a cron job to call `/api/cron/appointment-reminders` hourly:
 
 ## 🚀 Next Steps
 
-1. Run database migration: `npx prisma migrate dev`
+1. Deploy infrastructure (DynamoDB & S3) and run migration dry-run: `npm run migrate:prisma-to-ddb:dry` (then run real migration when ready)
 2. Set up cron job for appointment reminders
 3. Configure email integration for each account
 4. Test appointment scheduling and reminders

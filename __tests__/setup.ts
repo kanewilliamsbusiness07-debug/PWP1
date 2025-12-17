@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom';
+
+// Setup AWS SDK client mocks
+import { resetAwsMocks } from './__mocks__/aws-sdk-mocks';
+afterEach(() => { resetAwsMocks(); });
 import { vi } from 'vitest';
 
 // Mock next/navigation

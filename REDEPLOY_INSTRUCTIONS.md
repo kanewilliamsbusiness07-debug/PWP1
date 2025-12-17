@@ -53,8 +53,7 @@ After clicking "Redeploy", you should see:
 2. Click **"Build logs"** or **"View logs"**
 3. Look for:
    - ✅ Environment variables being loaded
-   - ✅ Database migrations running
-   - ✅ Database seeding running
+   - ✅ Seed script running (`npm run seed:dynamodb`) if configured
    - ✅ Build completing successfully
 
 ### Step 2: Verify Environment Variables
@@ -68,7 +67,10 @@ https://fix-amplify-deploy.d3ry622jxpwz6.amplifyapp.com/api/env-check
 ```json
 {
   "required": {
-    "DATABASE_URL": "SET (value hidden)",
+    "AWS_REGION": "SET",
+    "AWS_S3_BUCKET": "SET",
+    "DDB_CLIENTS_TABLE": "SET",
+    "DDB_PDF_EXPORTS_TABLE": "SET",
     "NEXTAUTH_SECRET": "SET",
     "NEXTAUTH_URL": "https://fix-amplify-deploy.d3ry622jxpwz6.amplifyapp.com",
     "JWT_SECRET": "SET",
@@ -129,10 +131,10 @@ If after redeploy, variables still show "NOT SET":
 
 ### Build Logs Show Warnings
 
-If you see warnings like "DATABASE_URL not set" in build logs:
-- This is expected during build time
-- Variables are loaded at runtime, not build time
-- Check the `/api/env-check` endpoint at runtime (after deployment)
+If you see warnings about storage env vars (e.g., `AWS_S3_BUCKET`, `DDB_*`) not set in build logs:
+- This can be expected during build time
+- Variables are injected at runtime; verify them via the `/api/env-check` endpoint after deployment
+- Ensure infra (DynamoDB & S3) is provisioned and variables are set in Amplify Console
 
 ## Expected Timeline
 
@@ -145,9 +147,7 @@ If you see warnings like "DATABASE_URL not set" in build logs:
 
 1. **Build Phase:**
    - Installs dependencies
-   - Generates Prisma Client
-   - Runs database migrations (if DATABASE_URL is available)
-   - Seeds database (creates default user)
+   - Optionally runs migration dry-run and seed script
    - Builds Next.js app
 
 2. **Deploy Phase:**

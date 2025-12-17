@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { ddbDocClient } from '@/lib/aws/clients';
+import { GetCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
 import type { Session } from 'next-auth';
@@ -20,27 +22,17 @@ export async function GET(
     const params = await context.params;
     const exportId = params.id;
 
-    const pdfExport = await prisma.pdfExport.findFirst({
-      where: {
-        id: exportId,
-        userId: session.user.id
-      },
-      include: {
-        client: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        }
-      }
-    });
+    const pdfTable = process.env.DDB_PDF_EXPORTS_TABLE;
+    if (!pdfTable) return NextResponse.json({ error: 'Server not configured: DDB_PDF_EXPORTS_TABLE missing' }, { status: 500 });
 
-    if (!pdfExport) {
+    const res = await ddbDocClient.send(new GetCommand({ TableName: pdfTable, Key: { id: exportId } } as any));
+    const pdfExport = res.Item;
+
+    if (!pdfExport || pdfExport.userId !== session.user.id) {
       return NextResponse.json({ error: 'PDF export not found' }, { status: 404 });
     }
 
+    // Optionally, include client details if stored on the item
     return NextResponse.json(pdfExport);
   } catch (error) {
     console.error('Error getting PDF export:', error);
@@ -62,31 +54,25 @@ export async function DELETE(
     const params = await context.params;
     const exportId = params.id;
 
-    const pdfExport = await prisma.pdfExport.findFirst({
-      where: {
-        id: exportId,
-        userId: session.user.id
-      }
-    });
+    const pdfTable = process.env.DDB_PDF_EXPORTS_TABLE;
+    if (!pdfTable) return NextResponse.json({ error: 'Server not configured: DDB_PDF_EXPORTS_TABLE missing' }, { status: 500 });
 
-    if (!pdfExport) {
-      return NextResponse.json({ error: 'PDF export not found' }, { status: 404 });
-    }
+    const getRes: any = await ddbDocClient.send(new GetCommand({ TableName: pdfTable, Key: { id: exportId } } as any));
+    const pdfExport = getRes.Item;
+    if (!pdfExport || pdfExport.userId !== session.user.id) return NextResponse.json({ error: 'PDF export not found' }, { status: 404 });
 
-    // Delete file if it exists
+    // Delete S3 object if present
     try {
-      const filePath = join(process.cwd(), pdfExport.filePath);
-      const { unlink } = await import('fs/promises');
-      await unlink(filePath);
-    } catch (fileError) {
-      // File might not exist, continue with database deletion
-      console.warn('Could not delete PDF file:', fileError);
+      const bucket = process.env.AWS_S3_BUCKET;
+      if (bucket && pdfExport.s3Key) {
+        await s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: pdfExport.s3Key }));
+      }
+    } catch (sErr) {
+      console.warn('Could not delete S3 object:', sErr);
     }
 
-    // Delete database record
-    await prisma.pdfExport.delete({
-      where: { id: exportId }
-    });
+    // Delete DynamoDB record
+    await ddbDocClient.send(new DeleteCommand({ TableName: pdfTable, Key: { id: exportId } } as any));
 
     return NextResponse.json({ success: true });
   } catch (error) {

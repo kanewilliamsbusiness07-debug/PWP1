@@ -15,23 +15,34 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run '**/*.integration.test.ts'",
     "test:e2e": "playwright test",
+    "test:ci": "vitest run --run",
     "visual:compare": "node scripts/visual-compare.js",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:seed": "ts-node prisma/seed.ts",
-    "db:studio": "prisma studio",
-    "db:update-allan": "ts-node scripts/update-allan-name.ts",
+    "db:update-allan": "npx tsx scripts/update-allan-name.ts",
+    "db:check-allan": "node scripts/check-allan.js",
     "docker:build": "docker build -t fincalc-pro .",
     "docker:run": "docker-compose up -d",
     "docker:stop": "docker-compose down",
+    "migrate:prisma-to-ddb": "node scripts/migrate-prisma-to-dynamodb.js",
+    "migrate:prisma-to-ddb:dry": "node scripts/migrate-prisma-to-dynamodb.js --dry-run",
+    "seed:dynamodb": "npx tsx scripts/seed-users.ts",
+    "infra:deploy:dynamodb": "aws cloudformation deploy --template-file infrastructure/dynamodb-tables.yaml --stack-name fincalc-dynamodb --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM",
+    "infra:deploy:s3": "aws cloudformation deploy --template-file infrastructure/s3-pdf-bucket.yaml --stack-name fincalc-pdf-bucket --parameter-overrides BucketName=your-unique-bucket-name --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM",
+    "infra:deploy:amplify": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-amplify-infra.ps1 -BucketName your-unique-bucket-name",
+    "infra:deploy:amplify:sh": "bash ./scripts/deploy-amplify-infra.sh your-unique-bucket-name",
+    "amplify:open": "npx ampx sandbox",
+    "amplify:push": "amplify push",
+    "build:pdf-image": "bash scripts/build-pdf-function-image.sh",
+    "build:pdf-image:win": "powershell ./scripts/build-pdf-function-image.ps1",
     "prepare": "node ./scripts/husky-prepare.js",
     "postinstall": "node ./scripts/check-env.js || node -e \"process.exit(0)\""
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.467.0",
+    "@aws-sdk/client-lambda": "^3.953.0",
+    "@aws-sdk/client-s3": "^3.467.0",
+    "@aws-sdk/lib-dynamodb": "^3.467.0",
     "@hookform/resolvers": "^3.9.0",
     "@next/swc-wasm-nodejs": "13.5.1",
-    "@prisma/client": "^5.19.1",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -98,6 +109,7 @@
     "speakeasy": "^2.0.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^9.0.0",
     "vaul": "^0.9.9",
     "zod": "^3.23.8",
     "zustand": "^5.0.8"
@@ -120,17 +132,15 @@
     "postcss": "^8.5.6",
     "postcss-nesting": "^13.0.2",
     "prettier": "^3.1.0",
-    "prisma": "^5.19.1",
     "tailwindcss": "^3.4.18",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "aws-sdk-client-mock": "^1.9.0"
   },
-  "prisma": {
-    "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
-  },
+
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "jsdom",
@@ -175,8 +185,6 @@
     "retirement-planning",
     "property-analysis",
     "nextjs",
-    "typescript",
-    "prisma",
-    "postgresql"
+    "typescript"
   ]
 }
