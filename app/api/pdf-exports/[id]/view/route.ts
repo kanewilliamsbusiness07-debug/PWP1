@@ -40,7 +40,10 @@ export async function GET(
       const getObj = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: pdfExport.s3Key }));
       const bodyStream = (getObj.Body as any) as Readable;
 
-      return new NextResponse(bodyStream, {
+      // Convert Node Readable to Web ReadableStream for NextResponse
+      const webStream = Readable.toWeb(bodyStream as any) as unknown as globalThis.ReadableStream;
+
+      return new NextResponse(webStream, {
         headers: {
           'Content-Type': pdfExport.mimeType || 'application/pdf',
           'Content-Disposition': `inline; filename="${pdfExport.fileName}"`

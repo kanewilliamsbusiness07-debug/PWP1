@@ -47,12 +47,15 @@ export async function GET(
       const getObj = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: s3Key }));
       const bodyStream = (getObj.Body as any) as Readable;
 
+      // Convert Node Readable to Web ReadableStream for NextResponse
+      const webStream = Readable.toWeb(bodyStream as any) as unknown as globalThis.ReadableStream;
+
       const headers: Record<string,string> = {
         'Content-Type': pdfExport.mimeType || 'application/pdf',
         'Content-Disposition': `attachment; filename="${pdfExport.fileName}"`
       };
 
-      return new NextResponse(bodyStream, { headers });
+      return new NextResponse(webStream, { headers });
     } catch (err) {
       console.error('Error fetching PDF from S3:', err);
       return NextResponse.json({ error: 'PDF file not found in S3' }, { status: 404 });

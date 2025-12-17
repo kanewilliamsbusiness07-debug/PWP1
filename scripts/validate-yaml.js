@@ -136,7 +136,18 @@ function findLineNumber(lines, searchString) {
 function validateYamlFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
-    const doc = yaml.load(content);
+
+    // Preprocess CloudFormation intrinsic tags (e.g., !Ref, !Sub, !GetAtt) so js-yaml
+    // can parse CloudFormation templates without failing on unknown tags. We only
+    // perform this transformation for files inside `infrastructure/` (CF templates).
+    let contentToParse = content;
+    if (filePath.includes('infrastructure') && /!\b(Ref|Sub|GetAtt|Join|FindInMap|GetAZs|Select|Split|ImportValue|Cidr)\b/.test(content)) {
+      contentToParse = content.replace(/^([ \t]*[^:\n]+:\s*)!(\w+)\s+([^\n]+)/gm,
+        (m, prefix, tag, rest) => `${prefix}'!${tag} ${rest.replace(/'/g, "''")}'`
+      );
+    }
+
+    const doc = yaml.load(contentToParse);
     
     // Validate commands in buildspec/amplify files
     if (filePath.includes('amplify.yml') || filePath.includes('buildspec')) {

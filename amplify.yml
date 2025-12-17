@@ -5,18 +5,20 @@ frontend:
     preBuild:
       commands:
         # Use Node 20 for Next.js 15, Supabase, and Vite compatibility
-        - nvm install 20
-        - nvm use 20
-        # Install dependencies
-        - npm ci
+        - 'nvm install 20'
+        - 'nvm use 20'
+        # Install dependencies (including devDependencies required for validation)
+        - 'npm ci --include=dev'
+        # Run YAML validator to prevent malformed buildspec errors from reaching Amplify
+        - 'npm run prebuild:ci'
         # Database migration steps removed - migrations are handled via DynamoDB and migration scripts
-        - echo "Note: Prisma has been removed; if you need to migrate data, use scripts/migrate-prisma-to-dynamodb.js and ensure DDB_* env vars are set"
+        - 'echo "Note: Prisma has been removed; if you need to migrate data, use scripts/migrate-prisma-to-dynamodb.js and ensure DDB_* env vars are set"'
 
     build:
       commands:
         # Amplify handles SSR automatically as long as .next is the output directory
         # Environment variables are automatically injected from Amplify Console
-        - npm run build
+        - 'npm run build'
   artifacts:
     baseDirectory: .next
     files:

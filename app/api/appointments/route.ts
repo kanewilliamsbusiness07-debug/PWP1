@@ -22,8 +22,10 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '50');
 
+    // Capture userId locally to satisfy TypeScript narrowing
+    const userId = session.user!.id as string;
     const where: any = {
-      userId: session.user.id
+      userId: userId
     };
 
     if (clientId) {
@@ -75,13 +77,17 @@ export async function GET(req: NextRequest) {
         });
       }
 
+      // Ensure results are scoped to the authenticated user
+      items = items.filter((it:any) => it.userId === userId);
+
       return NextResponse.json(items.slice(0, limit));
     } catch (qErr) {
       console.warn('[Appointments API] Query failed, falling back to scan', qErr);
       // Fallback to scan and filter
       const scanRes: any = await ddbDocClient.send(new ScanCommand({ TableName: apptTable } as any));
       let all = scanRes.Items || [];
-      all = all.filter((it:any) => it.userId === session.user.id);
+      // Ensure results are scoped to the authenticated user
+      all = all.filter((it:any) => it.userId === userId);
       if (clientId) all = all.filter((it:any) => it.clientId === clientId);
       if (status) all = all.filter((it:any) => it.status === status);
       if (startDate || endDate) {
@@ -120,19 +126,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Capture userId locally
+    const userId = session.user!.id as string;
+
     // Verify client exists in DynamoDB
     const clientsTable = process.env.DDB_CLIENTS_TABLE;
     if (!clientsTable) return NextResponse.json({ error: 'Server not configured: DDB_CLIENTS_TABLE missing' }, { status: 500 });
     const clientRes: any = await ddbDocClient.send(new GetCommand({ TableName: clientsTable, Key: { id: data.clientId } } as any));
     const client = clientRes.Item;
-    if (!client || client.userId !== session.user.id) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    if (!client || client.userId !== userId) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
 
     // Check for conflicts by scanning appointments for this user and overlapping times
     const apptTable = process.env.DDB_APPOINTMENTS_TABLE;
     if (!apptTable) return NextResponse.json({ error: 'Server not configured: DDB_APPOINTMENTS_TABLE missing' }, { status: 500 });
 
     const scanRes: any = await ddbDocClient.send(new ScanCommand({ TableName: apptTable } as any));
-    const existing = (scanRes.Items || []).filter((it:any) => it.userId === session.user.id && it.status !== 'CANCELLED');
+    const existing = (scanRes.Items || []).filter((it:any) => it.userId === userId && it.status !== 'CANCELLED');
     const startNew = new Date(data.startDateTime);
     const endNew = new Date(data.endDateTime);
     const conflict = existing.find((it:any) => {
@@ -149,7 +158,7 @@ export async function POST(req: NextRequest) {
     const apptId = uuidv4();
     const item = {
       id: apptId,
-      userId: session.user.id,
+      userId: userId,
       clientId: data.clientId,
       title: data.title,
       description: data.description || null,

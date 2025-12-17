@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ddbDocClient } from '@/lib/aws/clients';
+import { ddbDocClient, s3Client } from '@/lib/aws/clients';
 import { GetCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getServerSession } from 'next-auth/next';

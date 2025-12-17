@@ -57,6 +57,8 @@ export async function PATCH(
     const params = await context.params;
     const appointmentId = params.id;
     const data = await req.json();
+    // Capture userId locally to satisfy TypeScript narrowing
+    const userId = session.user!.id as string;
 
     // Verify appointment exists and belongs to user
     const apptTable = process.env.DDB_APPOINTMENTS_TABLE;
@@ -72,7 +74,7 @@ export async function PATCH(
 
     if (data.startDateTime || data.endDateTime) {
       const scanRes: any = await ddbDocClient.send(new ScanCommand({ TableName: apptTable } as any));
-      const existing = (scanRes.Items || []).filter((it:any) => it.userId === session.user.id && it.id !== appointmentId && it.status !== 'CANCELLED');
+      const existing = (scanRes.Items || []).filter((it:any) => it.userId === userId && it.id !== appointmentId && it.status !== 'CANCELLED');
       const conflict = existing.find((it:any) => {
         const s = new Date(it.startDateTime);
         const e = new Date(it.endDateTime);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ddbDocClient } from '@/lib/aws/clients';
-import { QueryCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client } from '@/lib/aws/clients';
 import { v4 as uuidv4 } from 'uuid';
@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const userId = session.user!.id as string;
 
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get('clientId');
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
             TableName: pdfTable,
             IndexName: 'userId-createdAt-index',
             KeyConditionExpression: 'userId = :uid',
-            ExpressionAttributeValues: { ':uid': session.user.id },
+            ExpressionAttributeValues: { ':uid': userId },
             ScanIndexForward: false,
             Limit: limit
           };
@@ -60,10 +61,10 @@ export async function GET(req: NextRequest) {
         }
 
         // Fallback to scan
-        const scanRes = await ddbDocClient.send({
+        const scanRes: any = await ddbDocClient.send({
           TableName: pdfTable
         } as any);
-        const filtered = (scanRes.Items || []).filter((it: any) => it.userId === session.user.id && (!clientId || it.clientId === clientId)).slice(0, limit);
+        const filtered = (scanRes.Items || []).filter((it: any) => it.userId === userId && (!clientId || it.clientId === clientId)).slice(0, limit);
         return NextResponse.json(filtered);
       }
 
@@ -100,15 +101,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify client belongs to user
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        userId: session.user.id
-      }
-    });
+    // Verify client belongs to user (DynamoDB)
+    const clientsTable = process.env.DDB_CLIENTS_TABLE;
+    if (!clientsTable) return NextResponse.json({ error: 'Server not configured: DDB_CLIENTS_TABLE missing' }, { status: 500 });
 
-    if (!client) {
+    let client: any = null;
+    try {
+      const gRes: any = await ddbDocClient.send(new GetCommand({ TableName: clientsTable, Key: { id: clientId } } as any));
+      client = gRes.Item;
+    } catch (gErr: any) {
+      console.error('[PDF Exports API] Error fetching client:', gErr);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    if (!client || client.userId !== session.user.id) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
@@ -124,34 +130,53 @@ export async function POST(req: NextRequest) {
     const uniqueFileName = `${timestamp}_${sanitizedFileName}`;
     const filePath = join(uploadsDir, uniqueFileName);
 
-    // Save file
+    // Save file locally
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
-    // Create database record
-    const pdfExport = await prisma.pdfExport.create({
-      data: {
-        userId: session.user.id,
-        clientId,
-        fileName,
-        filePath: `/uploads/pdfs/${uniqueFileName}`,
-        fileSize: buffer.length,
-        mimeType: file.type || 'application/pdf'
-      },
-      include: {
-        client: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        }
+    // Optionally upload to S3 if bucket configured
+    const bucket = process.env.AWS_S3_BUCKET;
+    let s3Key: string | null = null;
+    if (bucket) {
+      try {
+        s3Key = `pdfs/${uniqueFileName}`;
+        await s3Client.send(new PutObjectCommand({ Bucket: bucket, Key: s3Key, Body: buffer, ContentType: file.type || 'application/pdf' }));
+      } catch (s3Err) {
+        console.warn('[PDF Exports API] S3 upload failed, keeping local file:', s3Err);
+        s3Key = null;
       }
-    });
+    }
 
-    return NextResponse.json(pdfExport);
+    // Create database record in DynamoDB
+    const pdfTable = process.env.DDB_PDF_EXPORTS_TABLE;
+    if (!pdfTable) return NextResponse.json({ error: 'Server not configured: DDB_PDF_EXPORTS_TABLE missing' }, { status: 500 });
+
+    const pdfId = uuidv4();
+    const now = new Date().toISOString();
+    const item: any = {
+      id: pdfId,
+      userId: session.user.id,
+      clientId,
+      fileName,
+      filePath: `/uploads/pdfs/${uniqueFileName}`,
+      s3Key: s3Key || null,
+      fileSize: buffer.length,
+      mimeType: file.type || 'application/pdf',
+      createdAt: now
+    };
+
+    try {
+      await ddbDocClient.send(new PutCommand({ TableName: pdfTable, Item: item } as any));
+    } catch (dbErr) {
+      console.error('[PDF Exports API] Error creating PDF record in DynamoDB:', dbErr);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    // Attach client info for response
+    item.client = { id: client.id, firstName: client.firstName, lastName: client.lastName, email: client.email };
+
+    return NextResponse.json(item);
   } catch (error) {
     console.error('Error creating PDF export:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

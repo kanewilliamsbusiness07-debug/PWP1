@@ -337,23 +337,23 @@ export default function SummaryPage() {
     // Use stored projection results from global state
     // This ensures Summary page shows the SAME values as the Projections page
     const storedProjectionResults = globalResults?.[clientKey];
-  import { computeSummaryFromClient } from '@/lib/utils/summary-utils';
 
     // Use helper to compute summary values (prefer stored results)
     const computedSummary = computeSummaryFromClient(client, sharedAssumptions, storedProjectionResults);
 
-    // Map computed values into local variables
-    let projectedRetirementLumpSum = computedSummary.projectedRetirementLumpSum;
-    let projectedRetirementMonthlyCashFlow = computedSummary.projectedRetirementMonthlyCashFlow;
-    let retirementDeficitSurplus = computedSummary.retirementDeficitSurplus;
-    let isRetirementDeficit = computedSummary.isRetirementDeficit;
-    let yearsToRetirement = computedSummary.yearsToRetirement;
-
+    // Map computed values into local variables (declare types first)
     let projectedRetirementLumpSum: number;
     let projectedRetirementMonthlyCashFlow: number;
     let retirementDeficitSurplus: number;
     let isRetirementDeficit: boolean;
     let yearsToRetirement: number;
+
+    // Initialize from computedSummary if available
+    projectedRetirementLumpSum = computedSummary?.projectedRetirementLumpSum || 0;
+    projectedRetirementMonthlyCashFlow = computedSummary?.projectedRetirementMonthlyCashFlow || 0;
+    retirementDeficitSurplus = computedSummary?.retirementDeficitSurplus || 0;
+    isRetirementDeficit = computedSummary?.isRetirementDeficit || false;
+    yearsToRetirement = computedSummary?.yearsToRetirement || 0;
 
     if (storedProjectionResults) {
       // Use stored values from Projections page for consistency

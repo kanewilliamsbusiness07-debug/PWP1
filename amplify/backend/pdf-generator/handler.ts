@@ -35,7 +35,7 @@ export const handler = async (event: any) => {
       const height = await page.evaluate(() => document.documentElement.scrollHeight);
       pdfBuffer = await page.pdf({ printBackground: true, width: '1440px', height: `${height}px` });
       await browser.close();
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Puppeteer rendering failed or not available, falling back to stub PDF:', err?.message || err);
       pdfBuffer = Buffer.from('%PDF-1.4\n%render-fallback\n', 'utf8');
     }

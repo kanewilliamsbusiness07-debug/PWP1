@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userId = session.user!.id as string;
+
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -105,7 +107,7 @@ export async function GET(req: NextRequest) {
           const scanParams: any = { TableName: clientsTable };
           const scanRes = await ddbDocClient.send(new ScanCommand(scanParams));
           const all = scanRes.Items || [];
-          const filtered = all.filter((c: any) => c.userId === session.user.id && (!search || (
+          const filtered = all.filter((c: any) => c.userId === userId && (!search || (
             (c.firstName || '').toLowerCase().includes(search.toLowerCase()) ||
             (c.lastName || '').toLowerCase().includes(search.toLowerCase()) ||
             (c.email || '').toLowerCase().includes(search.toLowerCase())

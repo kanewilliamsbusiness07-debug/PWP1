@@ -47,6 +47,8 @@ A new validation script that:
 - Provides clear error messages with file paths and line numbers
 - Can be run as part of CI/CD pipeline
 
+**Note:** The validator now preprocesses CloudFormation intrinsic tags (e.g., `!Ref`, `!Sub`, `!GetAtt`) in `infrastructure/` templates so `js-yaml` does not fail on unknown tags.
+
 **Installation:**
 ```bash
 npm install --save-dev js-yaml
@@ -146,7 +148,7 @@ To prevent future YAML issues:
 
 ## Files Modified
 
-1. `amplify.yml` - Fixed command quoting
+1. `amplify.yml` - Fixed command quoting and added `prebuild:ci` step to run `node scripts/validate-yaml.js` during Amplify builds (ensures malformed buildspec errors are caught early)
 2. `package.json` - Added validation script and dependency
 3. `scripts/validate-yaml.js` - New validation script (created)
 4. `FIX_NOTES.md` - This documentation (created)

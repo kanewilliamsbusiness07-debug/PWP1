@@ -27,7 +27,8 @@ export async function GET(req: NextRequest) {
 
     const scanRes: any = await ddbDocClient.send(new ScanCommand({ TableName: clientsTable } as any));
     const all = scanRes.Items || [];
-    const clients = all.filter((c: any) => c.userId === session.user.id).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const userId = session.user!.id as string;
+    const clients = all.filter((c: any) => c.userId === userId).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     const count = clients.length;
     const allClientsSample = (all || []).slice(0, 10).map((c: any) => ({ id: c.id, userId: c.userId, firstName: c.firstName, lastName: c.lastName, email: c.email, createdAt: c.createdAt }));
 
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
       userId: session.user.id,
       debug: {
         allClientsSample,
-        userIdsInDatabase: Array.from(new Set((all || []).map(c => c.userId)))
+        userIdsInDatabase: Array.from(new Set((all || []).map((c: any) => c.userId)))
       }
     });
   } catch (error: any) {

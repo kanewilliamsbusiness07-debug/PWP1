@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { verifyToken } from '@/lib/auth/jwt';
-
-const prisma = new PrismaClient();
+import { ddbDocClient } from '@/lib/aws/clients';
+import { GetCommand } from '@aws-sdk/lib-dynamodb';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,17 +19,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Get user data
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isMasterAdmin: true
+    // Get user data from DynamoDB Users table
+    const usersTable = process.env.DDB_USERS_TABLE;
+    let user: any = null;
+
+    if (usersTable) {
+      try {
+        const res: any = await ddbDocClient.send(new GetCommand({ TableName: usersTable, Key: { id: payload.userId } } as any));
+        user = res.Item;
+      } catch (dbError: any) {
+        console.error('[AUTH] DynamoDB error fetching user:', dbError);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
       }
-    });
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

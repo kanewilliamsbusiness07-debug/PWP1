@@ -34,7 +34,8 @@
     "build:pdf-image": "bash scripts/build-pdf-function-image.sh",
     "build:pdf-image:win": "powershell ./scripts/build-pdf-function-image.ps1",
     "prepare": "node ./scripts/husky-prepare.js",
-    "postinstall": "node ./scripts/check-env.js || node -e \"process.exit(0)\""
+    "postinstall": "node ./scripts/check-env.js || node -e \"process.exit(0)\"",
+    "prebuild:ci": "node scripts/validate-yaml.js"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.467.0",
@@ -107,6 +108,7 @@
     "recharts": "^2.12.7",
     "sonner": "^1.5.0",
     "speakeasy": "^2.0.0",
+    "stream-buffers": "^3.0.3",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^9.0.0",
