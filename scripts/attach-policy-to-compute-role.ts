@@ -1,5 +1,5 @@
-import { IAMClient, AttachRolePolicyCommand } from '@aws-sdk/client-iam';
-import { LambdaClient, GetFunctionCommand } from '@aws-sdk/client-lambda';
+import { IAMClient, ListRolesCommand, AttachRolePolicyCommand } from '@aws-sdk/client-iam';
+import { LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
 import fetch from 'node-fetch';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 
@@ -30,15 +30,14 @@ async function main() {
     const functionName = envJson.allRelevant?.AWS_LAMBDA_FUNCTION_NAME;
     if (!functionName) throw new Error('Lambda function name not found in env-check');
 
-    console.log('Getting execution role from Lambda function:', functionName);
-    const lambdaClient = new LambdaClient({ region: deploymentRegion });
-    const funcRes = await lambdaClient.send(new GetFunctionCommand({ FunctionName: functionName }));
-    const roleArn = funcRes.Configuration?.Role;
-    if (!roleArn) throw new Error('Could not get role ARN from Lambda function');
-    const roleName = roleArn.split('/').pop()!;
-    console.log('Execution role:', roleName);
-
+    console.log('Listing IAM roles to find the unauthRole...');
     const iam = new IAMClient({ region: deploymentRegion });
+    const rolesRes = await iam.send(new ListRolesCommand({}));
+    const roles = rolesRes.Roles || [];
+    const unauthRole = roles.find(r => r.RoleName?.includes('unauthRole'));
+    if (!unauthRole) throw new Error('Could not find unauthRole');
+    const roleName = unauthRole.RoleName!;
+    console.log('Found role:', roleName);
 
     const policyName = 'PWP-Compute-Access';
     const policyDoc = {
