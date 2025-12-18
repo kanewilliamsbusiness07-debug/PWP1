@@ -866,7 +866,48 @@ export default function FinancialPositionPage() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-center mt-6">
+      <div className="flex justify-center gap-4 mt-6">
+        <Button
+          size="sm"
+          onClick={() => {
+            if (!activeClient) {
+              alert('Please select a client first');
+              return;
+            }
+            addAsset(activeClient, {
+              name: 'New Asset',
+              currentValue: 0,
+              type: 'other'
+            });
+          }}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Asset
+        </Button>
+        
+        <Button
+          size="sm"
+          onClick={() => {
+            if (!activeClient) {
+              alert('Please select a client first');
+              return;
+            }
+            addLiability(activeClient, {
+              name: 'New Liability',
+              balance: 0,
+              monthlyPayment: 0,
+              interestRate: 0,
+              loanTerm: 0,
+              type: 'other'
+            });
+          }}
+          className="bg-red-600 hover:bg-red-700 text-white"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Liability
+        </Button>
+        
         <Button
           size="sm"
           onClick={() => {
