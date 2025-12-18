@@ -45,6 +45,31 @@ class SafeLocalStorage implements StateStorage {
   }
 }
 
+// Asset and Liability type definitions
+type Asset = {
+  id: string;
+  name: string;
+  currentValue: number;
+  type: 'property' | 'vehicle' | 'savings' | 'shares' | 'super' | 'other';
+  ownerOccupied?: 'own' | 'rent';
+  linkedLiabilityId?: string;
+};
+
+type Liability = {
+  id: string;
+  name: string;
+  balance: number;
+  monthlyPayment: number;
+  interestRate: number;
+  loanTerm: number;
+  termRemaining?: number;
+  type: 'mortgage' | 'personal-loan' | 'credit-card' | 'hecs' | 'other';
+  lender?: string;
+  loanType?: 'fixed' | 'split' | 'variable';
+  paymentFrequency?: 'W' | 'F' | 'M';
+  linkedAssetId?: string;
+};
+
 // Client data type - comprehensive including all fields from all pages
 interface ClientData {
   // Database ID (optional - may not exist for locally saved clients)
@@ -149,28 +174,10 @@ interface ClientData {
   otherIncome?: number;
 
   // Financial Position - Assets (dynamic)
-  assets?: Array<{
-    id: string;
-    name: string;
-    currentValue: number;
-    type: 'property' | 'vehicle' | 'savings' | 'shares' | 'super' | 'other';
-    ownerOccupied?: 'own' | 'rent'; // Only used for first asset (home)
-  }>;
+  assets?: Asset[];
 
   // Financial Position - Liabilities (dynamic)
-  liabilities?: Array<{
-    id: string;
-    name: string;
-    balance: number;
-    monthlyPayment: number;
-    interestRate: number;
-    loanTerm: number;
-    termRemaining?: number;
-    type: 'mortgage' | 'personal-loan' | 'credit-card' | 'hecs' | 'other';
-    lender?: string;
-    loanType?: 'fixed' | 'split' | 'variable';
-    paymentFrequency?: 'W' | 'F' | 'M';
-  }>;
+  liabilities?: Liability[];
 
   // Investment Properties
   properties?: Array<{
@@ -401,6 +408,15 @@ interface FinancialStore extends FinancialFields {
   
   // Shared assumptions actions
   setSharedAssumptions: (data: Partial<SharedAssumptions>) => void;
+
+  // Asset and liability management
+  addAsset: (clientSlot: "A" | "B", asset: Omit<Asset, 'id'>) => string;
+  addLiability: (clientSlot: "A" | "B", liability: Omit<Liability, 'id'>) => string;
+  addPairedAssetLiability: (clientSlot: "A" | "B", asset: Omit<Asset, 'id' | 'linkedLiabilityId'>, liability: Omit<Liability, 'id' | 'linkedAssetId'>) => { assetId: string; liabilityId: string };
+  removeAsset: (clientSlot: "A" | "B", assetId: string) => void;
+  removeLiability: (clientSlot: "A" | "B", liabilityId: string) => void;
+  updateAsset: (clientSlot: "A" | "B", assetId: string, updates: Partial<Asset>) => void;
+  updateLiability: (clientSlot: "A" | "B", liabilityId: string, updates: Partial<Liability>) => void;
 
 // Enhanced data synchronization actions
 syncClientData: (clientSlot: "A" | "B", clientData: Partial<ClientData>) => void;
@@ -726,6 +742,185 @@ export const useFinancialStore = create<FinancialStore>()(
           ...state,
           sharedAssumptions: { ...state.sharedAssumptions, ...data }
         }));
+      },
+
+      addAsset: (clientSlot, asset) => {
+        const assetId = `asset-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = (state[clientKey] || {}) as Partial<ClientData>;
+          const currentAssets = currentClient.assets || [];
+          
+          const newAsset = { ...asset, id: assetId };
+          const updatedClient = {
+            ...currentClient,
+            assets: [...currentAssets, newAsset]
+          };
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient
+          };
+        });
+        return assetId;
+      },
+
+      addLiability: (clientSlot, liability) => {
+        const liabilityId = `liability-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = (state[clientKey] || {}) as Partial<ClientData>;
+          const currentLiabilities = currentClient.liabilities || [];
+          
+          const newLiability = { ...liability, id: liabilityId };
+          const updatedClient = {
+            ...currentClient,
+            liabilities: [...currentLiabilities, newLiability]
+          };
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient
+          };
+        });
+        return liabilityId;
+      },
+
+      addPairedAssetLiability: (clientSlot, asset, liability) => {
+        const pairId = `pair-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const assetId = `asset-${pairId}`;
+        const liabilityId = `liability-${pairId}`;
+        
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = (state[clientKey] || {}) as Partial<ClientData>;
+          const currentAssets = currentClient.assets || [];
+          const currentLiabilities = currentClient.liabilities || [];
+          
+          const newAsset = { ...asset, id: assetId, linkedLiabilityId: liabilityId };
+          const newLiability = { ...liability, id: liabilityId, linkedAssetId: assetId };
+          
+          const updatedClient = {
+            ...currentClient,
+            assets: [...currentAssets, newAsset],
+            liabilities: [...currentLiabilities, newLiability]
+          };
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient
+          };
+        });
+        
+        return { assetId, liabilityId };
+      },
+
+      removeAsset: (clientSlot, assetId) => {
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = (state[clientKey] || {}) as Partial<ClientData>;
+          const currentAssets = currentClient.assets || [];
+          
+          const assetToRemove = currentAssets.find(a => a.id === assetId);
+          const updatedAssets = currentAssets.filter(a => a.id !== assetId);
+          
+          // If the asset was linked to a liability, remove the link from the liability
+          let updatedLiabilities = currentClient.liabilities || [];
+          if (assetToRemove?.linkedLiabilityId) {
+            updatedLiabilities = updatedLiabilities.map(l => 
+              l.id === assetToRemove.linkedLiabilityId 
+                ? { ...l, linkedAssetId: undefined }
+                : l
+            );
+          }
+          
+          const updatedClient = {
+            ...currentClient,
+            assets: updatedAssets,
+            liabilities: updatedLiabilities
+          };
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient
+          };
+        });
+      },
+
+      removeLiability: (clientSlot, liabilityId) => {
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = (state[clientKey] || {}) as Partial<ClientData>;
+          const currentLiabilities = currentClient.liabilities || [];
+          
+          const liabilityToRemove = currentLiabilities.find(l => l.id === liabilityId);
+          const updatedLiabilities = currentLiabilities.filter(l => l.id !== liabilityId);
+          
+          // If the liability was linked to an asset, remove the link from the asset
+          let updatedAssets = currentClient.assets || [];
+          if (liabilityToRemove?.linkedAssetId) {
+            updatedAssets = updatedAssets.map(a => 
+              a.id === liabilityToRemove.linkedAssetId 
+                ? { ...a, linkedLiabilityId: undefined }
+                : a
+            );
+          }
+          
+          const updatedClient = {
+            ...currentClient,
+            assets: updatedAssets,
+            liabilities: updatedLiabilities
+          };
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient
+          };
+        });
+      },
+
+      updateAsset: (clientSlot, assetId, updates) => {
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = (state[clientKey] || {}) as Partial<ClientData>;
+          const currentAssets = currentClient.assets || [];
+          
+          const updatedAssets = currentAssets.map(a => 
+            a.id === assetId ? { ...a, ...updates } : a
+          );
+          
+          const updatedClient = {
+            ...currentClient,
+            assets: updatedAssets
+          };
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient
+          };
+        });
+      },
+
+      updateLiability: (clientSlot, liabilityId, updates) => {
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = (state[clientKey] || {}) as Partial<ClientData>;
+          const currentLiabilities = currentClient.liabilities || [];
+          
+          const updatedLiabilities = currentLiabilities.map(l => 
+            l.id === liabilityId ? { ...l, ...updates } : l
+          );
+          
+          const updatedClient = {
+            ...currentClient,
+            liabilities: updatedLiabilities
+          };
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient
+          };
+        });
       },
       
       syncClientData: (clientSlot, clientData) => {
