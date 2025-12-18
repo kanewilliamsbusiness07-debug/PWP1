@@ -30,7 +30,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { DataSharingDiagnostics } from '@/components/data-sharing-diagnostics';
 
 interface Client {
   id: string;
@@ -1007,7 +1006,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
             )}
             
             <Tabs defaultValue="clients" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4 bg-secondary">
+              <TabsList className="grid w-full grid-cols-3 bg-secondary">
                 <TabsTrigger value="clients" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   Clients ({clients.length})
                 </TabsTrigger>
@@ -1016,9 +1015,6 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                 </TabsTrigger>
                 <TabsTrigger value="exports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   PDFs ({pdfExports.length})
-                </TabsTrigger>
-                <TabsTrigger value="diagnostics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  Diagnostics
                 </TabsTrigger>
               </TabsList>
 

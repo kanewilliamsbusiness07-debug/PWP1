@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { TrendingUp, TrendingDown, Calculator, Wallet, CreditCard, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calculator, Wallet, CreditCard, DollarSign, Plus } from 'lucide-react';
 import { useFinancialStore } from '@/lib/store/store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -282,10 +282,25 @@ export default function FinancialPositionPage() {
       {/* Main content */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Current Financial Position</CardTitle>
-          <CardDescription>
-            Manage your assets, liabilities, and income streams
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Current Financial Position</CardTitle>
+              <CardDescription>
+                Manage your assets, liabilities, and income streams
+              </CardDescription>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                // TODO: Implement add asset and liability functionality
+                console.log('Add Asset and Liability clicked');
+              }}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Asset & Liability
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -305,6 +320,20 @@ export default function FinancialPositionPage() {
             </TabsList>
             
             <TabsContent value="assets" className="space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Assets</h3>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    // TODO: Implement add asset functionality
+                    console.log('Add Asset clicked');
+                  }}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Asset
+                </Button>
+              </div>
               <div className="space-y-6">
                 {hasClientA && (
                   <div>
@@ -384,9 +413,36 @@ export default function FinancialPositionPage() {
                   </Card>
                 )}
               </div>
+              <div className="flex justify-center mt-6">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    // TODO: Implement add asset functionality
+                    console.log('Add Asset clicked');
+                  }}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Asset
+                </Button>
+              </div>
             </TabsContent>
             
             <TabsContent value="liabilities" className="space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Liabilities</h3>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    // TODO: Implement add liability functionality
+                    console.log('Add Liability clicked');
+                  }}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Liability
+                </Button>
+              </div>
               <div className="space-y-6">
                 {hasClientA && (
                   <div>
@@ -471,6 +527,19 @@ export default function FinancialPositionPage() {
                     </CardContent>
                   </Card>
                 )}
+              </div>
+              <div className="flex justify-center mt-6">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    // TODO: Implement add liability functionality
+                    console.log('Add Liability clicked');
+                  }}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Liability
+                </Button>
               </div>
             </TabsContent>
             
@@ -588,6 +657,20 @@ export default function FinancialPositionPage() {
           </Tabs>
         </CardContent>
       </Card>
+
+      <div className="flex justify-center mt-6">
+        <Button
+          size="sm"
+          onClick={() => {
+            // TODO: Implement add asset and liability functionality
+            console.log('Add Asset and Liability clicked');
+          }}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Asset & Liability
+        </Button>
+      </div>
     </div>
   );
 }

@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       firstName: normalizedData.firstName,
       lastName: normalizedData.lastName,
-      dob: new Date(normalizedData.dob),
+      dob: new Date(normalizedData.dob).toISOString(),
       maritalStatus: normalizedData.maritalStatus || 'SINGLE',
       numberOfDependants: normalizedData.numberOfDependants ?? 0,
     };
