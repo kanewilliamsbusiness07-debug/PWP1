@@ -13,30 +13,12 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const email = searchParams.get('email');
 
-    // First, check if DATABASE_URL is available
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({
-        success: false,
-        error: 'DATABASE_URL environment variable is not set',
-        details: {
-          message: 'The DATABASE_URL environment variable is not available at runtime. Please check your Amplify Console environment variables configuration.',
-          availableEnvVars: {
-            nodeEnv: process.env.NODE_ENV,
-            nextAuthUrl: process.env.NEXTAUTH_URL || 'NOT SET',
-            nextAuthSecret: process.env.NEXTAUTH_SECRET ? 'SET' : 'NOT SET',
-            jwtSecret: process.env.JWT_SECRET ? 'SET' : 'NOT SET',
-            databaseUrl: 'NOT SET'
-          },
-          troubleshooting: [
-            '1. Go to AWS Amplify Console → Your App → App settings → Environment variables',
-            '2. Verify DATABASE_URL is set for your branch/environment',
-            '3. Ensure the variable name is exactly "DATABASE_URL" (case-sensitive)',
-            '4. Redeploy your app after adding/updating environment variables',
-            '5. Check that you\'re setting variables for the correct branch (fix-amplify-deploy)'
-          ]
-        }
-      }, { status: 500 });
-    }
+    // Provide clearer diagnostics and fallback for AWS region/envs
+    const regionVal = process.env.AWS_REGION || process.env.APP_AWS_REGION || process.env.REGION || 'NOT SET';
+    const databaseUrlPresent = Boolean(process.env.DATABASE_URL);
+
+    // Note: This app uses DynamoDB; DATABASE_URL is not required. We check DynamoDB directly using DDB_USERS_TABLE.
+    // If you are expecting a SQL DATABASE_URL (e.g. Prisma), set it explicitly; otherwise ensure DDB_* env vars are configured.
 
     // Test DynamoDB connectivity by scanning users table (if configured)
     const usersTable = process.env.DDB_USERS_TABLE;
