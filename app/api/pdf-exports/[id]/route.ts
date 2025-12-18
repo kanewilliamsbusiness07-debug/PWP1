@@ -63,7 +63,7 @@ export async function DELETE(
 
     // Delete S3 object if present
     try {
-      const bucket = process.env.AWS_S3_BUCKET;
+      const bucket = process.env.AWS_S3_BUCKET || process.env.APP_AWS_S3_BUCKET || process.env.S3_BUCKET;
       if (bucket && pdfExport.s3Key) {
         await s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: pdfExport.s3Key }));
       }

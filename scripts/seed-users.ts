@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
  * Run with: npx tsx scripts/seed-users.ts
  */
 
-const REGION = process.env.AWS_REGION || 'us-east-1';
+const REGION = process.env.AWS_REGION || process.env.APP_AWS_REGION || process.env.REGION || 'us-east-1';
 const USERS_TABLE = process.env.DDB_USERS_TABLE || 'UsersTable';
 
 const client = new DynamoDBClient({ region: REGION });
