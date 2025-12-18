@@ -1479,10 +1479,6 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   )}
                 </div>
               </TabsContent>
-
-              <TabsContent value="diagnostics" className="space-y-4">
-                <DataSharingDiagnostics />
-              </TabsContent>
             </Tabs>
           </div>
         </SheetContent>
