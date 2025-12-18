@@ -70,6 +70,12 @@ type Liability = {
   linkedAssetId?: string;
 };
 
+type FinancialPair = {
+  id: string;
+  asset: Asset;
+  liability: Liability;
+};
+
 // Client data type - comprehensive including all fields from all pages
 interface ClientData {
   // Database ID (optional - may not exist for locally saved clients)
@@ -178,6 +184,9 @@ interface ClientData {
 
   // Financial Position - Liabilities (dynamic)
   liabilities?: Liability[];
+
+  // Financial Position - Paired Assets and Liabilities
+  financialPairs?: FinancialPair[];
 
   // Investment Properties
   properties?: Array<{
@@ -417,6 +426,11 @@ interface FinancialStore extends FinancialFields {
   removeLiability: (clientSlot: "A" | "B", liabilityId: string) => void;
   updateAsset: (clientSlot: "A" | "B", assetId: string, updates: Partial<Asset>) => void;
   updateLiability: (clientSlot: "A" | "B", liabilityId: string, updates: Partial<Liability>) => void;
+
+  // Financial pairs management (new approach)
+  addFinancialPair: (clientSlot: "A" | "B", asset: Omit<Asset, 'id'>, liability: Omit<Liability, 'id'>) => string;
+  removeFinancialPair: (clientSlot: "A" | "B", pairId: string) => void;
+  updateFinancialPair: (clientSlot: "A" | "B", pairId: string, updates: { asset?: Partial<Asset>; liability?: Partial<Liability> }) => void;
 
 // Enhanced data synchronization actions
 syncClientData: (clientSlot: "A" | "B", clientData: Partial<ClientData>) => void;
@@ -914,6 +928,81 @@ export const useFinancialStore = create<FinancialStore>()(
           const updatedClient = {
             ...currentClient,
             liabilities: updatedLiabilities
+          };
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient
+          };
+        });
+      },
+
+      // Financial pairs management (new approach)
+      addFinancialPair: (clientSlot, asset, liability) => {
+        const pairId = `pair-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = (state[clientKey] || {}) as Partial<ClientData>;
+          const currentPairs = currentClient.financialPairs || [];
+          
+          const newPair: FinancialPair = {
+            id: pairId,
+            asset: { ...asset, id: `asset-${pairId}` },
+            liability: { ...liability, id: `liability-${pairId}` }
+          };
+          
+          const updatedClient = {
+            ...currentClient,
+            financialPairs: [...currentPairs, newPair]
+          };
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient
+          };
+        });
+        return pairId;
+      },
+
+      removeFinancialPair: (clientSlot, pairId) => {
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = (state[clientKey] || {}) as Partial<ClientData>;
+          const currentPairs = currentClient.financialPairs || [];
+          
+          const updatedPairs = currentPairs.filter(pair => pair.id !== pairId);
+          
+          const updatedClient = {
+            ...currentClient,
+            financialPairs: updatedPairs
+          };
+          
+          return {
+            ...state,
+            [clientKey]: updatedClient
+          };
+        });
+      },
+
+      updateFinancialPair: (clientSlot, pairId, updates) => {
+        set((state) => {
+          const clientKey = clientSlot === "A" ? "clientA" : "clientB";
+          const currentClient = (state[clientKey] || {}) as Partial<ClientData>;
+          const currentPairs = currentClient.financialPairs || [];
+          
+          const updatedPairs = currentPairs.map(pair => 
+            pair.id === pairId 
+              ? {
+                  ...pair,
+                  asset: updates.asset ? { ...pair.asset, ...updates.asset } : pair.asset,
+                  liability: updates.liability ? { ...pair.liability, ...updates.liability } : pair.liability
+                }
+              : pair
+          );
+          
+          const updatedClient = {
+            ...currentClient,
+            financialPairs: updatedPairs
           };
           
           return {

@@ -31,6 +31,12 @@ type Liability = {
   linkedAssetId?: string; // Links to an asset
 };
 
+type FinancialPair = {
+  id: string;
+  asset: Asset;
+  liability: Liability;
+};
+
 export default function FinancialPositionPage() {
   const [activeTab, setActiveTab] = useState('assets');
   
@@ -43,6 +49,11 @@ export default function FinancialPositionPage() {
   const addPairedAssetLiability = useFinancialStore((state) => state.addPairedAssetLiability);
   const removeAsset = useFinancialStore((state) => state.removeAsset);
   const removeLiability = useFinancialStore((state) => state.removeLiability);
+  
+  // New financial pairs functions
+  const addFinancialPair = useFinancialStore((state) => state.addFinancialPair);
+  const removeFinancialPair = useFinancialStore((state) => state.removeFinancialPair);
+  const updateFinancialPair = useFinancialStore((state) => state.updateFinancialPair);
   
   // Get current client data
   const currentClient = activeClient ? (activeClient === 'A' ? clientA : clientB) : null;
@@ -87,38 +98,9 @@ export default function FinancialPositionPage() {
   const clientBMonthlyCashflow = clientBMonthlyIncome - clientBMonthlyExpenses - clientBMonthlyDebtPayments;
   const combinedMonthlyCashflow = clientAMonthlyCashflow + clientBMonthlyCashflow;
 
-  // Helper function to organize assets and liabilities by pairs
-  const organizeItemsByPairs = (assets: Asset[], liabilities: Liability[]) => {
-    const paired: Array<{ asset: Asset; liability?: Liability }> = [];
-    const unpairedAssets: Asset[] = [];
-    const unpairedLiabilities: Liability[] = [];
-
-    // Create a map of liabilities by ID for quick lookup
-    const liabilityMap = new Map(liabilities.map(l => [l.id, l]));
-
-    // Process assets
-    assets.forEach(asset => {
-      if (asset.linkedLiabilityId && liabilityMap.has(asset.linkedLiabilityId)) {
-        // This asset is paired with a liability
-        const liability = liabilityMap.get(asset.linkedLiabilityId)!;
-        paired.push({ asset, liability });
-        // Remove from liability map so it doesn't appear as unpaired
-        liabilityMap.delete(asset.linkedLiabilityId);
-      } else {
-        // Unpaired asset
-        unpairedAssets.push(asset);
-      }
-    });
-
-    // Any remaining liabilities are unpaired
-    unpairedLiabilities.push(...Array.from(liabilityMap.values()));
-
-    return { paired, unpairedAssets, unpairedLiabilities };
-  };
-
-  // Organize items for each client
-  const clientAItems = organizeItemsByPairs(clientAAssets, clientALiabilities);
-  const clientBItems = organizeItemsByPairs(clientBAssets, clientBLiabilities);
+  // Get financial pairs for each client
+  const clientAPairs = clientA?.financialPairs || [];
+  const clientBPairs = clientB?.financialPairs || [];
   
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-8">
@@ -338,7 +320,7 @@ export default function FinancialPositionPage() {
                   return;
                 }
                 // Add a paired asset and liability
-                addPairedAssetLiability(activeClient, {
+                addFinancialPair(activeClient, {
                   name: 'New Asset',
                   currentValue: 0,
                   type: 'other'
@@ -403,9 +385,28 @@ export default function FinancialPositionPage() {
                     <h3 className="text-lg font-semibold mb-4">{clientAName} - Assets</h3>
                     <div className="space-y-4">
                       {/* Paired Assets and Liabilities */}
-                      {clientAItems.paired.map(({ asset, liability }) => (
-                        <Card key={`paired-${asset.id}`} className="border-2 border-blue-200 dark:border-blue-800">
-                          <CardContent className="p-4">
+                      {clientAPairs.map((pair) => (
+                        <Card key={`paired-${pair.id}`} className="border-2 border-blue-200 dark:border-blue-800">
+                          <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                              <div className="text-sm text-blue-700 dark:text-blue-400 font-medium">Paired Asset & Liability</div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to remove this paired asset and liability?')) {
+                                    removeFinancialPair(activeClient!, pair.id);
+                                  }
+                                }}
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-4 pt-0">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {/* Asset */}
                               <div className="border-r border-gray-200 dark:border-gray-700 pr-4">
@@ -415,58 +416,37 @@ export default function FinancialPositionPage() {
                                 </div>
                                 <div className="flex justify-between items-center">
                                   <div>
-                                    <h5 className="font-medium">{asset.name}</h5>
-                                    <p className="text-sm text-muted-foreground capitalize">{asset.type}</p>
+                                    <h5 className="font-medium">{pair.asset.name}</h5>
+                                    <p className="text-sm text-muted-foreground capitalize">{pair.asset.type}</p>
                                   </div>
                                   <div className="text-right">
                                     <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
-                                      ${Number(asset.currentValue || 0).toLocaleString()}
+                                      ${Number(pair.asset.currentValue || 0).toLocaleString()}
                                     </p>
                                   </div>
                                 </div>
                               </div>
                               
                               {/* Liability */}
-                              {liability && (
-                                <div>
-                                  <div className="flex justify-between items-center mb-2">
-                                    <h4 className="font-medium text-red-700 dark:text-red-400">Liability</h4>
-                                    <span className="text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-1 rounded">Paired</span>
+                              <div>
+                                <div className="flex justify-between items-center mb-2">
+                                  <h4 className="font-medium text-red-700 dark:text-red-400">Liability</h4>
+                                  <span className="text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-1 rounded">Paired</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <h5 className="font-medium">{pair.liability.name}</h5>
+                                    <p className="text-sm text-muted-foreground capitalize">{pair.liability.type}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {pair.liability.interestRate}% interest • ${pair.liability.monthlyPayment}/month
+                                    </p>
                                   </div>
-                                  <div className="flex justify-between items-center">
-                                    <div>
-                                      <h5 className="font-medium">{liability.name}</h5>
-                                      <p className="text-sm text-muted-foreground capitalize">{liability.type}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {liability.interestRate}% interest • ${liability.monthlyPayment}/month
-                                      </p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                                        ${Number(liability.balance || 0).toLocaleString()}
-                                      </p>
-                                    </div>
+                                  <div className="text-right">
+                                    <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+                                      ${Number(pair.liability.balance || 0).toLocaleString()}
+                                    </p>
                                   </div>
                                 </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                      
-                      {/* Unpaired Assets */}
-                      {clientAItems.unpairedAssets.map((asset) => (
-                        <Card key={asset.id}>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <h4 className="font-medium">{asset.name}</h4>
-                                <p className="text-sm text-muted-foreground capitalize">{asset.type}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
-                                  ${Number(asset.currentValue || 0).toLocaleString()}
-                                </p>
                               </div>
                             </div>
                           </CardContent>
@@ -474,7 +454,7 @@ export default function FinancialPositionPage() {
                       ))}
                       
                       {/* Show message if no assets */}
-                      {clientAItems.paired.length === 0 && clientAItems.unpairedAssets.length === 0 && (
+                      {clientAPairs.length === 0 && (
                         <Card>
                           <CardContent className="p-4 text-center text-muted-foreground">
                             No assets recorded for {clientAName}
@@ -490,9 +470,28 @@ export default function FinancialPositionPage() {
                     <h3 className="text-lg font-semibold mb-4">{clientBName} - Assets</h3>
                     <div className="space-y-4">
                       {/* Paired Assets and Liabilities */}
-                      {clientBItems.paired.map(({ asset, liability }) => (
-                        <Card key={`paired-${asset.id}`} className="border-2 border-blue-200 dark:border-blue-800">
-                          <CardContent className="p-4">
+                      {clientBPairs.map((pair) => (
+                        <Card key={`paired-${pair.id}`} className="border-2 border-blue-200 dark:border-blue-800">
+                          <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                              <div className="text-sm text-blue-700 dark:text-blue-400 font-medium">Paired Asset & Liability</div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to remove this paired asset and liability?')) {
+                                    removeFinancialPair(activeClient!, pair.id);
+                                  }
+                                }}
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-4 pt-0">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {/* Asset */}
                               <div className="border-r border-gray-200 dark:border-gray-700 pr-4">
@@ -502,58 +501,37 @@ export default function FinancialPositionPage() {
                                 </div>
                                 <div className="flex justify-between items-center">
                                   <div>
-                                    <h5 className="font-medium">{asset.name}</h5>
-                                    <p className="text-sm text-muted-foreground capitalize">{asset.type}</p>
+                                    <h5 className="font-medium">{pair.asset.name}</h5>
+                                    <p className="text-sm text-muted-foreground capitalize">{pair.asset.type}</p>
                                   </div>
                                   <div className="text-right">
                                     <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
-                                      ${Number(asset.currentValue || 0).toLocaleString()}
+                                      ${Number(pair.asset.currentValue || 0).toLocaleString()}
                                     </p>
                                   </div>
                                 </div>
                               </div>
                               
                               {/* Liability */}
-                              {liability && (
-                                <div>
-                                  <div className="flex justify-between items-center mb-2">
-                                    <h4 className="font-medium text-red-700 dark:text-red-400">Liability</h4>
-                                    <span className="text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-1 rounded">Paired</span>
+                              <div>
+                                <div className="flex justify-between items-center mb-2">
+                                  <h4 className="font-medium text-red-700 dark:text-red-400">Liability</h4>
+                                  <span className="text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-1 rounded">Paired</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <h5 className="font-medium">{pair.liability.name}</h5>
+                                    <p className="text-sm text-muted-foreground capitalize">{pair.liability.type}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {pair.liability.interestRate}% interest • ${pair.liability.monthlyPayment}/month
+                                    </p>
                                   </div>
-                                  <div className="flex justify-between items-center">
-                                    <div>
-                                      <h5 className="font-medium">{liability.name}</h5>
-                                      <p className="text-sm text-muted-foreground capitalize">{liability.type}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {liability.interestRate}% interest • ${liability.monthlyPayment}/month
-                                      </p>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                                        ${Number(liability.balance || 0).toLocaleString()}
-                                      </p>
-                                    </div>
+                                  <div className="text-right">
+                                    <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
+                                      ${Number(pair.liability.balance || 0).toLocaleString()}
+                                    </p>
                                   </div>
                                 </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                      
-                      {/* Unpaired Assets */}
-                      {clientBItems.unpairedAssets.map((asset) => (
-                        <Card key={asset.id}>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <h4 className="font-medium">{asset.name}</h4>
-                                <p className="text-sm text-muted-foreground capitalize">{asset.type}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-lg font-semibold text-yellow-600 dark:text-yellow-400">
-                                  ${Number(asset.currentValue || 0).toLocaleString()}
-                                </p>
                               </div>
                             </div>
                           </CardContent>
@@ -561,7 +539,7 @@ export default function FinancialPositionPage() {
                       ))}
                       
                       {/* Show message if no assets */}
-                      {clientBItems.paired.length === 0 && clientBItems.unpairedAssets.length === 0 && (
+                      {clientBPairs.length === 0 && (
                         <Card>
                           <CardContent className="p-4 text-center text-muted-foreground">
                             No assets recorded for {clientBName}
@@ -637,25 +615,28 @@ export default function FinancialPositionPage() {
                     <h3 className="text-lg font-semibold mb-4">{clientAName} - Liabilities</h3>
                     <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <p className="text-sm text-blue-700 dark:text-blue-400">
-                        <strong>Note:</strong> Paired liabilities are displayed alongside their corresponding assets in the Assets tab above.
+                        <strong>Note:</strong> All liabilities are paired with assets and displayed alongside them in the Assets tab above.
                       </p>
                     </div>
                     <div className="grid gap-4">
-                      {clientAItems.unpairedLiabilities.length > 0 ? (
-                        clientAItems.unpairedLiabilities.map((liability) => (
-                          <Card key={liability.id}>
+                      {clientAPairs.length > 0 ? (
+                        clientAPairs.map((pair) => (
+                          <Card key={pair.liability.id} className="border-2 border-red-200 dark:border-red-800">
                             <CardContent className="p-4">
                               <div className="flex justify-between items-center">
                                 <div>
-                                  <h4 className="font-medium">{liability.name}</h4>
-                                  <p className="text-sm text-muted-foreground capitalize">{liability.type}</p>
+                                  <h4 className="font-medium">{pair.liability.name}</h4>
+                                  <p className="text-sm text-muted-foreground capitalize">{pair.liability.type}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    {liability.interestRate}% interest • ${liability.monthlyPayment}/month
+                                    {pair.liability.interestRate}% interest • ${pair.liability.monthlyPayment}/month
+                                  </p>
+                                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                                    Paired with: {pair.asset.name}
                                   </p>
                                 </div>
                                 <div className="text-right">
                                   <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                                    ${Number(liability.balance || 0).toLocaleString()}
+                                    ${Number(pair.liability.balance || 0).toLocaleString()}
                                   </p>
                                 </div>
                               </div>
@@ -665,7 +646,7 @@ export default function FinancialPositionPage() {
                       ) : (
                         <Card>
                           <CardContent className="p-4 text-center text-muted-foreground">
-                            No unpaired liabilities recorded for {clientAName}
+                            No liabilities recorded for {clientAName}
                           </CardContent>
                         </Card>
                       )}
@@ -678,25 +659,28 @@ export default function FinancialPositionPage() {
                     <h3 className="text-lg font-semibold mb-4">{clientBName} - Liabilities</h3>
                     <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <p className="text-sm text-blue-700 dark:text-blue-400">
-                        <strong>Note:</strong> Paired liabilities are displayed alongside their corresponding assets in the Assets tab above.
+                        <strong>Note:</strong> All liabilities are paired with assets and displayed alongside them in the Assets tab above.
                       </p>
                     </div>
                     <div className="grid gap-4">
-                      {clientBItems.unpairedLiabilities.length > 0 ? (
-                        clientBItems.unpairedLiabilities.map((liability) => (
-                          <Card key={liability.id}>
+                      {clientBPairs.length > 0 ? (
+                        clientBPairs.map((pair) => (
+                          <Card key={pair.liability.id} className="border-2 border-red-200 dark:border-red-800">
                             <CardContent className="p-4">
                               <div className="flex justify-between items-center">
                                 <div>
-                                  <h4 className="font-medium">{liability.name}</h4>
-                                  <p className="text-sm text-muted-foreground capitalize">{liability.type}</p>
+                                  <h4 className="font-medium">{pair.liability.name}</h4>
+                                  <p className="text-sm text-muted-foreground capitalize">{pair.liability.type}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    {liability.interestRate}% interest • ${liability.monthlyPayment}/month
+                                    {pair.liability.interestRate}% interest • ${pair.liability.monthlyPayment}/month
+                                  </p>
+                                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                                    Paired with: {pair.asset.name}
                                   </p>
                                 </div>
                                 <div className="text-right">
                                   <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                                    ${Number(liability.balance || 0).toLocaleString()}
+                                    ${Number(pair.liability.balance || 0).toLocaleString()}
                                   </p>
                                 </div>
                               </div>
@@ -706,7 +690,7 @@ export default function FinancialPositionPage() {
                       ) : (
                         <Card>
                           <CardContent className="p-4 text-center text-muted-foreground">
-                            No unpaired liabilities recorded for {clientBName}
+                            No liabilities recorded for {clientBName}
                           </CardContent>
                         </Card>
                       )}
@@ -866,48 +850,7 @@ export default function FinancialPositionPage() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-center gap-4 mt-6">
-        <Button
-          size="sm"
-          onClick={() => {
-            if (!activeClient) {
-              alert('Please select a client first');
-              return;
-            }
-            addAsset(activeClient, {
-              name: 'New Asset',
-              currentValue: 0,
-              type: 'other'
-            });
-          }}
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Asset
-        </Button>
-        
-        <Button
-          size="sm"
-          onClick={() => {
-            if (!activeClient) {
-              alert('Please select a client first');
-              return;
-            }
-            addLiability(activeClient, {
-              name: 'New Liability',
-              balance: 0,
-              monthlyPayment: 0,
-              interestRate: 0,
-              loanTerm: 0,
-              type: 'other'
-            });
-          }}
-          className="bg-red-600 hover:bg-red-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Liability
-        </Button>
-        
+      <div className="flex justify-between items-center mt-6">
         <Button
           size="sm"
           onClick={() => {
@@ -916,7 +859,7 @@ export default function FinancialPositionPage() {
               return;
             }
             // Add a paired asset and liability
-            addPairedAssetLiability(activeClient, {
+            addFinancialPair(activeClient, {
               name: 'New Asset',
               currentValue: 0,
               type: 'other'
@@ -934,6 +877,76 @@ export default function FinancialPositionPage() {
           <Plus className="h-4 w-4 mr-2" />
           Add Asset & Liability
         </Button>
+        
+        <div className="flex gap-4">
+          <Button
+            size="sm"
+            onClick={() => {
+              if (!activeClient) {
+                alert('Please select a client first');
+                return;
+              }
+              addAsset(activeClient, {
+                name: 'New Asset',
+                currentValue: 0,
+                type: 'other'
+              });
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Asset
+          </Button>
+          
+          <Button
+            size="sm"
+            onClick={() => {
+              if (!activeClient) {
+                alert('Please select a client first');
+                return;
+              }
+              addLiability(activeClient, {
+                name: 'New Liability',
+                balance: 0,
+                monthlyPayment: 0,
+                interestRate: 0,
+                loanTerm: 0,
+                type: 'other'
+              });
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Liability
+          </Button>
+          
+          <Button
+            size="sm"
+            onClick={() => {
+              if (!activeClient) {
+                alert('Please select a client first');
+                return;
+              }
+              // Add a paired asset and liability
+              addFinancialPair(activeClient, {
+                name: 'New Asset',
+                currentValue: 0,
+                type: 'other'
+              }, {
+                name: 'New Liability',
+                balance: 0,
+                monthlyPayment: 0,
+                interestRate: 0,
+                loanTerm: 0,
+                type: 'other'
+              });
+            }}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Asset & Liability
+          </Button>
+        </div>
       </div>
     </div>
   );
