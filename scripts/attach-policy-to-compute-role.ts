@@ -1,4 +1,5 @@
-import { IAMClient, ListRolesCommand, CreatePolicyCommand, ListPoliciesCommand, AttachRolePolicyCommand } from '@aws-sdk/client-iam';
+import { IAMClient, AttachRolePolicyCommand } from '@aws-sdk/client-iam';
+import { LambdaClient, GetFunctionCommand } from '@aws-sdk/client-lambda';
 import fetch from 'node-fetch';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 
@@ -19,22 +20,25 @@ async function main() {
     if (!bucket) throw new Error('S3 bucket not found');
     console.log({ region, bucket, usersTable, pdfTable, clientsTable });
 
-    const sts = new STSClient({ region });
+    const deploymentRegion = 'us-east-1'; // Assume deployment region is us-east-1
+
+    const sts = new STSClient({ region: deploymentRegion });
     const caller = await sts.send(new GetCallerIdentityCommand({}));
     const accountId = caller.Account;
     console.log('Account', accountId);
 
-    const iam = new IAMClient({ region });
+    const functionName = envJson.allRelevant?.AWS_LAMBDA_FUNCTION_NAME;
+    if (!functionName) throw new Error('Lambda function name not found in env-check');
 
-    // Find role that seems to belong to Amplify Compute (look for prefix 'Compute-' or 'amplify')
-    console.log('Listing roles to find Amplify compute role...');
-    const rolesRes = await iam.send(new ListRolesCommand({}));
-    const roles = rolesRes.Roles || [];
-    const candidate = roles.find(r => (r.RoleName || '').includes('Compute-') || (r.RoleName || '').toLowerCase().includes('compute') || (r.RoleName || '').toLowerCase().includes('amplify'));
-    if (!candidate) throw new Error('Could not find a suitable Amplify compute role (no role with Compute-/amplify in name)');
+    console.log('Getting execution role from Lambda function:', functionName);
+    const lambdaClient = new LambdaClient({ region: deploymentRegion });
+    const funcRes = await lambdaClient.send(new GetFunctionCommand({ FunctionName: functionName }));
+    const roleArn = funcRes.Configuration?.Role;
+    if (!roleArn) throw new Error('Could not get role ARN from Lambda function');
+    const roleName = roleArn.split('/').pop()!;
+    console.log('Execution role:', roleName);
 
-    const roleName = candidate.RoleName!;
-    console.log('Found role:', roleName);
+    const iam = new IAMClient({ region: deploymentRegion });
 
     const policyName = 'PWP-Compute-Access';
     const policyDoc = {
