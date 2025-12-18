@@ -5,8 +5,8 @@ const nextConfig = {
     domains: [],
   },
 
-  // Disable Turbopack to avoid webpack config issues
-  turbopack: false,
+  // Configure Turbopack
+  turbopack: {},
 
   // Required for Amplify SSR stability
   experimental: {
@@ -33,11 +33,6 @@ const nextConfig = {
     // Public environment variables (available to client-side code)
     // NEXT_PUBLIC_* variables are automatically exposed to the browser
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-  },
-
-  // Leave webpack untouched to avoid SSR issues on Amplify
-  webpack: (config) => {
-    return config;
   }
 };
 
