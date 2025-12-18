@@ -386,7 +386,7 @@ export async function POST(req: NextRequest) {
         const pdfExport = res.Item;
         if (pdfExport && pdfExport.userId === session.user.id && pdfExport.s3Key) {
           try {
-            const bucket = process.env.AWS_S3_BUCKET;
+            const bucket = process.env.AWS_S3_BUCKET || process.env.APP_AWS_S3_BUCKET || process.env.S3_BUCKET;
             const getObj = await s3Client.send(new GetObjectCommand({ Bucket: bucket!, Key: pdfExport.s3Key }));
             const body = getObj.Body as Readable;
             const buffer = await toBuffer.createWriteStream();

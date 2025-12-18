@@ -6,10 +6,13 @@ import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 // This handler provides the wiring: receive HTML (base64) or S3 key, generate PDF (if runtime supports it), upload to S3
 // and persist metadata to DynamoDB. For production, provide a Lambda layer with headless Chromium or use a container.
 
-const region = process.env.AWS_REGION || 'us-east-1';
+const region = process.env.AWS_REGION || process.env.APP_AWS_REGION || process.env.REGION || 'us-east-1';
 const s3 = new S3Client({ region });
 const ddb = new DynamoDBClient({ region });
 const ddbDoc = DynamoDBDocumentClient.from(ddb);
+
+// Support alternate S3 env var names used in Amplify Console (Amplify reserves AWS_* prefixed env vars)
+const s3Bucket = process.env.AWS_S3_BUCKET || process.env.APP_AWS_S3_BUCKET || process.env.S3_BUCKET;
 
 export const handler = async (event: any) => {
   try {
@@ -41,7 +44,7 @@ export const handler = async (event: any) => {
     }
 
     // Upload to configured S3 bucket
-    const bucket = process.env.AWS_S3_BUCKET;
+    const bucket = process.env.AWS_S3_BUCKET || process.env.APP_AWS_S3_BUCKET || process.env.S3_BUCKET;
     if (!bucket) return { statusCode: 500, body: JSON.stringify({ error: 'AWS_S3_BUCKET not configured' }) };
 
     const time = new Date();

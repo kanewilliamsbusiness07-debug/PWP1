@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Optionally upload to S3 if bucket configured
-    const bucket = process.env.AWS_S3_BUCKET;
+    const bucket = process.env.AWS_S3_BUCKET || process.env.APP_AWS_S3_BUCKET || process.env.S3_BUCKET;
     let s3Key: string | null = null;
     if (bucket) {
       try {

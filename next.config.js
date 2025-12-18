@@ -21,8 +21,8 @@ const nextConfig = {
     // Server-side and build-time environment variables
     // These are available in API routes, server components, and during build
     CRON_SECRET: process.env.CRON_SECRET,
-    AWS_REGION: process.env.AWS_REGION,
-    AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+    AWS_REGION: process.env.AWS_REGION ?? process.env.APP_AWS_REGION ?? process.env.REGION,
+    AWS_S3_BUCKET: process.env.AWS_S3_BUCKET ?? process.env.APP_AWS_S3_BUCKET ?? process.env.S3_BUCKET,
     DDB_CLIENTS_TABLE: process.env.DDB_CLIENTS_TABLE,
     DDB_PDF_EXPORTS_TABLE: process.env.DDB_PDF_EXPORTS_TABLE,
     DDB_USERS_TABLE: process.env.DDB_USERS_TABLE,

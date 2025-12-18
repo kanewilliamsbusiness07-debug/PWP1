@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     await browser.close();
 
     // Upload PDF to S3
-    const uploadsBucket = process.env.AWS_S3_BUCKET;
+    const uploadsBucket = process.env.AWS_S3_BUCKET || process.env.APP_AWS_S3_BUCKET || process.env.S3_BUCKET;
     if (!uploadsBucket) {
       await browser.close();
       return NextResponse.json({ error: 'Server not configured: AWS_S3_BUCKET missing' }, { status: 500 });

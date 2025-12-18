@@ -47,7 +47,10 @@ export async function GET() {
   // Count total environment variables
   const totalEnvVars = Object.keys(allEnvVars).length;
 
-  const serverReady = Boolean(process.env.AWS_S3_BUCKET && process.env.DDB_CLIENTS_TABLE);
+  const s3Bucket = process.env.AWS_S3_BUCKET || process.env.APP_AWS_S3_BUCKET || process.env.S3_BUCKET;
+  const regionVal = process.env.AWS_REGION || process.env.APP_AWS_REGION || process.env.REGION || 'NOT SET';
+
+  const serverReady = Boolean(s3Bucket && process.env.DDB_CLIENTS_TABLE);
 
   return NextResponse.json({
     success: true,
@@ -58,13 +61,14 @@ export async function GET() {
       publicVarsAvailable: Boolean(process.env.NEXT_PUBLIC_SITE_URL),
       serverVarsAvailable: serverReady,
       diagnosis: !serverReady 
-        ? 'Server-side environment variables are NOT SET or storage tables are missing. Ensure AWS_S3_BUCKET and DDB_* variables are configured and that DynamoDB/S3 are provisioned.'
+        ? 'Server-side environment variables are NOT SET or storage tables are missing. Ensure S3_BUCKET and DDB_* variables are configured and that DynamoDB/S3 are provisioned.'
         : 'Environment variables and storage configuration appear to be correct.',
     },
     amplify: amplifyVars,
     required: {
-      AWS_REGION: process.env.AWS_REGION || 'NOT SET',
-      AWS_S3_BUCKET: process.env.AWS_S3_BUCKET ? 'SET (value hidden)' : 'NOT SET',
+      AWS_REGION: regionVal,
+      AWS_S3_BUCKET: s3Bucket ? 'SET (value hidden)' : 'NOT SET',
+      APP_AWS_S3_BUCKET: process.env.APP_AWS_S3_BUCKET ? 'SET (value hidden)' : 'NOT SET',
       DDB_CLIENTS_TABLE: process.env.DDB_CLIENTS_TABLE || 'NOT SET',
       DDB_PDF_EXPORTS_TABLE: process.env.DDB_PDF_EXPORTS_TABLE || 'NOT SET',
       DDB_USERS_TABLE: process.env.DDB_USERS_TABLE || 'NOT SET',
@@ -98,7 +102,9 @@ export async function GET() {
       ],
       requiredVariables: [
         'AWS_REGION',
+        'APP_AWS_REGION',
         'AWS_S3_BUCKET',
+        'APP_AWS_S3_BUCKET',
         'DDB_CLIENTS_TABLE',
         'DDB_PDF_EXPORTS_TABLE',
         'DDB_USERS_TABLE',
