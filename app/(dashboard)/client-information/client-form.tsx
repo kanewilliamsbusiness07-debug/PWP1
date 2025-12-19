@@ -274,6 +274,22 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       // Always have at least one asset (Home) and one liability
       assets: client?.assets?.length ? client.assets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }],
       liabilities: client?.liabilities?.length ? client.liabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }],
+      // Initialize pairs from existing assets/liabilities or create default pair
+      assetLiabilityPairs: (() => {
+        const assets = client?.assets?.length ? client.assets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
+        const liabilities = client?.liabilities?.length ? client.liabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
+        
+        // Create pairs by matching assets and liabilities by index
+        const maxLength = Math.max(assets.length, liabilities.length);
+        const pairs = [];
+        for (let i = 0; i < maxLength; i++) {
+          pairs.push({
+            asset: assets[i] || { id: `asset-${Date.now()}-${i}`, name: '', currentValue: 0, type: 'other' as const },
+            liability: liabilities[i] ? liabilities[i] : undefined
+          });
+        }
+        return pairs;
+      })(),
       properties: client?.properties || [],
       currentAge: client?.currentAge || 0,
       retirementAge: client?.retirementAge || 0,
@@ -749,6 +765,11 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     name: 'liabilities',
   });
 
+  const { fields: pairFields, append: appendPair, remove: removePair } = useFieldArray({
+    control: form.control,
+    name: 'assetLiabilityPairs',
+  });
+
   const { fields: propertyFields, append: appendProperty, remove: removeProperty } = useFieldArray({
     control: form.control,
     name: 'properties',
@@ -841,13 +862,14 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         }
       }
 
-      // Calculate monthly debt payments from liabilities (accounting for payment frequency)
-      const liabilities = form.getValues('liabilities');
-      if (liabilities && Array.isArray(liabilities)) {
-        const totalDebtPayments = liabilities
-          .reduce((sum: number, liability: any) => {
-            const payment = parseFloat(liability.monthlyPayment) || 0;
-            const frequency = liability.paymentFrequency || 'M';
+      // Calculate monthly debt payments from asset-liability pairs (accounting for payment frequency)
+      const pairs = form.getValues('assetLiabilityPairs');
+      if (pairs && Array.isArray(pairs)) {
+        const totalDebtPayments = pairs
+          .filter((pair: any) => pair.liability) // Only include pairs that have liabilities
+          .reduce((sum: number, pair: any) => {
+            const payment = parseFloat(pair.liability.monthlyPayment) || 0;
+            const frequency = pair.liability.paymentFrequency || 'M';
 
             // Convert to monthly based on frequency
             let monthlyPayment = 0;
@@ -1595,8 +1617,10 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          appendAsset({ id: `asset-${Date.now()}`, name: '', currentValue: 0, type: 'other' });
-                          appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'other', lender: '', loanType: 'variable', paymentFrequency: 'M' });
+                          appendPair({
+                            asset: { id: `asset-${Date.now()}`, name: '', currentValue: 0, type: 'other' },
+                            liability: { id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'other', lender: '', loanType: 'variable', paymentFrequency: 'M' }
+                          });
                         }}
                       >
                         <Plus className="h-4 w-4 mr-2" />
@@ -1605,8 +1629,8 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                     </div>
                     
                     {/* Paired Asset/Liability rows */}
-                    {assetFields.map((field, index) => (
-                      <div key={field.id} className={`border-t-2 border-border ${index === assetFields.length - 1 ? 'border-b-2' : ''}`}>
+                    {pairFields.map((field, index) => (
+                      <div key={field.id} className={`border-t-2 border-border ${index === pairFields.length - 1 ? 'border-b-2' : ''}`}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
                           {/* Asset Card */}
                           <div className="bg-muted/30 rounded-lg p-4">
@@ -1619,12 +1643,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => {
-                                    removeAsset(index);
-                                    if (liabilityFields[index]) {
-                                      removeLiability(index);
-                                    }
-                                  }}
+                                  onClick={() => removePair(index)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -1636,7 +1655,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                   {/* First asset - Home with own/rent dropdown */}
                                   <FormField
                                     control={form.control}
-                                    name={`assets.${index}.ownerOccupied`}
+                                    name={`assetLiabilityPairs.${index}.asset.ownerOccupied`}
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Ownership Status</FormLabel>
@@ -1676,15 +1695,15 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                     )}
                                   />
                                   {/* Hidden fields to set defaults for first asset */}
-                                  <input type="hidden" {...form.register(`assets.${index}.name`)} value="Home" />
-                                  <input type="hidden" {...form.register(`assets.${index}.type`)} value="property" />
+                                  <input type="hidden" {...form.register(`assetLiabilityPairs.${index}.asset.name`)} value="Home" />
+                                  <input type="hidden" {...form.register(`assetLiabilityPairs.${index}.asset.type`)} value="property" />
                                 </>
                               ) : (
                                 <>
                                   {/* Other assets - full fields */}
                                   <FormField
                                     control={form.control}
-                                    name={`assets.${index}.name`}
+                                    name={`assetLiabilityPairs.${index}.asset.name`}
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Name</FormLabel>
@@ -1717,7 +1736,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                   />
                                   <FormField
                                     control={form.control}
-                                    name={`assets.${index}.type`}
+                                    name={`assetLiabilityPairs.${index}.asset.type`}
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Type</FormLabel>
@@ -1746,7 +1765,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                           </div>
 
                           {/* Liability Card */}
-                          {liabilityFields[index] && (
+                          {field.liability && (
                             <div className="bg-muted/30 rounded-lg p-4">
                               <div className="flex justify-between items-start mb-4">
                                 <h4 className="font-medium text-base">
@@ -1756,7 +1775,14 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => removeLiability(index)}
+                                  onClick={() => {
+                                    // Instead of removing, set liability to undefined
+                                    const currentPairs = form.getValues('assetLiabilityPairs');
+                                    if (currentPairs && currentPairs[index]) {
+                                      currentPairs[index].liability = undefined;
+                                      form.setValue('assetLiabilityPairs', currentPairs);
+                                    }
+                                  }}
                                   className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -1766,7 +1792,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                 {/* Lender */}
                                 <FormField
                                   control={form.control}
-                                  name={`liabilities.${index}.lender`}
+                                  name={`assetLiabilityPairs.${index}.liability.lender`}
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormLabel>Lender</FormLabel>
@@ -1781,7 +1807,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                 {/* Type of Loan (Fixed/Split/Variable) */}
                                 <FormField
                                   control={form.control}
-                                  name={`liabilities.${index}.loanType`}
+                                  name={`assetLiabilityPairs.${index}.liability.loanType`}
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormLabel>Loan Type</FormLabel>
@@ -1805,7 +1831,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                 {/* Liability Type */}
                                 <FormField
                                   control={form.control}
-                                  name={`liabilities.${index}.type`}
+                                  name={`assetLiabilityPairs.${index}.liability.type`}
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormLabel>Liability Type</FormLabel>
@@ -1831,7 +1857,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                 {/* Balance */}
                                 <FormField
                                   control={form.control}
-                                  name={`liabilities.${index}.balance`}
+                                  name={`assetLiabilityPairs.${index}.liability.balance`}
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormLabel>Balance Owing</FormLabel>
@@ -1855,7 +1881,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                   <div className="col-span-2">
                                     <FormField
                                       control={form.control}
-                                      name={`liabilities.${index}.monthlyPayment`}
+                                      name={`assetLiabilityPairs.${index}.liability.monthlyPayment`}
                                       render={({ field }) => (
                                         <FormItem>
                                           <FormLabel>Repayment Amount</FormLabel>
@@ -1876,7 +1902,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                   </div>
                                   <FormField
                                     control={form.control}
-                                    name={`liabilities.${index}.paymentFrequency`}
+                                    name={`assetLiabilityPairs.${index}.liability.paymentFrequency`}
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Freq</FormLabel>
@@ -1901,7 +1927,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                 {/* Interest Rate */}
                                 <FormField
                                   control={form.control}
-                                  name={`liabilities.${index}.interestRate`}
+                                  name={`assetLiabilityPairs.${index}.liability.interestRate`}
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormLabel>Interest Rate (%)</FormLabel>
@@ -1924,7 +1950,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                 <div className="grid grid-cols-2 gap-4">
                                   <FormField
                                     control={form.control}
-                                    name={`liabilities.${index}.loanTerm`}
+                                    name={`assetLiabilityPairs.${index}.liability.loanTerm`}
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Loan Term (Years)</FormLabel>
@@ -1944,7 +1970,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                   />
                                   <FormField
                                     control={form.control}
-                                    name={`liabilities.${index}.termRemaining`}
+                                    name={`assetLiabilityPairs.${index}.liability.termRemaining`}
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Term Remaining</FormLabel>
@@ -1972,8 +1998,22 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                   </div>
                 </div>
 
-                {/* Save & Continue Button */}
-                <div className="flex justify-end pt-4 border-t mt-6">
+                {/* Bottom buttons - Add Asset & Liability on left, Save & Continue on right */}
+                <div className="flex justify-between items-center pt-4 border-t mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      appendPair({
+                        asset: { id: `asset-${Date.now()}`, name: '', currentValue: 0, type: 'other' },
+                        liability: { id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'other', lender: '', loanType: 'variable', paymentFrequency: 'M' }
+                      });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Asset and Liabilities
+                  </Button>
                   <Button
                     type="button"
                     onClick={handleSaveAndNext}

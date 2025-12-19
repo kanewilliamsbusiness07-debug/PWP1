@@ -174,6 +174,30 @@ export const clientValidationSchema = z.object({
     loanType: z.enum(['fixed', 'split', 'variable']).optional(),
     paymentFrequency: z.enum(['W', 'F', 'M']).optional(),
   })).optional(),
+
+  // Financial Position - Asset-Liability Pairs (for proper pairing)
+  assetLiabilityPairs: z.array(z.object({
+    asset: z.object({
+      id: z.string(),
+      name: z.string().max(200, 'Asset name is too long'),
+      currentValue: z.number().min(0, 'Asset value cannot be negative').max(100000000, 'Asset value is too high'),
+      type: z.enum(['property', 'vehicle', 'savings', 'shares', 'super', 'other']),
+      ownerOccupied: z.enum(['own', 'rent']).optional(),
+    }),
+    liability: z.object({
+      id: z.string(),
+      name: z.string().max(200, 'Liability name is too long'),
+      balance: z.number().min(0, 'Balance cannot be negative').max(100000000, 'Balance is too high'),
+      monthlyPayment: z.number().min(0, 'Monthly payment cannot be negative').max(1000000, 'Monthly payment is too high'),
+      interestRate: z.number().min(0, 'Interest rate cannot be negative').max(100, 'Interest rate cannot exceed 100%'),
+      loanTerm: z.number().int().min(0, 'Loan term cannot be negative').max(100, 'Loan term cannot exceed 100 years'),
+      termRemaining: z.number().int().min(0, 'Term remaining cannot be negative').max(100, 'Term remaining cannot exceed 100 years').optional(),
+      type: z.enum(['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other']),
+      lender: z.string().max(200, 'Lender name is too long').optional(),
+      loanType: z.enum(['fixed', 'split', 'variable']).optional(),
+      paymentFrequency: z.enum(['W', 'F', 'M']).optional(),
+    }).optional(),
+  })).optional(),
   
   // Investment Properties
   properties: z.array(z.object({
