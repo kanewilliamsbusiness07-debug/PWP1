@@ -81,8 +81,8 @@ describe('calculateFinancialProjections - core formulas', () => {
 
   test('net worth at retirement includes properties and subtracts liabilities (including remaining property loans)', () => {
     const res = calculateFinancialProjections(baseInput);
-    // combinedNetworthAtRetirement should equal futureSuper + futureShares + futurePropertyAssets + futurePropertyValue + futureOtherAssets + futureSavings - outstandingLiabilities
-    const manual = res.futureSuper + res.futureShares + res.futurePropertyAssets + res.futurePropertyValue + res.futureOtherAssets + res.futureSavings - (res.remainingPropertyLoans + (res.totalLiabilities || 0));
+    // combinedNetworthAtRetirement should equal futureSuper + futurePropertyAssets + futurePropertyValue + futureOtherAssets + futureSavings - outstandingLiabilities
+    const manual = res.futureSuper + res.futurePropertyAssets + res.futurePropertyValue + res.futureOtherAssets + res.futureSavings - (res.remainingPropertyLoans + (res.totalLiabilities || 0));
     // We can't rely on totalLiabilities being same as outstanding liabilities computed internally, but networth should be close
     expect(Math.abs(res.combinedNetworthAtRetirement - manual)).toBeLessThan(1e8);
   });

@@ -193,8 +193,8 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // ========================================
   const years = inputs.retirementAge - inputs.currentAge;
 
-  // Super return minus admin fees (0.08% = 0.0008)
-  const r_super = (inputs.assumptions.superReturn - 0.08) / 100;
+  // Super return (no admin fees subtraction to match Excel formula)
+  const r_super = inputs.assumptions.superReturn / 100;
   const r_shares = inputs.assumptions.shareReturn / 100;
   const r_property = inputs.assumptions.propertyGrowthRate / 100;
   const g_salary = inputs.assumptions.salaryGrowthRate / 100;
@@ -361,45 +361,24 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // FUTURE SAVINGS
   // ========================================
 
-  // Part 1: Current savings grow at 3%
+  // Current savings grow at 3%
   const futureSavingsFromGrowth = calculateFutureValue(
     currentSavings,
     0.03,
     years
   );
 
-  // Part 2: Future savings contributions at 3%
-  // Savings rate applied to annual income
+  // Annual savings contributions at savings rate, compounded at 3%
   const annualSavingsContribution = inputs.annualIncome * savingsRate;
 
   const futureSavingsFromContributions = calculateFutureValueOfAnnuity(
     annualSavingsContribution,
     0.03,
     years,
-    g_salary
+    g_salary  // Contributions grow with salary
   );
 
-  // Part 3: Net cashflow accumulated at 3%
-  const initialAnnualCashflow = currentMonthlyCashflow * 12;
-
-  // Only add if positive cashflow
-  let futureSavingsFromCashflow = 0;
-  if (initialAnnualCashflow > 0) {
-    const effectiveCashflowGrowth = g_rent - inflation;
-    futureSavingsFromCashflow = calculateFutureValueOfAnnuity(
-      initialAnnualCashflow,
-      0.03,
-      years,
-      effectiveCashflowGrowth
-    );
-  }
-
-  const futureSavings = Math.max(
-    0,
-    futureSavingsFromGrowth +
-    futureSavingsFromContributions +
-    futureSavingsFromCashflow
-  );
+  const futureSavings = futureSavingsFromGrowth + futureSavingsFromContributions;
 
   // ========================================
   // COMBINED NET WORTH AT RETIREMENT
@@ -422,10 +401,9 @@ export function calculateFinancialProjections(inputs: FinancialInputs): Projecti
   // Include remaining balances of investment properties (if loans remain)
   outstandingLiabilitiesAtRetirement += remainingPropertyLoans;
 
-  // Net worth at retirement: super + all properties (investment + non-investment) + other assets + savings - outstanding liabilities
+  // Net worth at retirement: super + properties + other assets + savings - outstanding liabilities
   const combinedNetworthAtRetirement =
     futureSuper +
-    futureShares +
     futurePropertyAssets +
     futurePropertyValue +
     futureOtherAssets +
