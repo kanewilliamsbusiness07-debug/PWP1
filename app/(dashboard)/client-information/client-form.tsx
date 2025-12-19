@@ -17,7 +17,7 @@ export interface ClientFormRef {
 }
 
 export const ClientForm = forwardRef<ClientFormRef, ClientFormProps>(
-  ({ clientSlot }, ref) => {
+  function ClientForm({ clientSlot }, ref) {
     React.useImperativeHandle(ref, () => ({
       async saveClient() {},
       resetClient() {},
