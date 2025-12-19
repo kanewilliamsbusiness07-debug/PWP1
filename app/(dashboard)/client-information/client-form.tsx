@@ -845,6 +845,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       const liabilities = form.getValues('liabilities');
       if (liabilities && Array.isArray(liabilities)) {
         const totalDebtPayments = liabilities
+          .filter((liability: any) => liability && liability.name && liability.name.trim() !== '' && liability.balance > 0)
           .reduce((sum: number, liability: any) => {
             const payment = parseFloat(liability.monthlyPayment) || 0;
             const frequency = liability.paymentFrequency || 'M';
@@ -1746,144 +1747,159 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                           </div>
 
                           {/* Liability Card */}
-                          {liabilityFields[index] && (
-                            <div className="bg-muted/30 rounded-lg p-4">
-                              <div className="flex justify-between items-start mb-4">
-                                <h4 className="font-medium text-base">
-                                  {index === 0 ? 'Home Loan' : `Liability ${index + 1}`}
-                                </h4>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeLiability(index)}
-                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <div className="space-y-4">
-                                {/* Lender */}
-                                <FormField
-                                  control={form.control}
-                                  name={`liabilities.${index}.lender`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Lender</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="e.g., Commonwealth Bank" {...field} value={field.value || ''} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                {/* Type of Loan (Fixed/Split/Variable) */}
-                                <FormField
-                                  control={form.control}
-                                  name={`liabilities.${index}.loanType`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Loan Type</FormLabel>
-                                      <Select onValueChange={field.onChange} value={field.value || 'variable'}>
-                                        <FormControl>
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Select loan type" />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          <SelectItem value="fixed">Fixed Rate</SelectItem>
-                                          <SelectItem value="split">Split Rate</SelectItem>
-                                          <SelectItem value="variable">Variable Rate</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                {/* Liability Type */}
-                                <FormField
-                                  control={form.control}
-                                  name={`liabilities.${index}.type`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Liability Type</FormLabel>
-                                      <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Select type" />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          <SelectItem value="mortgage">Mortgage</SelectItem>
-                                          <SelectItem value="personal-loan">Personal Loan</SelectItem>
-                                          <SelectItem value="credit-card">Credit Card</SelectItem>
-                                          <SelectItem value="hecs">HECS/HELP</SelectItem>
-                                          <SelectItem value="other">Other</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                {/* Balance */}
-                                <FormField
-                                  control={form.control}
-                                  name={`liabilities.${index}.balance`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Balance Owing</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          step="any"
-                                          placeholder="0"
-                                          {...field}
-                                          value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                          onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                {/* Repayment Amount with Frequency Dropdown */}
-                                <div className="grid grid-cols-3 gap-2">
-                                  <div className="col-span-2">
-                                    <FormField
-                                      control={form.control}
-                                      name={`liabilities.${index}.monthlyPayment`}
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Repayment Amount</FormLabel>
-                                          <FormControl>
-                                            <Input
-                                              type="number"
-                                              step="any"
-                                              placeholder="0"
-                                              {...field}
-                                              value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                              onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                            />
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                  </div>
+                          {/* <div className="bg-muted/30 rounded-lg p-4"> */}
+                            {liabilityFields[index]?.name?.trim() ? (
+                              <div>
+                                <div className="flex justify-between items-start mb-4">
+                                  <h4 className="font-medium text-base">
+                                    {index === 0 ? 'Home Loan' : `Liability ${index + 1}`}
+                                  </h4>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      form.setValue(`liabilities.${index}`, {
+                                        id: '',
+                                        name: '',
+                                        balance: 0,
+                                        monthlyPayment: 0,
+                                        interestRate: 0,
+                                        loanTerm: 30,
+                                        termRemaining: 0,
+                                        type: 'other',
+                                        lender: '',
+                                        loanType: 'variable',
+                                        paymentFrequency: 'M'
+                                      });
+                                    }}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <div className="space-y-4">
+                                  {/* Lender */}
                                   <FormField
                                     control={form.control}
-                                    name={`liabilities.${index}.paymentFrequency`}
+                                    name={`liabilities.${index}.lender`}
                                     render={({ field }) => (
                                       <FormItem>
-                                        <FormLabel>Freq</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value || 'M'}>
+                                        <FormLabel>Lender</FormLabel>
+                                        <FormControl>
+                                          <Input placeholder="e.g., Commonwealth Bank" {...field} value={field.value || ''} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  {/* Type of Loan (Fixed/Split/Variable) */}
+                                  <FormField
+                                    control={form.control}
+                                    name={`liabilities.${index}.loanType`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Loan Type</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value || 'variable'}>
                                           <FormControl>
                                             <SelectTrigger>
-                                              <SelectValue placeholder="M" />
+                                              <SelectValue placeholder="Select loan type" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            <SelectItem value="fixed">Fixed Rate</SelectItem>
+                                            <SelectItem value="split">Split Rate</SelectItem>
+                                            <SelectItem value="variable">Variable Rate</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  {/* Liability Type */}
+                                  <FormField
+                                    control={form.control}
+                                    name={`liabilities.${index}.type`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Liability Type</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            <SelectItem value="mortgage">Mortgage</SelectItem>
+                                            <SelectItem value="personal-loan">Personal Loan</SelectItem>
+                                            <SelectItem value="credit-card">Credit Card</SelectItem>
+                                            <SelectItem value="hecs">HECS/HELP</SelectItem>
+                                            <SelectItem value="other">Other</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  {/* Balance */}
+                                  <FormField
+                                    control={form.control}
+                                    name={`liabilities.${index}.balance`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Balance Owing</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            step="any"
+                                            placeholder="0"
+                                            {...field}
+                                            value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  
+                                  {/* Repayment Amount with Frequency Dropdown */}
+                                  <div className="grid grid-cols-3 gap-2">
+                                    <div className="col-span-2">
+                                      <FormField
+                                        control={form.control}
+                                        name={`liabilities.${index}.monthlyPayment`}
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Repayment Amount</FormLabel>
+                                            <FormControl>
+                                              <Input
+                                                type="number"
+                                                step="any"
+                                                placeholder="0"
+                                                {...field}
+                                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                              />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    </div>
+                                    <FormField
+                                      control={form.control}
+                                      name={`liabilities.${index}.paymentFrequency`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Freq</FormLabel>
+                                          <Select onValueChange={field.onChange} value={field.value || 'M'}>
+                                            <FormControl>
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="M" />
                                             </SelectTrigger>
                                           </FormControl>
                                           <SelectContent>
@@ -1894,78 +1910,82 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                         </Select>
                                         <FormMessage />
                                       </FormItem>
-                                    )}
-                                  />
-                                </div>
-                                
-                                {/* Interest Rate */}
-                                <FormField
-                                  control={form.control}
-                                  name={`liabilities.${index}.interestRate`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Interest Rate (%)</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          step="any"
-                                          placeholder="0"
-                                          {...field}
-                                          value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                          onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                {/* Loan Term and Term Remaining side by side */}
-                                <div className="grid grid-cols-2 gap-4">
+                                    />
+                                  </div>
+                                  
+                                  {/* Interest Rate */}
                                   <FormField
                                     control={form.control}
-                                    name={`liabilities.${index}.loanTerm`}
+                                    name={`liabilities.${index}.interestRate`}
                                     render={({ field }) => (
                                       <FormItem>
-                                        <FormLabel>Loan Term (Years)</FormLabel>
+                                        <FormLabel>Interest Rate (%)</FormLabel>
                                         <FormControl>
                                           <Input
                                             type="number"
-                                            step="1"
-                                            placeholder="30"
+                                            step="any"
+                                            placeholder="0"
                                             {...field}
                                             value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                           />
                                         </FormControl>
                                         <FormMessage />
                                       </FormItem>
                                     )}
                                   />
-                                  <FormField
-                                    control={form.control}
-                                    name={`liabilities.${index}.termRemaining`}
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Term Remaining</FormLabel>
-                                        <FormControl>
-                                          <Input
-                                            type="number"
-                                            step="1"
-                                            placeholder="25"
-                                            {...field}
-                                            value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value))}
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
+                                  
+                                  {/* Loan Term and Term Remaining side by side */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                      control={form.control}
+                                      name={`liabilities.${index}.loanTerm`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Loan Term (Years)</FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              type="number"
+                                              step="1"
+                                              placeholder="30"
+                                              {...field}
+                                              value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                              onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={form.control}
+                                      name={`liabilities.${index}.termRemaining`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Term Remaining</FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              type="number"
+                                              step="1"
+                                              placeholder="25"
+                                              {...field}
+                                              value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                              onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
                                 </div>
+                              
+                            ) : (
+                              <div className="flex items-center justify-center h-full min-h-[200px]">
+                                <span className="text-muted-foreground text-sm">No liability attached</span>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          {/* </div> */}
                         </div>
                       </div>
                     ))}
