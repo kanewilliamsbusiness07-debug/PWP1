@@ -1972,6 +1972,22 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                   </div>
                 </div>
 
+                {/* Bottom Add Asset & Liability Button */}
+                <div className="flex justify-center mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      appendAsset({ id: `asset-${Date.now()}`, name: '', currentValue: 0, type: 'other' });
+                      appendLiability({ id: `liability-${Date.now()}`, name: '', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'other', lender: '', loanType: 'variable', paymentFrequency: 'M' });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Asset & Liability
+                  </Button>
+                </div>
+
                 {/* Save & Continue Button */}
                 <div className="flex justify-end pt-4 border-t mt-6">
                   <Button
