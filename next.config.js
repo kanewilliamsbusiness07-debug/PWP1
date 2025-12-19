@@ -11,6 +11,7 @@ const nextConfig = {
   // Required for Amplify SSR stability
   experimental: {
     serverActions: { enabled: true },
+    turbopack: false,
   },
 
   // Environment variables configuration
