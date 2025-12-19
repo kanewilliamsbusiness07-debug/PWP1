@@ -1607,13 +1607,13 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                     
                     {/* Paired Asset/Liability rows */}
                     {assetFields.map((field, index) => (
-                      <div key={field.id} className={`border-t-2 border-border ${index === assetFields.length - 1 ? 'border-b-2' : ''}`}>
+                      <div key={field.id} className={'border-t-2 border-border ' + (index === assetFields.length - 1 ? 'border-b-2' : '')}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
                           {/* Asset Card */}
-                          <div className="bg-muted/30 rounded-lg p-4">
+                          <div className="bg-muted rounded-lg p-4">
                             <div className="flex justify-between items-start mb-4">
                               <h4 className="font-medium text-base">
-                                {index === 0 ? 'Home (Owner Occupier)' : `Asset ${index + 1}`}
+                                {index === 0 ? 'Home (Owner Occupier)' : 'Asset ' + (index + 1)}
                               </h4>
                               {index > 0 && (
                                 <Button
@@ -1747,19 +1747,18 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                           </div>
 
                           {/* Liability Card */}
-                          <div className="bg-muted/30 rounded-lg p-4">
-                            {true ? (
+                          <div className="bg-muted rounded-lg p-4">
                               <div>
                                 <div className="flex justify-between items-start mb-4">
                                   <h4 className="font-medium text-base">
-                                    {index === 0 ? 'Home Loan' : `Liability ${index + 1}`}
+                                    {index === 0 ? 'Home Loan' : 'Liability ' + (index + 1)}
                                   </h4>
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => {
-                                      form.setValue(`liabilities.${index}`, {
+                                      form.setValue('liabilities.' + index, {
                                         id: '',
                                         name: '',
                                         balance: 0,
@@ -1858,7 +1857,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                             placeholder="0"
                                             {...field}
                                             value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
                                           />
                                         </FormControl>
                                         <FormMessage />
@@ -1910,34 +1909,15 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                         </Select>
                                         <FormMessage />
                                       </FormItem>
-                                      )}
+                                    )}
                                     />
                                   </div>
-<FormField                                    control={form.control}
-                                    name={`liabilities.${index}.interestRate`}
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Interest Rate (%)</FormLabel>
-                                        <FormControl>
-                                          <Input
-                                            type="number"
-                                            step="any"
-                                            placeholder="0"
-                                            {...field}
-                                            value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
                                   
                                   {/* Loan Term and Term Remaining side by side */}
                                   <div className="grid grid-cols-2 gap-4">
                                     <FormField
                                       control={form.control}
-                                      name={`liabilities.${index}.loanTerm`}
+                                      name={'liabilities.' + index + '.loanTerm'}
                                       render={({ field }) => (
                                         <FormItem>
                                           <FormLabel>Loan Term (Years)</FormLabel>
@@ -1948,7 +1928,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                               placeholder="30"
                                               {...field}
                                               value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                              onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                              onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
                                             />
                                           </FormControl>
                                           <FormMessage />
@@ -1968,7 +1948,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                               placeholder="25"
                                               {...field}
                                               value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                              onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                              onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
                                             />
                                           </FormControl>
                                           <FormMessage />
@@ -1978,11 +1958,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                   </div>
                                 </div>
                               
-                            ) : (
-                              <div className="flex items-center justify-center h-full min-h-[200px]">
-                                <span className="text-muted-foreground text-sm">No liability attached</span>
-                              </div>
-                            )}
                           </div>
                         </div>
                       </div>
