@@ -1748,7 +1748,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
 
                           {/* Liability Card */}
                           <div className="bg-muted/30 rounded-lg p-4">
-                            {liabilityFields[index]?.name?.trim() ? (
+                            {true ? (
                               <div>
                                 <div className="flex justify-between items-start mb-4">
                                   <h4 className="font-medium text-base">
@@ -1910,11 +1910,10 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                         </Select>
                                         <FormMessage />
                                       </FormItem>
+                                      )}
+                                    />
                                   </div>
-                                  
-                                  {/* Interest Rate */}
-                                  <FormField
-                                    control={form.control}
+<FormField                                    control={form.control}
                                     name={`liabilities.${index}.interestRate`}
                                     render={({ field }) => (
                                       <FormItem>
