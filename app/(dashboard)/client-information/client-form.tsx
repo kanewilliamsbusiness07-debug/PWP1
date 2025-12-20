@@ -235,7 +235,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     console.log('Fields to validate for tab', activeTab, ':', fieldsToValidate);
 
     // Validate only the relevant fields for the current tab
-    const isValid = await form.trigger(fieldsToValidate);
+    const isValid = await form.trigger(fieldsToValidate as any);
     console.log('Form validation result:', isValid);
 
     if (isValid) {
