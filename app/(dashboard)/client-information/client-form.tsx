@@ -209,6 +209,16 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
   
   // Function to save and move to next tab
   const handleSaveAndNext = async () => {
+    // Don't allow saving for client A
+    if (clientSlot === 'A') {
+      toast({
+        title: 'Save Disabled',
+        description: 'Saving is disabled for Client A.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     // Trigger form validation and save
     const isValid = await form.trigger();
     if (isValid) {
@@ -2416,7 +2426,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
 
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Assumptions</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                     <FormField
                       control={form.control}
                       name="inflationRate"
