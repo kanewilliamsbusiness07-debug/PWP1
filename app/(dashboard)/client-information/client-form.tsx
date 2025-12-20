@@ -1135,12 +1135,17 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
   // Expose methods via ref
   React.useImperativeHandle(ref, () => ({
     saveClient: async () => {
-      const isValid = await form.trigger();
-      if (isValid) {
+      console.log('saveClient called for client:', clientSlot);
+      // For top-level save, try to save even if some validation fails
+      // This allows saving partial data
+      try {
         const data = form.getValues();
+        console.log('Saving client data for slot:', clientSlot, 'with data keys:', Object.keys(data));
         await onSubmitInternal(data);
-      } else {
-        throw new Error('Form validation failed');
+        console.log('Client saved successfully for slot:', clientSlot);
+      } catch (error) {
+        console.error('Error saving client for slot:', clientSlot, error);
+        throw error;
       }
     },
     resetClient: () => {
