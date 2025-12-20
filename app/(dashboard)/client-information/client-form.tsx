@@ -225,9 +225,9 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         firstName: data.firstName,
         lastName: data.lastName,
         dob: data.dob,
-        hasAssets: data.assets?.length > 0,
-        hasLiabilities: data.liabilities?.length > 0,
-        hasPairs: data.assetLiabilityPairs?.length > 0
+        hasAssets: (data.assets?.length ?? 0) > 0,
+        hasLiabilities: (data.liabilities?.length ?? 0) > 0,
+        hasPairs: (data.assetLiabilityPairs?.length ?? 0) > 0
       });
       await onSubmitInternal(data);
       // Move to next tab after successful save
@@ -645,9 +645,9 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       firstName: data.firstName,
       lastName: data.lastName,
       dob: data.dob,
-      hasAssets: data.assets?.length > 0,
-      hasLiabilities: data.liabilities?.length > 0,
-      hasPairs: data.assetLiabilityPairs?.length > 0
+      hasAssets: (data.assets?.length ?? 0) > 0,
+      hasLiabilities: (data.liabilities?.length ?? 0) > 0,
+      hasPairs: (data.assetLiabilityPairs?.length ?? 0) > 0
     });
     setIsSaving(true);
     try {
