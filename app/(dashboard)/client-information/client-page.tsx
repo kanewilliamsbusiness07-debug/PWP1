@@ -35,9 +35,9 @@ function SharedAssumptionsSection() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          <div>
-            <Label htmlFor="inflation-rate" className="text-sm text-muted-foreground">Inflation Rate (%)</Label>
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="inflation-rate" className="text-sm text-muted-foreground whitespace-nowrap">Inflation Rate (%):</Label>
             <Input
               id="inflation-rate"
               type="number"
@@ -45,11 +45,11 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.inflationRate ?? 2.5}
               onChange={(e) => handleChange('inflationRate', e.target.value)}
-              className="mt-1"
+              className="w-20"
             />
           </div>
-          <div>
-            <Label htmlFor="salary-growth" className="text-sm text-muted-foreground">Salary Growth (%)</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="salary-growth" className="text-sm text-muted-foreground whitespace-nowrap">Salary Growth (%):</Label>
             <Input
               id="salary-growth"
               type="number"
@@ -57,11 +57,11 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.salaryGrowthRate ?? 3.0}
               onChange={(e) => handleChange('salaryGrowthRate', e.target.value)}
-              className="mt-1"
+              className="w-20"
             />
           </div>
-          <div>
-            <Label htmlFor="super-return" className="text-sm text-muted-foreground">Super Return (%)</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="super-return" className="text-sm text-muted-foreground whitespace-nowrap">Super Return (%):</Label>
             <Input
               id="super-return"
               type="number"
@@ -69,11 +69,11 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.superReturn ?? 7.0}
               onChange={(e) => handleChange('superReturn', e.target.value)}
-              className="mt-1"
+              className="w-20"
             />
           </div>
-          <div>
-            <Label htmlFor="share-return" className="text-sm text-muted-foreground">Share Return (%)</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="share-return" className="text-sm text-muted-foreground whitespace-nowrap">Share Return (%):</Label>
             <Input
               id="share-return"
               type="number"
@@ -81,11 +81,11 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.shareReturn ?? 7.0}
               onChange={(e) => handleChange('shareReturn', e.target.value)}
-              className="mt-1"
+              className="w-20"
             />
           </div>
-          <div>
-            <Label htmlFor="property-growth" className="text-sm text-muted-foreground">Property Growth (%)</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="property-growth" className="text-sm text-muted-foreground whitespace-nowrap">Property Growth (%):</Label>
             <Input
               id="property-growth"
               type="number"
@@ -93,11 +93,11 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.propertyGrowthRate ?? 4.0}
               onChange={(e) => handleChange('propertyGrowthRate', e.target.value)}
-              className="mt-1"
+              className="w-20"
             />
           </div>
-          <div>
-            <Label htmlFor="withdrawal-rate" className="text-sm text-muted-foreground">Withdrawal Rate (%)</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="withdrawal-rate" className="text-sm text-muted-foreground whitespace-nowrap">Withdrawal Rate (%):</Label>
             <Input
               id="withdrawal-rate"
               type="number"
@@ -105,11 +105,11 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.withdrawalRate ?? 4.0}
               onChange={(e) => handleChange('withdrawalRate', e.target.value)}
-              className="mt-1"
+              className="w-20"
             />
           </div>
-          <div>
-            <Label htmlFor="rent-growth" className="text-sm text-muted-foreground">Rent Growth (%)</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="rent-growth" className="text-sm text-muted-foreground whitespace-nowrap">Rent Growth (%):</Label>
             <Input
               id="rent-growth"
               type="number"
@@ -117,11 +117,11 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.rentGrowthRate ?? 3.0}
               onChange={(e) => handleChange('rentGrowthRate', e.target.value)}
-              className="mt-1"
+              className="w-20"
             />
           </div>
-          <div>
-            <Label htmlFor="savings-rate" className="text-sm text-muted-foreground">Savings Rate (%)</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="savings-rate" className="text-sm text-muted-foreground whitespace-nowrap">Savings Rate (%):</Label>
             <Input
               id="savings-rate"
               type="number"
@@ -129,7 +129,7 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.savingsRate ?? 10.0}
               onChange={(e) => handleChange('savingsRate', e.target.value)}
-              className="mt-1"
+              className="w-20"
             />
           </div>
         </div>
@@ -164,10 +164,39 @@ export function ClientPage() {
     
     if (loadClientId && user && !isLoadingClient) {
       setIsLoadingClient(true);
+      
+      // Check if this client has a remembered slot
+      const clientSlotMapping = JSON.parse(localStorage.getItem('clientSlotMapping') || '{}');
+      const rememberedSlot = clientSlotMapping[loadClientId] as 'A' | 'B' | undefined;
+      
+      // Determine target slot: URL param takes precedence, then remembered slot, then default to A
+      let targetSlot = slot || rememberedSlot || 'A';
+      
+      // Check if target slot is occupied
+      const currentClientInSlot = targetSlot === 'A' ? financialStore.clientA : financialStore.clientB;
+      const isSlotOccupied = currentClientInSlot && 
+        (currentClientInSlot.firstName || currentClientInSlot.lastName) && 
+        currentClientInSlot.id !== loadClientId; // Allow loading into same slot if it's the same client
+      
+      if (isSlotOccupied && !slot) {
+        // If remembered slot is occupied and no explicit slot was requested, try the other slot
+        const otherSlot = targetSlot === 'A' ? 'B' : 'A';
+        const otherClient = otherSlot === 'A' ? financialStore.clientA : financialStore.clientB;
+        const isOtherSlotOccupied = otherClient && 
+          (otherClient.firstName || otherClient.lastName) && 
+          otherClient.id !== loadClientId;
+        
+        if (!isOtherSlotOccupied) {
+          targetSlot = otherSlot;
+        } else {
+          // Both slots occupied, default to slot A (user can manually move later)
+          targetSlot = 'A';
+        }
+      }
+      
       loadClient(loadClientId)
         .then((client) => {
           if (client) {
-            const targetSlot = slot || 'A';
             financialStore.setClientData(targetSlot, {
               ...client,
               dateOfBirth: client.dob ? (typeof client.dob === 'string' ? new Date(client.dob) : client.dob) : undefined,
@@ -182,9 +211,13 @@ export function ClientPage() {
             
             router.replace('/client-information');
             
+            const slotMessage = rememberedSlot ? 
+              ` (loaded into remembered slot ${targetSlot})` : 
+              ` (loaded into slot ${targetSlot})`;
+            
             toast({
               title: 'Client loaded',
-              description: `Loaded ${client.firstName} ${client.lastName} into Client ${targetSlot}`
+              description: `Loaded ${client.firstName} ${client.lastName} into Client ${targetSlot}${slotMessage}`
             });
           }
         })

@@ -800,6 +800,13 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
           id: savedClient.id,
         } as any);
         
+        // Remember which slot this client was saved in
+        if (savedClient.id) {
+          const clientSlotMapping = JSON.parse(localStorage.getItem('clientSlotMapping') || '{}');
+          clientSlotMapping[savedClient.id] = clientSlot;
+          localStorage.setItem('clientSlotMapping', JSON.stringify(clientSlotMapping));
+        }
+        
         toast({
           title: 'Client Saved',
           description: `${data.firstName} ${data.lastName} has been saved successfully.`,
