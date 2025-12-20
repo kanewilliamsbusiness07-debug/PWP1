@@ -35,9 +35,20 @@ function SharedAssumptionsSection() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="inflation-rate" className="text-sm text-muted-foreground whitespace-nowrap">Inflation Rate (%):</Label>
+        <div className="space-y-2">
+          {/* Labels row */}
+          <div className="flex flex-wrap gap-4 justify-start">
+            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Inflation Rate (%)</Label>
+            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Salary Growth (%)</Label>
+            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Super Return (%)</Label>
+            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Share Return (%)</Label>
+            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Property Growth (%)</Label>
+            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Withdrawal Rate (%)</Label>
+            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Rent Growth (%)</Label>
+            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Savings Rate (%)</Label>
+          </div>
+          {/* Inputs row */}
+          <div className="flex flex-wrap gap-4 items-center">
             <Input
               id="inflation-rate"
               type="number"
@@ -47,9 +58,6 @@ function SharedAssumptionsSection() {
               onChange={(e) => handleChange('inflationRate', e.target.value)}
               className="w-20"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="salary-growth" className="text-sm text-muted-foreground whitespace-nowrap">Salary Growth (%):</Label>
             <Input
               id="salary-growth"
               type="number"
@@ -59,9 +67,6 @@ function SharedAssumptionsSection() {
               onChange={(e) => handleChange('salaryGrowthRate', e.target.value)}
               className="w-20"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="super-return" className="text-sm text-muted-foreground whitespace-nowrap">Super Return (%):</Label>
             <Input
               id="super-return"
               type="number"
@@ -71,9 +76,6 @@ function SharedAssumptionsSection() {
               onChange={(e) => handleChange('superReturn', e.target.value)}
               className="w-20"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="share-return" className="text-sm text-muted-foreground whitespace-nowrap">Share Return (%):</Label>
             <Input
               id="share-return"
               type="number"
@@ -83,9 +85,6 @@ function SharedAssumptionsSection() {
               onChange={(e) => handleChange('shareReturn', e.target.value)}
               className="w-20"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="property-growth" className="text-sm text-muted-foreground whitespace-nowrap">Property Growth (%):</Label>
             <Input
               id="property-growth"
               type="number"
@@ -95,9 +94,6 @@ function SharedAssumptionsSection() {
               onChange={(e) => handleChange('propertyGrowthRate', e.target.value)}
               className="w-20"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="withdrawal-rate" className="text-sm text-muted-foreground whitespace-nowrap">Withdrawal Rate (%):</Label>
             <Input
               id="withdrawal-rate"
               type="number"
@@ -107,9 +103,6 @@ function SharedAssumptionsSection() {
               onChange={(e) => handleChange('withdrawalRate', e.target.value)}
               className="w-20"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="rent-growth" className="text-sm text-muted-foreground whitespace-nowrap">Rent Growth (%):</Label>
             <Input
               id="rent-growth"
               type="number"
@@ -119,9 +112,6 @@ function SharedAssumptionsSection() {
               onChange={(e) => handleChange('rentGrowthRate', e.target.value)}
               className="w-20"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="savings-rate" className="text-sm text-muted-foreground whitespace-nowrap">Savings Rate (%):</Label>
             <Input
               id="savings-rate"
               type="number"

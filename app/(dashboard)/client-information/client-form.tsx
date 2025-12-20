@@ -625,6 +625,22 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         // Always have at least one asset (Home) and one liability
         assets: client.assets?.length ? client.assets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }],
         liabilities: client.liabilities?.length ? client.liabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }],
+        // Initialize pairs from existing assets/liabilities or create default pair
+        assetLiabilityPairs: (() => {
+          const assets = client.assets?.length ? client.assets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
+          const liabilities = client.liabilities?.length ? client.liabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
+
+          // Create pairs by matching assets and liabilities by index
+          const maxLength = Math.max(assets.length, liabilities.length);
+          const pairs = [];
+          for (let i = 0; i < maxLength; i++) {
+            pairs.push({
+              asset: assets[i] || { id: `asset-${Date.now()}-${i}`, name: `Asset ${i + 1}`, currentValue: 0, type: 'other' as const },
+              liability: liabilities[i] || { id: `liability-${Date.now()}-${i}`, name: `Liability ${i + 1}`, balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 30, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }
+            });
+          }
+          return pairs;
+        })(),
         properties: client.properties || [],
         currentAge: client.currentAge || 0,
         retirementAge: client.retirementAge || 0,
