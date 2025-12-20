@@ -258,8 +258,18 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       }
     } else {
       console.log('Form validation failed, errors:', form.formState.errors);
+      console.log('Detailed errors:', JSON.stringify(form.formState.errors, null, 2));
       console.log('Dirty fields:', form.formState.dirtyFields);
       console.log('Touched fields:', form.formState.touchedFields);
+      
+      // Log specific field errors for debugging
+      const errorFields = Object.keys(form.formState.errors);
+      console.log('Fields with errors:', errorFields);
+      
+      // Check if any financial tab fields have errors
+      const financialFields = getFieldsToValidate(activeTab);
+      const financialErrors = financialFields.filter(field => (form.formState.errors as any)[field]);
+      console.log('Financial tab fields with errors:', financialErrors);
     }
   };
   
@@ -326,7 +336,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         for (let i = 0; i < maxLength; i++) {
           pairs.push({
             asset: assets[i] || { id: `asset-${Date.now()}-${i}`, name: `Asset ${i + 1}`, currentValue: 0, type: 'other' as const },
-            liability: liabilities[i] ? liabilities[i] : undefined
+            liability: liabilities[i] || { id: `liability-${Date.now()}-${i}`, name: `Liability ${i + 1}`, balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 30, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }
           });
         }
         return pairs;
