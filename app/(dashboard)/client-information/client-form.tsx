@@ -212,11 +212,32 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     console.log('handleSaveAndNext called for client:', clientSlot);
     console.log('Current active tab:', activeTab);
     console.log('Form state:', form.formState);
-    
-    // Trigger form validation and save
-    const isValid = await form.trigger();
+
+    // Define which fields to validate based on current tab
+    const getFieldsToValidate = (tab: string) => {
+      switch (tab) {
+        case 'personal':
+          return ['firstName', 'lastName', 'middleName', 'dob', 'maritalStatus', 'numberOfDependants', 'email', 'mobile', 'addressLine1', 'addressLine2', 'suburb', 'state', 'postcode', 'ownOrRent', 'agesOfDependants'];
+        case 'financial':
+          return ['annualIncome', 'grossSalary', 'rentalIncome', 'dividends', 'frankedDividends', 'capitalGains', 'otherIncome', 'investmentIncome', 'monthlyRentalIncome', 'currentAge', 'retirementAge', 'currentSuper', 'currentSavings', 'currentShares', 'propertyEquity', 'monthlyDebtPayments', 'monthlyExpenses', 'workRelatedExpenses', 'vehicleExpenses', 'uniformsAndLaundry', 'homeOfficeExpenses', 'selfEducationExpenses', 'investmentExpenses', 'charityDonations', 'accountingFees', 'rentalExpenses', 'superContributions', 'healthInsurance', 'hecs', 'helpDebt', 'privateHealthInsurance', 'assets', 'liabilities', 'assetLiabilityPairs'];
+        case 'properties':
+          return ['properties'];
+        case 'projections':
+          return ['projectionAssumptions'];
+        case 'tax':
+          return ['taxOptimizations'];
+        default:
+          return [];
+      }
+    };
+
+    const fieldsToValidate = getFieldsToValidate(activeTab);
+    console.log('Fields to validate for tab', activeTab, ':', fieldsToValidate);
+
+    // Validate only the relevant fields for the current tab
+    const isValid = await form.trigger(fieldsToValidate);
     console.log('Form validation result:', isValid);
-    
+
     if (isValid) {
       console.log('Form is valid, getting values...');
       const data = form.getValues();
@@ -298,13 +319,13 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       assetLiabilityPairs: (() => {
         const assets = client?.assets?.length ? client.assets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
         const liabilities = client?.liabilities?.length ? client.liabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
-        
+
         // Create pairs by matching assets and liabilities by index
         const maxLength = Math.max(assets.length, liabilities.length);
         const pairs = [];
         for (let i = 0; i < maxLength; i++) {
           pairs.push({
-            asset: assets[i] || { id: `asset-${Date.now()}-${i}`, name: '', currentValue: 0, type: 'other' as const },
+            asset: assets[i] || { id: `asset-${Date.now()}-${i}`, name: `Asset ${i + 1}`, currentValue: 0, type: 'other' as const },
             liability: liabilities[i] ? liabilities[i] : undefined
           });
         }
