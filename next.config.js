@@ -5,13 +5,9 @@ const nextConfig = {
     domains: [],
   },
 
-  // Configure Turbopack
-  turbopack: {},
-
   // Required for Amplify SSR stability
   experimental: {
     serverActions: { enabled: true },
-    turbopack: false,
   },
 
   // Environment variables configuration

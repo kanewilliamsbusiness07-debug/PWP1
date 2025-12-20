@@ -209,16 +209,36 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
   
   // Function to save and move to next tab
   const handleSaveAndNext = async () => {
+    console.log('handleSaveAndNext called for client:', clientSlot);
+    console.log('Current active tab:', activeTab);
+    console.log('Form state:', form.formState);
+    
     // Trigger form validation and save
     const isValid = await form.trigger();
+    console.log('Form validation result:', isValid);
+    
     if (isValid) {
+      console.log('Form is valid, getting values...');
       const data = form.getValues();
+      console.log('Form data keys:', Object.keys(data));
+      console.log('Form data sample:', {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        dob: data.dob,
+        hasAssets: data.assets?.length > 0,
+        hasLiabilities: data.liabilities?.length > 0,
+        hasPairs: data.assetLiabilityPairs?.length > 0
+      });
       await onSubmitInternal(data);
       // Move to next tab after successful save
       const currentIndex = TAB_ORDER.indexOf(activeTab);
       if (currentIndex < TAB_ORDER.length - 1) {
         setActiveTab(TAB_ORDER[currentIndex + 1]);
       }
+    } else {
+      console.log('Form validation failed, errors:', form.formState.errors);
+      console.log('Dirty fields:', form.formState.dirtyFields);
+      console.log('Touched fields:', form.formState.touchedFields);
     }
   };
   
@@ -619,10 +639,22 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
   }, [client, form, clientSlot]);
 
   const onSubmitInternal = async (data: ClientFormData) => {
+    console.log('onSubmitInternal called for client:', clientSlot);
+    console.log('Data keys:', Object.keys(data));
+    console.log('Data sample:', {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      dob: data.dob,
+      hasAssets: data.assets?.length > 0,
+      hasLiabilities: data.liabilities?.length > 0,
+      hasPairs: data.assetLiabilityPairs?.length > 0
+    });
     setIsSaving(true);
     try {
+      console.log('Starting validation checks...');
       // Validate required fields before saving
       if (!data.firstName || !data.lastName) {
+        console.log('Validation failed: missing firstName or lastName');
         toast({
           title: 'Validation Error',
           description: 'First name and last name are required',
@@ -635,8 +667,10 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       // Validate date of birth for new clients (required by API)
       const currentClient = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
       const clientId = (currentClient as any)?.id;
+      console.log('Current client ID:', clientId);
       
       if (!clientId && !data.dob) {
+        console.log('Validation failed: missing DOB for new client');
         toast({
           title: 'Validation Error',
           description: 'Date of birth is required to save a new client. Please fill in the date of birth field.',
@@ -645,6 +679,8 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         setIsSaving(false);
         return;
       }
+
+      console.log('Validation passed, proceeding to save...');
 
       // Update store first
       financialStore.setClientData(clientSlot, {
@@ -716,10 +752,12 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       console.log('Saving client data:', { ...clientData, dob: dobString ? 'provided' : 'missing' });
 
       // Use the storage hook to save
+      console.log('Calling saveClient with data:', { ...clientData, id: clientId });
       const savedClient = await saveClient({
         ...clientData,
         id: clientId,
       });
+      console.log('saveClient returned:', savedClient);
 
       if (savedClient) {
         console.log('Client saved successfully:', savedClient.id);
@@ -2016,7 +2054,10 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                   </Button>
                   <Button
                     type="button"
-                    onClick={handleSaveAndNext}
+                    onClick={() => {
+                      console.log('Save & Continue button clicked for client:', clientSlot);
+                      handleSaveAndNext();
+                    }}
                     className="bg-yellow-500 text-white hover:bg-yellow-600"
                     disabled={isSaving}
                   >
