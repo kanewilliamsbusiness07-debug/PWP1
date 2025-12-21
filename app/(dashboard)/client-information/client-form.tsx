@@ -1057,6 +1057,38 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     return () => subscription.unsubscribe();
   }, [form]);
 
+  // Run initial calculation when client data changes
+  useEffect(() => {
+    if (!client) return;
+
+    // Calculate current savings from assets with type 'savings'
+    const assets = client.assets;
+    if (assets && Array.isArray(assets)) {
+      const totalSavings = assets
+        .filter((asset: any) => asset.type === 'savings')
+        .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+      if (totalSavings !== (client.currentSavings || 0)) {
+        form.setValue('currentSavings', totalSavings, { shouldValidate: false, shouldDirty: false });
+      }
+
+      // Calculate current shares from assets with type 'shares'
+      const totalShares = assets
+        .filter((asset: any) => asset.type === 'shares')
+        .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+      if (totalShares !== (client.currentShares || 0)) {
+        form.setValue('currentShares', totalShares, { shouldValidate: false, shouldDirty: false });
+      }
+
+      // Calculate current super from assets with type 'super'
+      const totalSuper = assets
+        .filter((asset: any) => asset.type === 'super')
+        .reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+      if (totalSuper !== (client.currentSuper || 0)) {
+        form.setValue('currentSuper', totalSuper, { shouldValidate: false, shouldDirty: false });
+      }
+    }
+  }, [client, form]);
+
   // Synchronize assets and liabilities arrays with assetLiabilityPairs
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
@@ -2543,10 +2575,13 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                 step="any"
                                 placeholder="0"
                                 {...field}
+                                readOnly
+                                className="bg-muted"
                                 value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">Auto-calculated from Savings assets</p>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -2563,10 +2598,13 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                 step="any"
                                 placeholder="0"
                                 {...field}
+                                readOnly
+                                className="bg-muted"
                                 value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
                                 onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                               />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">Auto-calculated from Shares assets</p>
                             <FormMessage />
                           </FormItem>
                         )}
