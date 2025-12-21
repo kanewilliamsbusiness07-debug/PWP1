@@ -56,7 +56,7 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.inflationRate ?? 2.5}
               onChange={(e) => handleChange('inflationRate', e.target.value)}
-              className="w-20"
+              className="w-28"
             />
             <Input
               id="salary-growth"
@@ -65,7 +65,7 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.salaryGrowthRate ?? 3.0}
               onChange={(e) => handleChange('salaryGrowthRate', e.target.value)}
-              className="w-20"
+              className="w-28"
             />
             <Input
               id="super-return"
@@ -74,7 +74,7 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.superReturn ?? 7.0}
               onChange={(e) => handleChange('superReturn', e.target.value)}
-              className="w-20"
+              className="w-28"
             />
             <Input
               id="share-return"
@@ -83,7 +83,7 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.shareReturn ?? 7.0}
               onChange={(e) => handleChange('shareReturn', e.target.value)}
-              className="w-20"
+              className="w-28"
             />
             <Input
               id="property-growth"
@@ -92,7 +92,7 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.propertyGrowthRate ?? 4.0}
               onChange={(e) => handleChange('propertyGrowthRate', e.target.value)}
-              className="w-20"
+              className="w-28"
             />
             <Input
               id="withdrawal-rate"
@@ -101,7 +101,7 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.withdrawalRate ?? 4.0}
               onChange={(e) => handleChange('withdrawalRate', e.target.value)}
-              className="w-20"
+              className="w-28"
             />
             <Input
               id="rent-growth"
@@ -110,7 +110,7 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.rentGrowthRate ?? 3.0}
               onChange={(e) => handleChange('rentGrowthRate', e.target.value)}
-              className="w-20"
+              className="w-28"
             />
             <Input
               id="savings-rate"
@@ -119,7 +119,7 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.savingsRate ?? 10.0}
               onChange={(e) => handleChange('savingsRate', e.target.value)}
-              className="w-20"
+              className="w-28"
             />
           </div>
         </div>
