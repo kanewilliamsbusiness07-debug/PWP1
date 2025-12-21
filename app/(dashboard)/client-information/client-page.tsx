@@ -48,7 +48,7 @@ function SharedAssumptionsSection() {
             <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Savings Rate (%)</Label>
           </div>
           {/* Inputs row */}
-          <div className="flex justify-between items-center">
+          <div className="flex gap-0 items-center">
             <Input
               id="inflation-rate"
               type="number"
