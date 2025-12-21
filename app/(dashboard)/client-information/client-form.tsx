@@ -565,6 +565,19 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     return `${year}-${month}-${day}`;
   };
 
+  // Ensure form starts with valid data on mount
+  React.useEffect(() => {
+    // Set valid defaults for assets, liabilities, and pairs to prevent validation errors
+    form.setValue('assets', [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }], { shouldValidate: false });
+    form.setValue('liabilities', [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }], { shouldValidate: false });
+    form.setValue('assetLiabilityPairs', [
+      {
+        asset: { id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const },
+        liability: { id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }
+      }
+    ], { shouldValidate: false });
+  }, [form]);
+
   // Load client data when it changes (only reset if client actually changed, not on every render)
   const previousClientIdRef = React.useRef<string | null>(null);
   const previousClientDbIdRef = React.useRef<string | null>(null);
