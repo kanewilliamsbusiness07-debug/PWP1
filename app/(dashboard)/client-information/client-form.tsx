@@ -619,7 +619,9 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
             typeof asset.id === 'string' && 
             typeof asset.name === 'string' && 
             typeof asset.currentValue === 'number' && 
-            ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type)
+            typeof asset.type === 'string' && 
+            ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type) && 
+            (asset.ownerOccupied === undefined || typeof asset.ownerOccupied === 'string' && ['own', 'rent'].includes(asset.ownerOccupied))
           );
           return validAssets.length > 0 ? validAssets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
         })(),
@@ -632,10 +634,12 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
             typeof liability.monthlyPayment === 'number' && 
             typeof liability.interestRate === 'number' && 
             typeof liability.loanTerm === 'number' && 
-            typeof liability.termRemaining === 'number' && 
-            liability.type && ['mortgage', 'personal', 'car', 'credit_card', 'other'].includes(liability.type) && 
-            liability.loanType && ['variable', 'fixed'].includes(liability.loanType) && 
-            liability.paymentFrequency && ['M', 'F', 'W'].includes(liability.paymentFrequency)
+            (liability.termRemaining === undefined || typeof liability.termRemaining === 'number') && 
+            typeof liability.type === 'string' && 
+            ['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other'].includes(liability.type) && 
+            (liability.lender === undefined || typeof liability.lender === 'string') && 
+            (liability.loanType === undefined || typeof liability.loanType === 'string' && ['fixed', 'split', 'variable'].includes(liability.loanType)) && 
+            (liability.paymentFrequency === undefined || typeof liability.paymentFrequency === 'string' && ['W', 'F', 'M'].includes(liability.paymentFrequency))
           );
           return validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
         })(),
@@ -646,7 +650,9 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
             typeof asset.id === 'string' && 
             typeof asset.name === 'string' && 
             typeof asset.currentValue === 'number' && 
-            ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type)
+            typeof asset.type === 'string' && 
+            ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type) && 
+            (asset.ownerOccupied === undefined || typeof asset.ownerOccupied === 'string' && ['own', 'rent'].includes(asset.ownerOccupied))
           );
           const validLiabilities = (client?.liabilities || []).filter(liability => 
             liability && 
@@ -656,10 +662,12 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
             typeof liability.monthlyPayment === 'number' && 
             typeof liability.interestRate === 'number' && 
             typeof liability.loanTerm === 'number' && 
-            typeof liability.termRemaining === 'number' && 
-            liability.type && ['mortgage', 'personal', 'car', 'credit_card', 'other'].includes(liability.type) && 
-            liability.loanType && ['variable', 'fixed'].includes(liability.loanType) && 
-            liability.paymentFrequency && ['M', 'F', 'W'].includes(liability.paymentFrequency)
+            (liability.termRemaining === undefined || typeof liability.termRemaining === 'number') && 
+            typeof liability.type === 'string' && 
+            ['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other'].includes(liability.type) && 
+            (liability.lender === undefined || typeof liability.lender === 'string') && 
+            (liability.loanType === undefined || typeof liability.loanType === 'string' && ['fixed', 'split', 'variable'].includes(liability.loanType)) && 
+            (liability.paymentFrequency === undefined || typeof liability.paymentFrequency === 'string' && ['W', 'F', 'M'].includes(liability.paymentFrequency))
           );
           
           const assets = validAssets.length > 0 ? validAssets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
@@ -669,8 +677,8 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
           const pairs = [];
           for (let i = 0; i < maxLength; i++) {
             pairs.push({
-              asset: assets[i] || { id: `asset-${Date.now()}-${i}`, name: `Asset ${i + 1}`, currentValue: 0, type: 'other' as const },
-              liability: liabilities[i] || { id: `liability-${Date.now()}-${i}`, name: `Liability ${i + 1}`, balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 30, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }
+              asset: assets[i] || { id: `asset-fallback-${i}`, name: `Asset ${i + 1}`, currentValue: 0, type: 'other' as const },
+              liability: liabilities[i] || { id: `liability-fallback-${i}`, name: `Liability ${i + 1}`, balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 30, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }
             });
           }
           return pairs;
