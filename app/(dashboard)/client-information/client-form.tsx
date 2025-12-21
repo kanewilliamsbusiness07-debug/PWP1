@@ -675,15 +675,59 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         frankedDividends: client.frankedDividends || 0,
         capitalGains: client.capitalGains || 0,
         otherIncome: client.otherIncome || 0,
-        // Always have at least one asset (Home) and one liability
-        assets: client.assets?.length ? client.assets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }],
-        liabilities: client.liabilities?.length ? client.liabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }],
-        // Initialize pairs from existing assets/liabilities or create default pair
+        // Always have at least one asset (Home) and one liability - use filtered valid data
+        assets: (() => {
+          const validAssets = (client?.assets || []).filter(asset => 
+            asset && 
+            typeof asset.id === 'string' && 
+            typeof asset.name === 'string' && 
+            typeof asset.currentValue === 'number' && 
+            ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type)
+          );
+          return validAssets.length > 0 ? validAssets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
+        })(),
+        liabilities: (() => {
+          const validLiabilities = (client?.liabilities || []).filter(liability => 
+            liability && 
+            typeof liability.id === 'string' && 
+            typeof liability.name === 'string' && 
+            typeof liability.balance === 'number' && 
+            typeof liability.monthlyPayment === 'number' && 
+            typeof liability.interestRate === 'number' && 
+            typeof liability.loanTerm === 'number' && 
+            typeof liability.termRemaining === 'number' && 
+            liability.type && ['mortgage', 'personal', 'car', 'credit_card', 'other'].includes(liability.type) && 
+            liability.loanType && ['variable', 'fixed'].includes(liability.loanType) && 
+            liability.paymentFrequency && ['M', 'F', 'W'].includes(liability.paymentFrequency)
+          );
+          return validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
+        })(),
+        // Initialize pairs from filtered assets/liabilities
         assetLiabilityPairs: (() => {
-          const assets = client.assets?.length ? client.assets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
-          const liabilities = client.liabilities?.length ? client.liabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
-
-          // Create pairs by matching assets and liabilities by index
+          const validAssets = (client?.assets || []).filter(asset => 
+            asset && 
+            typeof asset.id === 'string' && 
+            typeof asset.name === 'string' && 
+            typeof asset.currentValue === 'number' && 
+            ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type)
+          );
+          const validLiabilities = (client?.liabilities || []).filter(liability => 
+            liability && 
+            typeof liability.id === 'string' && 
+            typeof liability.name === 'string' && 
+            typeof liability.balance === 'number' && 
+            typeof liability.monthlyPayment === 'number' && 
+            typeof liability.interestRate === 'number' && 
+            typeof liability.loanTerm === 'number' && 
+            typeof liability.termRemaining === 'number' && 
+            liability.type && ['mortgage', 'personal', 'car', 'credit_card', 'other'].includes(liability.type) && 
+            liability.loanType && ['variable', 'fixed'].includes(liability.loanType) && 
+            liability.paymentFrequency && ['M', 'F', 'W'].includes(liability.paymentFrequency)
+          );
+          
+          const assets = validAssets.length > 0 ? validAssets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
+          const liabilities = validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
+          
           const maxLength = Math.max(assets.length, liabilities.length);
           const pairs = [];
           for (let i = 0; i < maxLength; i++) {
