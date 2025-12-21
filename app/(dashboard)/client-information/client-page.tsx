@@ -37,7 +37,7 @@ function SharedAssumptionsSection() {
       <CardContent>
         <div className="space-y-2">
           {/* Labels row */}
-          <div className="flex flex-wrap gap-4 justify-start">
+          <div className="flex justify-between">
             <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Inflation Rate (%)</Label>
             <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Salary Growth (%)</Label>
             <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Super Return (%)</Label>
@@ -48,7 +48,7 @@ function SharedAssumptionsSection() {
             <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Savings Rate (%)</Label>
           </div>
           {/* Inputs row */}
-          <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex justify-between items-center">
             <Input
               id="inflation-rate"
               type="number"
