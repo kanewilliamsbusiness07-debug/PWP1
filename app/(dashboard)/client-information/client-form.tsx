@@ -912,8 +912,17 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
   // Auto-calculate projections fields from other form data
   // IMPORTANT: This effect only handles read-only calculations, NOT property/liability syncing
   useEffect(() => {
-    // Use a subscription to watch all form changes and run calculations
-    const subscription = form.watch(() => {
+    const subscription = form.watch((value, { name }) => {
+      // Trigger on relevant field changes
+      const shouldProcess = !name || 
+        name.startsWith('dob') || 
+        name.startsWith('assets') || 
+        name.startsWith('liabilities') || 
+        name.startsWith('properties') || 
+        name.startsWith('annualIncome') ||
+        name.startsWith('assetLiabilityPairs');
+      
+      if (!shouldProcess) return;
       // Calculate current age from DOB
       const dob = form.getValues('dob');
       if (dob) {
@@ -1114,7 +1123,14 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
   // Auto-create investment properties when asset type is changed to "property"
   // This is a one-way sync: assets ΓåÆ properties (NOT bi-directional)
   useEffect(() => {
-    const subscription = form.watch(() => {
+    const subscription = form.watch((value, { name }) => {
+      // Trigger on asset-related changes
+      const shouldProcess = !name || 
+        name.startsWith('assets') || 
+        name.startsWith('liabilities') || 
+        name.startsWith('assetLiabilityPairs');
+      
+      if (!shouldProcess) return;
       const assets = form.getValues('assets');
       if (!assets || !Array.isArray(assets)) return;
 
@@ -1134,9 +1150,16 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         if (prop.linkedAssetId) {
           const linkedAsset = assets.find((a: any) => a.id === prop.linkedAssetId);
           if (linkedAsset) {
-            // Update property values from asset
-            const assetIndex = assets.findIndex((a: any) => a.id === linkedAsset.id);
-            const linkedLiability = liabilities[assetIndex];
+            // Find the linked liability - prefer linkedLiabilityId, then index-based matching
+            let linkedLiability = null;
+            if (prop.linkedLiabilityId) {
+              linkedLiability = liabilities.find((l: any) => l.id === prop.linkedLiabilityId);
+            }
+            if (!linkedLiability) {
+              // Fallback to index-based matching
+              const assetIndex = assets.findIndex((a: any) => a.id === linkedAsset.id);
+              linkedLiability = liabilities[assetIndex];
+            }
 
             const updates: any = {};
             if (linkedAsset.name && linkedAsset.name !== prop.address) {
@@ -1186,7 +1209,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
 
       // Create new properties for each new property-type asset
       newPropertyAssets.forEach((asset: any) => {
-        // Find matching mortgage liability - check both by name match and by index position
+        // Find matching mortgage liability - prefer name match, then index position
         let matchingMortgage = liabilities.find((liability: any) =>
           liability.type === 'mortgage' &&
           liability.name &&
@@ -1201,6 +1224,18 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
           if (liabilityAtSameIndex && liabilityAtSameIndex.type === 'mortgage') {
             matchingMortgage = liabilityAtSameIndex;
           }
+        }
+
+        // If still no match, try to find any mortgage that isn't already linked
+        if (!matchingMortgage) {
+          const linkedLiabilityIds = currentProperties
+            .map((prop: any) => prop.linkedLiabilityId)
+            .filter((id: any) => id);
+          
+          matchingMortgage = liabilities.find((liability: any) => 
+            liability.type === 'mortgage' && 
+            !linkedLiabilityIds.includes(liability.id)
+          );
         }
 
         // Check if there's an empty property we can fill instead of appending
@@ -2597,188 +2632,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                               />
                             </FormControl>
                             <p className="text-xs text-muted-foreground">Auto-calculated from Weekly Rent (├ù52├╖12)</p>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Assumptions</h3>
-                  <div className="flex flex-wrap gap-4 items-end">
-                    <div className="flex-1 min-w-0">
-                      <FormField
-                        control={form.control}
-                        name="inflationRate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Inflation Rate (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="any"
-                                placeholder="2.5"
-                                {...field}
-                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <FormField
-                        control={form.control}
-                        name="salaryGrowthRate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Salary Growth Rate (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="any"
-                                placeholder="3.0"
-                                {...field}
-                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <FormField
-                        control={form.control}
-                        name="superReturn"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Super Return (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="any"
-                                placeholder="8.0"
-                                {...field}
-                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <FormField
-                        control={form.control}
-                        name="shareReturn"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Share Return (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="any"
-                                placeholder="7.0"
-                                {...field}
-                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <FormField
-                        control={form.control}
-                        name="propertyGrowthRate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Property Growth Rate (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="any"
-                                placeholder="5.0"
-                                {...field}
-                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <FormField
-                        control={form.control}
-                        name="withdrawalRate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Withdrawal Rate (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="any"
-                                placeholder="4.0"
-                                {...field}
-                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <FormField
-                        control={form.control}
-                        name="rentGrowthRate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Rent Growth Rate (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="any"
-                                placeholder="3.0"
-                                {...field}
-                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <FormField
-                        control={form.control}
-                        name="savingsRate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Savings Rate (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="any"
-                                placeholder="10.0"
-                                {...field}
-                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
-                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                              />
-                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
