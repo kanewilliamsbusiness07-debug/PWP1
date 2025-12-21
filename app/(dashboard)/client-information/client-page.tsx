@@ -35,20 +35,10 @@ function SharedAssumptionsSection() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
-          {/* Labels row */}
-          <div className="flex justify-between">
-            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Inflation Rate (%)</Label>
-            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Salary Growth (%)</Label>
-            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Super Return (%)</Label>
-            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Share Return (%)</Label>
-            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Property Growth (%)</Label>
-            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Withdrawal Rate (%)</Label>
-            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Rent Growth (%)</Label>
-            <Label className="text-sm text-muted-foreground min-w-0 flex-shrink-0">Savings Rate (%)</Label>
-          </div>
-          {/* Inputs row */}
-          <div className="flex gap-0 items-center">
+        <div className="grid grid-cols-8 gap-4">
+          {/* Inflation Rate */}
+          <div className="flex flex-col space-y-1">
+            <Label className="text-sm text-muted-foreground">Inflation Rate (%)</Label>
             <Input
               id="inflation-rate"
               type="number"
@@ -56,8 +46,13 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.inflationRate ?? 2.5}
               onChange={(e) => handleChange('inflationRate', e.target.value)}
-              className="w-28"
+              className="w-full"
             />
+          </div>
+          
+          {/* Salary Growth */}
+          <div className="flex flex-col space-y-1">
+            <Label className="text-sm text-muted-foreground">Salary Growth (%)</Label>
             <Input
               id="salary-growth"
               type="number"
@@ -65,8 +60,13 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.salaryGrowthRate ?? 3.0}
               onChange={(e) => handleChange('salaryGrowthRate', e.target.value)}
-              className="w-28"
+              className="w-full"
             />
+          </div>
+          
+          {/* Super Return */}
+          <div className="flex flex-col space-y-1">
+            <Label className="text-sm text-muted-foreground">Super Return (%)</Label>
             <Input
               id="super-return"
               type="number"
@@ -74,8 +74,13 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.superReturn ?? 7.0}
               onChange={(e) => handleChange('superReturn', e.target.value)}
-              className="w-28"
+              className="w-full"
             />
+          </div>
+          
+          {/* Share Return */}
+          <div className="flex flex-col space-y-1">
+            <Label className="text-sm text-muted-foreground">Share Return (%)</Label>
             <Input
               id="share-return"
               type="number"
@@ -83,8 +88,13 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.shareReturn ?? 7.0}
               onChange={(e) => handleChange('shareReturn', e.target.value)}
-              className="w-28"
+              className="w-full"
             />
+          </div>
+          
+          {/* Property Growth */}
+          <div className="flex flex-col space-y-1">
+            <Label className="text-sm text-muted-foreground">Property Growth (%)</Label>
             <Input
               id="property-growth"
               type="number"
@@ -92,8 +102,13 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.propertyGrowthRate ?? 4.0}
               onChange={(e) => handleChange('propertyGrowthRate', e.target.value)}
-              className="w-28"
+              className="w-full"
             />
+          </div>
+          
+          {/* Withdrawal Rate */}
+          <div className="flex flex-col space-y-1">
+            <Label className="text-sm text-muted-foreground">Withdrawal Rate (%)</Label>
             <Input
               id="withdrawal-rate"
               type="number"
@@ -101,8 +116,13 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.withdrawalRate ?? 4.0}
               onChange={(e) => handleChange('withdrawalRate', e.target.value)}
-              className="w-28"
+              className="w-full"
             />
+          </div>
+          
+          {/* Rent Growth */}
+          <div className="flex flex-col space-y-1">
+            <Label className="text-sm text-muted-foreground">Rent Growth (%)</Label>
             <Input
               id="rent-growth"
               type="number"
@@ -110,8 +130,13 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.rentGrowthRate ?? 3.0}
               onChange={(e) => handleChange('rentGrowthRate', e.target.value)}
-              className="w-28"
+              className="w-full"
             />
+          </div>
+          
+          {/* Savings Rate */}
+          <div className="flex flex-col space-y-1">
+            <Label className="text-sm text-muted-foreground">Savings Rate (%)</Label>
             <Input
               id="savings-rate"
               type="number"
@@ -119,7 +144,7 @@ function SharedAssumptionsSection() {
               min="0"
               defaultValue={sharedAssumptions?.savingsRate ?? 10.0}
               onChange={(e) => handleChange('savingsRate', e.target.value)}
-              className="w-28"
+              className="w-full"
             />
           </div>
         </div>
