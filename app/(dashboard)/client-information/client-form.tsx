@@ -838,6 +838,10 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       if (data.helpDebt !== undefined && data.helpDebt !== null) clientData.helpDebt = Number(data.helpDebt);
       if (data.privateHealthInsurance !== undefined) clientData.privateHealthInsurance = Boolean(data.privateHealthInsurance);
 
+      // Add assets and liabilities arrays
+      if (data.assets && Array.isArray(data.assets)) clientData.assets = data.assets;
+      if (data.liabilities && Array.isArray(data.liabilities)) clientData.liabilities = data.liabilities;
+
       console.log('Saving client data:', { ...clientData, dob: dobString ? 'provided' : 'missing' });
 
       // Use the storage hook to save
