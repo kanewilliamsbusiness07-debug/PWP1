@@ -1044,6 +1044,55 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     return () => subscription.unsubscribe();
   }, [form]);
 
+  // Synchronize assets and liabilities arrays with assetLiabilityPairs
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      // Only sync when assetLiabilityPairs changes
+      if (name?.startsWith('assetLiabilityPairs')) {
+        const pairs = form.getValues('assetLiabilityPairs') || [];
+        
+        // Extract valid assets from pairs, filtering out empty/placeholder objects
+        const syncedAssets = pairs
+          .map(pair => pair?.asset)
+          .filter(asset => 
+            asset && 
+            asset.id && 
+            asset.name && 
+            asset.type && 
+            typeof asset.currentValue === 'number'
+          ) as NonNullable<typeof pairs[0]['asset']>[];
+        
+        // Extract valid liabilities from pairs, filtering out empty/placeholder objects
+        const syncedLiabilities = pairs
+          .map(pair => pair?.liability)
+          .filter(liability => 
+            liability && 
+            liability.id && 
+            liability.name && 
+            typeof liability.balance === 'number' && 
+            typeof liability.monthlyPayment === 'number' && 
+            typeof liability.interestRate === 'number' && 
+            typeof liability.loanTerm === 'number' && 
+            liability.type
+          ) as NonNullable<typeof pairs[0]['liability']>[];
+        
+        // Only update if there are actual changes to avoid infinite loops
+        const currentAssets = form.getValues('assets') || [];
+        const currentLiabilities = form.getValues('liabilities') || [];
+        
+        if (JSON.stringify(syncedAssets) !== JSON.stringify(currentAssets)) {
+          form.setValue('assets', syncedAssets, { shouldValidate: false });
+        }
+        
+        if (JSON.stringify(syncedLiabilities) !== JSON.stringify(currentLiabilities)) {
+          form.setValue('liabilities', syncedLiabilities, { shouldValidate: false });
+        }
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   // Track which asset IDs have already been synced to properties
   const syncedAssetIdsRef = React.useRef<Set<string>>(new Set());
   
