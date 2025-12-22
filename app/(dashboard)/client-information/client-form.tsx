@@ -839,8 +839,39 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       if (data.privateHealthInsurance !== undefined) clientData.privateHealthInsurance = Boolean(data.privateHealthInsurance);
 
       // Add assets and liabilities arrays
-      if (data.assets && Array.isArray(data.assets)) clientData.assets = data.assets;
-      if (data.liabilities && Array.isArray(data.liabilities)) clientData.liabilities = data.liabilities;
+      // First try to get them directly, then extract from assetLiabilityPairs if needed
+      let assetsToSave = data.assets;
+      let liabilitiesToSave = data.liabilities;
+      
+      if ((!assetsToSave || !Array.isArray(assetsToSave) || assetsToSave.length === 0) && data.assetLiabilityPairs) {
+        assetsToSave = data.assetLiabilityPairs
+          .map((pair: any) => pair?.asset)
+          .filter((asset: any) => 
+            asset && 
+            asset.id && 
+            asset.name && 
+            asset.type && 
+            typeof asset.currentValue === 'number'
+          );
+      }
+      
+      if ((!liabilitiesToSave || !Array.isArray(liabilitiesToSave) || liabilitiesToSave.length === 0) && data.assetLiabilityPairs) {
+        liabilitiesToSave = data.assetLiabilityPairs
+          .map((pair: any) => pair?.liability)
+          .filter((liability: any) => 
+            liability && 
+            liability.id && 
+            liability.name && 
+            typeof liability.balance === 'number' && 
+            typeof liability.monthlyPayment === 'number' && 
+            typeof liability.interestRate === 'number' && 
+            typeof liability.loanTerm === 'number' && 
+            liability.type
+          );
+      }
+      
+      if (assetsToSave && Array.isArray(assetsToSave)) clientData.assets = assetsToSave;
+      if (liabilitiesToSave && Array.isArray(liabilitiesToSave)) clientData.liabilities = liabilitiesToSave;
 
       console.log('Saving client data:', { ...clientData, dob: dobString ? 'provided' : 'missing' });
 
