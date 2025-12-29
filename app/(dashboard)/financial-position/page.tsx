@@ -342,12 +342,12 @@ export default function FinancialPositionPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="assets" className="flex items-center">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 mb-6">
+              <TabsTrigger value="assets" className="flex items-center text-xs sm:text-sm">
                 <TrendingUp className="mr-2 h-4 w-4" />
                 Assets
               </TabsTrigger>
-              <TabsTrigger value="liabilities" className="flex items-center">
+              <TabsTrigger value="liabilities" className="flex items-center text-xs sm:text-sm">
                 <TrendingDown className="mr-2 h-4 w-4" />
                 Liabilities
               </TabsTrigger>

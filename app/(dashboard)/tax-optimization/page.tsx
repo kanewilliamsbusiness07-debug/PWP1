@@ -222,12 +222,12 @@ export default function TaxOptimizationPage() {
 
       {/* Client Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="client-a" disabled={!hasClientA}>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="client-a" disabled={!hasClientA} className="text-xs sm:text-sm">
             {clientAName}
           </TabsTrigger>
-          <TabsTrigger value="client-b" disabled={!hasClientB}>
+          <TabsTrigger value="client-b" disabled={!hasClientB} className="text-xs sm:text-sm">
             {clientBName}
           </TabsTrigger>
           <TabsTrigger value="combined" disabled={!showCombined}>

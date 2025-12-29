@@ -101,6 +101,21 @@
     @apply text-lg sm:text-xl md:text-2xl lg:text-3xl;
   }
   
+  /* Responsive spacing */
+  .space-responsive {
+    @apply space-y-2 sm:space-y-4 md:space-y-6;
+  }
+  
+  /* Responsive padding */
+  .p-responsive {
+    @apply p-2 sm:p-4 md:p-6;
+  }
+  
+  /* Responsive margins */
+  .m-responsive {
+    @apply m-2 sm:m-4 md:m-6;
+  }
+  
   /* Prevent horizontal overflow */
   .overflow-safe {
     @apply overflow-x-auto overflow-y-visible;

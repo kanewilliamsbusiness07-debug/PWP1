@@ -50,7 +50,7 @@ function SharedAssumptionsSection() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
           <div>
             <Label className="text-sm text-muted-foreground">Inflation Rate (%)</Label>
             <div className="mt-1 p-2 bg-muted rounded text-sm font-mono">
@@ -331,12 +331,12 @@ export default function ProjectionsPage() {
 
       {/* Client Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="client-a" disabled={!hasClientA}>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="client-a" disabled={!hasClientA} className="text-xs sm:text-sm">
             {clientAName}
           </TabsTrigger>
-          <TabsTrigger value="client-b" disabled={!hasClientB}>
+          <TabsTrigger value="client-b" disabled={!hasClientB} className="text-xs sm:text-sm">
             {clientBName}
           </TabsTrigger>
         </TabsList>

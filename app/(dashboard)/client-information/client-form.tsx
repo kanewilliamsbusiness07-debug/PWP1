@@ -1412,12 +1412,12 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         <Form {...form}>
           <form id={`client-form-${clientSlot}`} onSubmit={form.handleSubmit(onSubmitInternal)} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="personal">Personal</TabsTrigger>
-                <TabsTrigger value="financial">Financial</TabsTrigger>
-                <TabsTrigger value="properties">Properties</TabsTrigger>
-                <TabsTrigger value="projections">Projections</TabsTrigger>
-                <TabsTrigger value="tax">Tax</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+                <TabsTrigger value="personal" className="text-xs sm:text-sm">Personal</TabsTrigger>
+                <TabsTrigger value="financial" className="text-xs sm:text-sm">Financial</TabsTrigger>
+                <TabsTrigger value="properties" className="text-xs sm:text-sm">Properties</TabsTrigger>
+                <TabsTrigger value="projections" className="text-xs sm:text-sm">Projections</TabsTrigger>
+                <TabsTrigger value="tax" className="text-xs sm:text-sm">Tax</TabsTrigger>
               </TabsList>
 
               {/* Personal Information Tab */}
@@ -2167,8 +2167,8 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                 />
                                 
                                 {/* Repayment Amount with Frequency Dropdown */}
-                                <div className="grid grid-cols-3 gap-2">
-                                  <div className="col-span-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                  <div className="col-span-1 sm:col-span-2">
                                     <FormField
                                       control={form.control}
                                       name={`assetLiabilityPairs.${index}.liability.monthlyPayment`}
