@@ -734,8 +734,8 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       firstName: data.firstName,
       lastName: data.lastName,
       dob: data.dob,
-      hasAssets: (data.assets?.length ?? 0) > 0,
-      hasLiabilities: (data.liabilities?.length ?? 0) > 0,
+      hasAssets: (data.assetLiabilityPairs?.length ?? 0) > 0,
+      hasLiabilities: (data.assetLiabilityPairs?.length ?? 0) > 0,
       hasPairs: (data.assetLiabilityPairs?.length ?? 0) > 0
     });
     setIsSaving(true);
@@ -807,7 +807,8 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
 
       // Add financial fields that exist in the schema (all optional)
       if (data.annualIncome !== undefined && data.annualIncome !== null) clientData.annualIncome = Number(data.annualIncome);
-      if (data.grossSalary !== undefined && data.grossSalary !== null) clientData.grossSalary = Number(data.grossSalary);
+      if (data.annualIncome !== undefined && data.annualIncome !== null) clientData.grossSalary = Number(data.annualIncome); // Sync to legacy field
+      if (data.annualIncome !== undefined && data.annualIncome !== null) clientData.employmentIncome = Number(data.annualIncome); // Sync to legacy field
       if (data.rentalIncome !== undefined && data.rentalIncome !== null) clientData.rentalIncome = Number(data.rentalIncome);
       if (data.dividends !== undefined && data.dividends !== null) clientData.dividends = Number(data.dividends);
       if (data.frankedDividends !== undefined && data.frankedDividends !== null) clientData.frankedDividends = Number(data.frankedDividends);
@@ -839,11 +840,11 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       if (data.privateHealthInsurance !== undefined) clientData.privateHealthInsurance = Boolean(data.privateHealthInsurance);
 
       // Add assets and liabilities arrays
-      // First try to get them directly, then extract from assetLiabilityPairs if needed
-      let assetsToSave = data.assets;
-      let liabilitiesToSave = data.liabilities;
+      // Always extract from assetLiabilityPairs since that's the source of truth for the UI
+      let assetsToSave: any[] = [];
+      let liabilitiesToSave: any[] = [];
       
-      if ((!assetsToSave || !Array.isArray(assetsToSave) || assetsToSave.length === 0) && data.assetLiabilityPairs) {
+      if (data.assetLiabilityPairs && Array.isArray(data.assetLiabilityPairs)) {
         assetsToSave = data.assetLiabilityPairs
           .map((pair: any) => pair?.asset)
           .filter((asset: any) => 
@@ -851,11 +852,10 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
             asset.id && 
             asset.name && 
             asset.type && 
-            typeof asset.currentValue === 'number'
+            typeof asset.currentValue === 'number' &&
+            asset.currentValue > 0 // Only save assets with positive values
           );
-      }
-      
-      if ((!liabilitiesToSave || !Array.isArray(liabilitiesToSave) || liabilitiesToSave.length === 0) && data.assetLiabilityPairs) {
+        
         liabilitiesToSave = data.assetLiabilityPairs
           .map((pair: any) => pair?.liability)
           .filter((liability: any) => 
@@ -866,12 +866,24 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
             typeof liability.monthlyPayment === 'number' && 
             typeof liability.interestRate === 'number' && 
             typeof liability.loanTerm === 'number' && 
-            liability.type
+            liability.type &&
+            (liability.balance > 0 || liability.monthlyPayment > 0) // Only save liabilities with balance or payment
           );
       }
       
       if (assetsToSave && Array.isArray(assetsToSave)) clientData.assets = assetsToSave;
       if (liabilitiesToSave && Array.isArray(liabilitiesToSave)) clientData.liabilities = liabilitiesToSave;
+      
+      // Add properties array
+      if (data.properties && Array.isArray(data.properties)) {
+        clientData.properties = data.properties.filter(property => 
+          property && 
+          property.id && 
+          property.address && 
+          typeof property.purchasePrice === 'number' &&
+          typeof property.currentValue === 'number'
+        );
+      }
 
       console.log('Saving client data:', { ...clientData, dob: dobString ? 'provided' : 'missing' });
 
@@ -1966,7 +1978,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                   />
                                   <FormField
                                     control={form.control}
-                                    name={`assets.${index}.currentValue`}
+                                    name={`assetLiabilityPairs.${index}.asset.currentValue`}
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Home Value</FormLabel>
@@ -2006,7 +2018,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                   />
                                   <FormField
                                     control={form.control}
-                                    name={`assets.${index}.currentValue`}
+                                    name={`assetLiabilityPairs.${index}.asset.currentValue`}
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Value</FormLabel>
@@ -2079,6 +2091,23 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                                 </Button>
                               </div>
                               <div className="space-y-4">
+                                {/* Liability Name - only for non-home loans */}
+                                {index > 0 && (
+                                  <FormField
+                                    control={form.control}
+                                    name={`assetLiabilityPairs.${index}.liability.name`}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Name</FormLabel>
+                                        <FormControl>
+                                          <Input placeholder="Liability name" {...field} value={field.value || ''} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                )}
+                                
                                 {/* Lender */}
                                 <FormField
                                   control={form.control}
