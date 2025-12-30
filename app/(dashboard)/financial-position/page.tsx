@@ -305,39 +305,11 @@ export default function FinancialPositionPage() {
       {/* Main content */}
       <Card className="mt-6">
         <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle>Current Financial Position</CardTitle>
-              <CardDescription>
-                Manage your assets, liabilities, and income streams
-              </CardDescription>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => {
-                if (!activeClient) {
-                  alert('Please select a client first');
-                  return;
-                }
-                // Add a paired asset and liability
-                addFinancialPair(activeClient, {
-                  name: 'New Asset',
-                  currentValue: 0,
-                  type: 'other' as const
-                }, {
-                  name: 'New Liability',
-                  balance: 0,
-                  monthlyPayment: 0,
-                  interestRate: 0,
-                  loanTerm: 0,
-                  type: 'other' as const
-                });
-              }}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Asset & Liability
-            </Button>
+          <div>
+            <CardTitle>Current Financial Position</CardTitle>
+            <CardDescription>
+              Manage your assets, liabilities, and income streams
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
@@ -358,34 +330,8 @@ export default function FinancialPositionPage() {
             </TabsList>
             
             <TabsContent value="assets" className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
+              <div className="mb-4">
                 <h3 className="text-lg font-semibold">Assets</h3>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (!activeClient) {
-                      alert('Please select a client first');
-                      return;
-                    }
-                    // Add a paired asset and liability
-                    addFinancialPair(activeClient, {
-                      name: 'New Asset',
-                      currentValue: 0,
-                      type: 'other' as const
-                    }, {
-                      name: 'New Liability',
-                      balance: 0,
-                      monthlyPayment: 0,
-                      interestRate: 0,
-                      loanTerm: 0,
-                      type: 'other' as const
-                    });
-                  }}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Asset & Liability
-                </Button>
               </div>
               <div className="space-y-6">
                 {hasClientA && (
@@ -600,60 +546,11 @@ export default function FinancialPositionPage() {
                   </Card>
                 )}
               </div>
-              <div className="flex justify-center mt-6">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (!activeClient) {
-                      alert('Please select a client first');
-                      return;
-                    }
-                    // Add a paired asset and liability
-                    addFinancialPair(activeClient, {
-                      name: 'New Asset',
-                      currentValue: 0,
-                      type: 'other' as const
-                    }, {
-                      name: 'New Liability',
-                      balance: 0,
-                      monthlyPayment: 0,
-                      interestRate: 0,
-                      loanTerm: 0,
-                      type: 'other' as const
-                    });
-                  }}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Asset & Liability
-                </Button>
-              </div>
             </TabsContent>
             
             <TabsContent value="liabilities" className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
+              <div className="mb-4">
                 <h3 className="text-lg font-semibold">Liabilities</h3>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (!activeClient) {
-                      alert('Please select a client first');
-                      return;
-                    }
-                    addLiability(activeClient, {
-                      name: 'New Liability',
-                      balance: 0,
-                      monthlyPayment: 0,
-                      interestRate: 0,
-                      loanTerm: 0,
-                      type: 'other' as const
-                    });
-                  }}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Liability
-                </Button>
               </div>
               <div className="space-y-6">
                 {hasClientA && (
@@ -755,29 +652,6 @@ export default function FinancialPositionPage() {
                     </CardContent>
                   </Card>
                 )}
-              </div>
-              <div className="flex justify-center mt-6">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (!activeClient) {
-                      alert('Please select a client first');
-                      return;
-                    }
-                    addLiability(activeClient, {
-                      name: 'New Liability',
-                      balance: 0,
-                      monthlyPayment: 0,
-                      interestRate: 0,
-                      loanTerm: 0,
-                      type: 'other' as const
-                    });
-                  }}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Liability
-                </Button>
               </div>
             </TabsContent>
             
@@ -895,105 +769,6 @@ export default function FinancialPositionPage() {
           </Tabs>
         </CardContent>
       </Card>
-
-      <div className="flex justify-between items-center mt-6">
-        <Button
-          size="sm"
-          onClick={() => {
-            if (!activeClient) {
-              alert('Please select a client first');
-              return;
-            }
-            // Add a paired asset and liability
-            addFinancialPair(activeClient, {
-              name: 'New Asset',
-              currentValue: 0,
-              type: 'other' as const
-            }, {
-              name: 'New Liability',
-              balance: 0,
-              monthlyPayment: 0,
-              interestRate: 0,
-              loanTerm: 0,
-              type: 'other' as const
-            });
-          }}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Asset & Liability
-        </Button>
-        
-        <div className="flex gap-4">
-          <Button
-            size="sm"
-            onClick={() => {
-              if (!activeClient) {
-                alert('Please select a client first');
-                return;
-              }
-              addAsset(activeClient, {
-                name: 'New Asset',
-                currentValue: 0,
-                type: 'other' as const
-              });
-            }}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Asset
-          </Button>
-          
-          <Button
-            size="sm"
-            onClick={() => {
-              if (!activeClient) {
-                alert('Please select a client first');
-                return;
-              }
-              addLiability(activeClient, {
-                name: 'New Liability',
-                balance: 0,
-                monthlyPayment: 0,
-                interestRate: 0,
-                loanTerm: 0,
-                type: 'other' as const
-              });
-            }}
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Liability
-          </Button>
-          
-          <Button
-            size="sm"
-            onClick={() => {
-              if (!activeClient) {
-                alert('Please select a client first');
-                return;
-              }
-              // Add a paired asset and liability
-              addFinancialPair(activeClient, {
-                name: 'New Asset',
-                currentValue: 0,
-                type: 'other' as const
-              }, {
-                name: 'New Liability',
-                balance: 0,
-                monthlyPayment: 0,
-                interestRate: 0,
-                loanTerm: 0,
-                type: 'other' as const
-              });
-            }}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Asset & Liability
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }
