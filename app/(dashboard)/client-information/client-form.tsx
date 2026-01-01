@@ -557,14 +557,14 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         setDobMonth((dob.getMonth() + 1).toString());
         setDobYear(dob.getFullYear().toString());
       } else {
-        setDobDay('0');
-        setDobMonth('0');
-        setDobYear('0');
+        setDobDay('');
+        setDobMonth('');
+        setDobYear('');
       }
     } else {
-      setDobDay('0');
-      setDobMonth('0');
-      setDobYear('0');
+      setDobDay('');
+      setDobMonth('');
+      setDobYear('');
     }
     
     // Always initialize partner date dropdowns from client data
@@ -577,14 +577,14 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         setPartnerDobMonth((partnerDob.getMonth() + 1).toString());
         setPartnerDobYear(partnerDob.getFullYear().toString());
       } else {
-        setPartnerDobDay('0');
-        setPartnerDobMonth('0');
-        setPartnerDobYear('0');
+        setPartnerDobDay('');
+        setPartnerDobMonth('');
+        setPartnerDobYear('');
       }
     } else {
-      setPartnerDobDay('0');
-      setPartnerDobMonth('0');
-      setPartnerDobYear('0');
+      setPartnerDobDay('');
+      setPartnerDobMonth('');
+      setPartnerDobYear('');
     }
     
     if (shouldReset) {
@@ -1380,12 +1380,12 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       const emptyData = getEmptyClientData();
       form.reset(emptyData);
       // Clear date input state
-      setDobDay('0');
-      setDobMonth('0');
-      setDobYear('0');
-      setPartnerDobDay('0');
-      setPartnerDobMonth('0');
-      setPartnerDobYear('0');
+      setDobDay('');
+      setDobMonth('');
+      setDobYear('');
+      setPartnerDobDay('');
+      setPartnerDobMonth('');
+      setPartnerDobYear('');
       financialStore.setClientData(clientSlot, emptyData as any);
     },
     deleteClient: async () => {
@@ -1397,12 +1397,12 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
           const emptyData = getEmptyClientData();
           form.reset(emptyData);
           // Clear date input state
-          setDobDay('0');
-          setDobMonth('0');
-          setDobYear('0');
-          setPartnerDobDay('0');
-          setPartnerDobMonth('0');
-          setPartnerDobYear('0');
+          setDobDay('');
+          setDobMonth('');
+          setDobYear('');
+          setPartnerDobDay('');
+          setPartnerDobMonth('');
+          setPartnerDobYear('');
           financialStore.setClientData(clientSlot, emptyData as any);
         }
         return success;
