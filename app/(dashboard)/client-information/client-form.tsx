@@ -8,7 +8,6 @@ import * as z from 'zod';
 import * as formatModule from 'date-fns/format';
 const format: (date: Date | number, fmt: string) => string = (formatModule as any).default ?? (formatModule as any);
 import { Save, Plus, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useFinancialStore } from '@/lib/store/store';
 import { useToast } from '@/hooks/use-toast';
 import { useClientStorage } from '@/lib/hooks/use-client-storage';
@@ -44,7 +43,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const MARITAL_STATUS = [
@@ -112,6 +110,7 @@ type ClientFormData = z.infer<typeof clientSchema>;
 
 interface ClientFormProps {
   clientSlot: 'A' | 'B';
+  activeTab?: string;
 }
 
 export interface ClientFormRef {
@@ -120,13 +119,13 @@ export interface ClientFormRef {
   deleteClient: () => Promise<boolean>;
 }
 
-export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ clientSlot }, ref) => {
+export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ clientSlot, activeTab: initialActiveTab = 'personal' }, ref) => {
   const financialStore = useFinancialStore();
   const { toast } = useToast();
   const { saveClient, deleteClient } = useClientStorage();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('personal');
+  const [activeTab, setActiveTab] = useState(initialActiveTab);
   const client = clientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
   
   // Helper function to create empty client data
@@ -251,10 +250,11 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         hasPairs: (data.assetLiabilityPairs?.length ?? 0) > 0
       });
       await onSubmitInternal(data);
-      // Move to next tab after successful save
+      // Move to next page after successful save
       const currentIndex = TAB_ORDER.indexOf(activeTab);
       if (currentIndex < TAB_ORDER.length - 1) {
-        setActiveTab(TAB_ORDER[currentIndex + 1]);
+        const nextTab = TAB_ORDER[currentIndex + 1];
+        router.push(`/client-information/${nextTab}`);
       }
     } else {
       console.log('Form validation failed, errors:', form.formState.errors);
@@ -1423,17 +1423,53 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       <CardContent>
         <Form {...form}>
           <form id={`client-form-${clientSlot}`} onSubmit={form.handleSubmit(onSubmitInternal)} className="space-y-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-                <TabsTrigger value="personal" className="text-xs sm:text-sm">Personal</TabsTrigger>
-                <TabsTrigger value="financial" className="text-xs sm:text-sm">Financial</TabsTrigger>
-                <TabsTrigger value="properties" className="text-xs sm:text-sm">Properties</TabsTrigger>
-                <TabsTrigger value="projections" className="text-xs sm:text-sm">Projections</TabsTrigger>
-                <TabsTrigger value="tax" className="text-xs sm:text-sm">Tax</TabsTrigger>
-              </TabsList>
+            {/* Navigation */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button
+                type="button"
+                variant={activeTab === 'personal' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => router.push('/client-information/personal')}
+              >
+                Personal
+              </Button>
+              <Button
+                type="button"
+                variant={activeTab === 'financial' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => router.push('/client-information/financial')}
+              >
+                Financial
+              </Button>
+              <Button
+                type="button"
+                variant={activeTab === 'properties' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => router.push('/client-information/properties')}
+              >
+                Properties
+              </Button>
+              <Button
+                type="button"
+                variant={activeTab === 'projections' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => router.push('/client-information/projections')}
+              >
+                Projections
+              </Button>
+              <Button
+                type="button"
+                variant={activeTab === 'tax' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => router.push('/client-information/tax')}
+              >
+                Tax
+              </Button>
+            </div>
 
-              {/* Personal Information Tab */}
-              <TabsContent value="personal" forceMount className="space-y-4 mt-4">
+            {/* Personal Information Tab */}
+            {activeTab === 'personal' && (
+              <div className="space-y-4 mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Primary Person Information */}
                   <div className="space-y-4">
@@ -1743,10 +1779,12 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                     {isSaving ? 'Saving...' : 'Save & Continue'}
                   </Button>
                 </div>
-              </TabsContent>
+              </div>
+            )}
 
-              {/* Financial Position Tab */}
-              <TabsContent value="financial" forceMount className="space-y-4 mt-4">
+            {/* Financial Position Tab */}
+            {activeTab === 'financial' && (
+              <div className="space-y-4 mt-4">
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Income</h3>
@@ -2346,10 +2384,12 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                     {isSaving ? 'Saving...' : 'Save & Continue'}
                   </Button>
                 </div>
-              </TabsContent>
+              </div>
+            )}
 
-              {/* Investment Properties Tab */}
-              <TabsContent value="properties" forceMount className="space-y-4 mt-4">
+            {/* Investment Properties Tab */}
+            {activeTab === 'properties' && (
+              <div className="space-y-4 mt-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Investment Properties</h3>
                   <Button
@@ -2549,10 +2589,12 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                     {isSaving ? 'Saving...' : 'Save & Continue'}
                   </Button>
                 </div>
-              </TabsContent>
+              </div>
+            )}
 
-              {/* Projections Tab */}
-              <TabsContent value="projections" forceMount className="space-y-4 mt-4">
+            {/* Projections Tab */}
+            {activeTab === 'projections' && (
+              <div className="space-y-4 mt-4">
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Current Position</h3>
@@ -2752,10 +2794,12 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                     {isSaving ? 'Saving...' : 'Save & Continue'}
                   </Button>
                 </div>
-              </TabsContent>
+              </div>
+            )}
 
-              {/* Tax Optimization Tab */}
-              <TabsContent value="tax" forceMount className="space-y-4 mt-4">
+            {/* Tax Optimization Tab */}
+            {activeTab === 'tax' && (
+              <div className="space-y-4 mt-4">
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Income</h3>
@@ -3109,18 +3153,44 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                     </div>
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            )}
 
-            <div className="flex justify-end pt-4 border-t">
-              <Button 
-                type="submit" 
-                className="bg-yellow-500 text-white hover:bg-yellow-600"
-                disabled={isSaving}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </Button>
+            <div className="flex justify-between items-center pt-4 border-t">
+              <div>
+                {TAB_ORDER.indexOf(activeTab) > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const prevIndex = TAB_ORDER.indexOf(activeTab) - 1;
+                      router.push(`/client-information/${TAB_ORDER[prevIndex]}`);
+                    }}
+                  >
+                    Previous
+                  </Button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  className="bg-yellow-500 text-white hover:bg-yellow-600"
+                  disabled={isSaving}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
+                {TAB_ORDER.indexOf(activeTab) < TAB_ORDER.length - 1 && (
+                  <Button
+                    type="button"
+                    onClick={handleSaveAndNext}
+                    className="bg-blue-500 text-white hover:bg-blue-600"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save & Next'}
+                  </Button>
+                )}
+              </div>
             </div>
           </form>
         </Form>

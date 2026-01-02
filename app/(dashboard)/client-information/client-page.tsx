@@ -153,7 +153,7 @@ function SharedAssumptionsSection() {
   );
 }
 
-export function ClientPage() {
+export function ClientPage({ activeTab }: { activeTab?: string } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading } = useAuth();
@@ -464,12 +464,12 @@ export function ClientPage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Client A */}
         <div>
-          <ClientForm ref={clientFormRefA} key={`A-${formKeyA}`} clientSlot="A" />
+          <ClientForm ref={clientFormRefA} key={`A-${formKeyA}`} clientSlot="A" activeTab={activeTab} />
         </div>
 
         {/* Client B */}
         <div>
-          <ClientForm ref={clientFormRefB} key={`B-${formKeyB}`} clientSlot="B" />
+          <ClientForm ref={clientFormRefB} key={`B-${formKeyB}`} clientSlot="B" activeTab={activeTab} />
         </div>
       </div>
     </div>
