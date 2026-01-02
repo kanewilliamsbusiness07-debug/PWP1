@@ -544,7 +544,7 @@ export default function TaxOptimizationPage() {
                       <div className="text-center">
                         <p className="text-sm text-muted-foreground">Average Annual Tax</p>
                         <p className="text-2xl font-bold text-orange-600">
-                          ${clientALifetimeTax.averageAnnualTax.toLocaleString()}
+                          ${clientALifetimeTax?.averageAnnualTax?.toLocaleString() ?? '0'}
                         </p>
                       </div>
                     </div>
@@ -707,7 +707,7 @@ export default function TaxOptimizationPage() {
                       <div className="text-center">
                         <p className="text-sm text-muted-foreground">Average Annual Tax</p>
                         <p className="text-2xl font-bold text-orange-600">
-                          ${clientBLifetimeTax.averageAnnualTax.toLocaleString()}
+                          ${clientBLifetimeTax?.averageAnnualTax?.toLocaleString() ?? '0'}
                         </p>
                       </div>
                     </div>
