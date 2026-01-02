@@ -1039,12 +1039,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-full sm:max-w-md bg-background border-border overflow-y-auto">
+        <SheetContent side="right" className="w-[448px] bg-background border-border overflow-y-auto text-sm sm:text-base">
           <SheetHeader>
             <div className="flex items-center justify-between">
               <div>
-                <SheetTitle className="text-foreground">Account Center</SheetTitle>
-                <SheetDescription className="text-muted-foreground">
+                <SheetTitle className="text-foreground text-lg sm:text-xl">Account Center</SheetTitle>
+                <SheetDescription className="text-muted-foreground text-xs sm:text-sm">
                   Manage clients, appointments, and quick actions
                 </SheetDescription>
               </div>
@@ -1075,14 +1075,14 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
             )}
             
             <Tabs defaultValue="clients" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3 bg-secondary">
-                <TabsTrigger value="clients" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsList className="grid w-full grid-cols-3 bg-secondary text-xs sm:text-sm">
+                <TabsTrigger value="clients" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
                   Clients ({clients.length})
                 </TabsTrigger>
-                <TabsTrigger value="appointments" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <TabsTrigger value="appointments" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
                   Appointments ({appointments.length})
                 </TabsTrigger>
-                <TabsTrigger value="exports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <TabsTrigger value="exports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
                   PDFs ({pdfExports.length})
                 </TabsTrigger>
               </TabsList>
@@ -1090,10 +1090,10 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
               <TabsContent value="clients" className="space-y-4">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-3 w-3 sm:h-4 sm:w-4" />
                     <Input
                       placeholder="Search clients..."
-                      className="pl-10 bg-background border-border text-foreground"
+                      className="pl-10 bg-background border-border text-foreground text-sm sm:text-base h-8 sm:h-10"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -1111,17 +1111,17 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
                 {/* Bulk actions */}
                 {selectedClients.size > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                    <span className="text-sm font-medium text-destructive">
+                  <div className="flex items-center justify-between p-2 sm:p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                    <span className="text-xs sm:text-sm font-medium text-destructive">
                       {selectedClients.size} client{selectedClients.size !== 1 ? 's' : ''} selected
                     </span>
                     <Button
                       size="sm"
                       variant="destructive"
                       onClick={handleBulkDelete}
-                      className="bg-destructive hover:bg-destructive/90"
+                      className="bg-destructive hover:bg-destructive/90 text-xs sm:text-sm"
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                       Delete Selected
                     </Button>
                   </div>
@@ -1180,7 +1180,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                                 className="mt-0.5 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                               />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate text-card-foreground">
+                                <p className="text-xs sm:text-sm font-medium truncate text-card-foreground">
                                   {client.firstName} {client.lastName}
                                 </p>
                                 <p className="text-xs text-muted-foreground truncate">
@@ -1308,11 +1308,11 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
               <TabsContent value="appointments" className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium text-foreground">Appointments</h3>
+                  <h3 className="text-sm sm:text-base font-medium text-foreground">Appointments</h3>
                   <Button 
                     size="sm" 
                     variant="outline" 
-                    className="border-primary text-primary hover:bg-primary hover:text-primary-foreground" 
+                    className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs sm:text-sm"
                     onClick={(e) => {
                       console.log('=== Schedule Button CLICKED ===');
                       e.preventDefault();
@@ -1326,7 +1326,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                     disabled={clients.length === 0}
                     title={clients.length === 0 ? 'Create a client first before scheduling an appointment' : 'Schedule Appointment'}
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                     Schedule
                   </Button>
                 </div>
@@ -1507,7 +1507,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
 
               <TabsContent value="exports" className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-medium text-foreground">Recent PDF Exports</h3>
+                  <h3 className="text-sm sm:text-base font-medium text-foreground">Recent PDF Exports</h3>
                 </div>
 
                 <div className="space-y-3 max-h-96 overflow-y-auto">
