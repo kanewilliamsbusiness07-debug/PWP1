@@ -649,18 +649,8 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
           console.log('Form initialization - valid liabilities:', validLiabilities);
           return validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
         })(),
-        // Initialize pairs from filtered assets/liabilities, but only if we don't already have valid pairs
+        // Initialize pairs from filtered assets/liabilities
         assetLiabilityPairs: (() => {
-          const currentPairs = form.getValues('assetLiabilityPairs') || [];
-          const hasValidPairs = currentPairs.length > 0 && currentPairs.some(pair => 
-            pair?.asset && pair.asset.id && pair.asset.name && pair.asset.type && typeof pair.asset.currentValue === 'number' && pair.asset.currentValue > 0
-          );
-          
-          if (hasValidPairs) {
-            console.log('Form reset - preserving existing assetLiabilityPairs:', currentPairs);
-            return currentPairs;
-          }
-          
           const validAssets = (client?.assets || []).filter(asset => 
             asset && 
             typeof asset.id === 'string' && 
@@ -697,7 +687,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               liability: liabilities[i] || { id: `liability-fallback-${i}`, name: `Liability ${i + 1}`, balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 30, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }
             });
           }
-          console.log('Form reset - created new assetLiabilityPairs:', pairs);
+          console.log('Form reset - created assetLiabilityPairs from client data:', pairs);
           return pairs;
         })(),
         properties: client.properties || [],
@@ -1122,7 +1112,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       }
 
       // Auto-save when assetLiabilityPairs change
-      if (name?.startsWith('assetLiabilityPairs')) {
+      if (name?.startsWith('assetLiabilityPairs') && client?.id) {
         // Debounce auto-save to avoid too many API calls
         const timeoutId = setTimeout(async () => {
           try {
@@ -1162,6 +1152,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
 
             // Prepare client data for saving
             const clientData: any = {
+              id: client?.id, // Include client ID for updates
               firstName: currentData.firstName,
               lastName: currentData.lastName,
               middleName: currentData.middleName,
