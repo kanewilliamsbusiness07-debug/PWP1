@@ -955,14 +955,6 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     });
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedClients(new Set(filteredClients.map(client => client.id)));
-    } else {
-      setSelectedClients(new Set());
-    }
-  };
-
   const handleBulkDelete = async () => {
     const selectedIds = Array.from(selectedClients);
     if (selectedIds.length === 0) return;
@@ -1117,33 +1109,12 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   </Button>
                 </div>
 
-                {/* Select All checkbox */}
-                {filteredClients.length > 0 && (
-                  <div className="flex items-center gap-2 p-2 border-b border-border">
-                    <Checkbox
-                      checked={selectedClients.size === filteredClients.length && filteredClients.length > 0}
-                      onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
-                      className="border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      Select all {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                )}
-
                 {/* Bulk actions */}
                 {selectedClients.size > 0 && (
                   <div className="flex items-center justify-between p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        checked={selectedClients.size === filteredClients.length && filteredClients.length > 0}
-                        onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
-                        className="border-destructive data-[state=checked]:bg-destructive data-[state=checked]:border-destructive"
-                      />
-                      <span className="text-sm font-medium text-destructive">
-                        {selectedClients.size} client{selectedClients.size !== 1 ? 's' : ''} selected
-                      </span>
-                    </div>
+                    <span className="text-sm font-medium text-destructive">
+                      {selectedClients.size} client{selectedClients.size !== 1 ? 's' : ''} selected
+                    </span>
                     <Button
                       size="sm"
                       variant="destructive"
