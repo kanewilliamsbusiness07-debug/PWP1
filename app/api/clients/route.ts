@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ddbDocClient } from '@/lib/aws/clients';
-import { PutCommand, QueryCommand, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, QueryCommand, ScanCommand, GetCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/auth';
@@ -134,6 +134,84 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// DELETE /api/clients - Bulk delete clients
+export async function DELETE(req: NextRequest) {
+  console.log('=== BULK DELETE CLIENTS API ===');
+  
+  try {
+    const session = (await getServerSession(authOptions)) as Session | null;
+    console.log('Session exists:', !!session);
+    console.log('User ID:', session?.user?.id || 'none');
+    
+    if (!session?.user?.id) {
+      console.log('No session - unauthorized');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const clientIds = searchParams.get('ids')?.split(',') || [];
+    
+    if (!clientIds.length) {
+      return NextResponse.json({ error: 'No client IDs provided' }, { status: 400 });
+    }
+
+    console.log('Client IDs to delete:', clientIds);
+
+    const clientsTable = process.env.DDB_CLIENTS_TABLE;
+    if (!clientsTable) return NextResponse.json({ error: 'Server not configured: DDB_CLIENTS_TABLE missing' }, { status: 500 });
+
+    const deletedIds: string[] = [];
+    const failedIds: string[] = [];
+
+    // Delete each client
+    for (const clientId of clientIds) {
+      try {
+        // Check if client exists and belongs to user
+        const anyRes: any = await ddbDocClient.send(new GetCommand({ TableName: clientsTable, Key: { id: clientId } } as any));
+        const anyClient = anyRes.Item;
+
+        if (!anyClient) {
+          console.log(`Client ${clientId} not found`);
+          failedIds.push(clientId);
+          continue;
+        }
+        
+        if (anyClient.userId !== session.user.id) {
+          console.log(`Client ${clientId} does not belong to user`);
+          failedIds.push(clientId);
+          continue;
+        }
+
+        // Delete client record
+        await ddbDocClient.send(new DeleteCommand({ TableName: clientsTable, Key: { id: clientId } } as any));
+        deletedIds.push(clientId);
+        console.log(`Deleted client ${clientId}`);
+      } catch (error) {
+        console.error(`Failed to delete client ${clientId}:`, error);
+        failedIds.push(clientId);
+      }
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Deleted ${deletedIds.length} clients successfully`,
+      deletedIds,
+      failedIds: failedIds.length > 0 ? failedIds : undefined
+    });
+  } catch (error: any) {
+    console.error('=== BULK DELETE CLIENTS ERROR ===');
+    console.error('Error:', error);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error stack:', error.stack);
+    
+    return NextResponse.json({ 
+      error: 'Failed to delete clients',
+      details: error.message 
+    }, { status: 500 });
+  }
+}
+
 // POST /api/clients - Create a new client (with field normalization)
 export async function POST(req: NextRequest) {
   try {
@@ -157,6 +235,30 @@ export async function POST(req: NextRequest) {
         { error: 'First name, last name, and date of birth are required' },
         { status: 400 }
       );
+    }
+
+    // Check for duplicate clients (same firstName, lastName, and email for this user)
+    const clientsTable = process.env.DDB_CLIENTS_TABLE;
+    if (!clientsTable) return NextResponse.json({ error: 'Server not configured: DDB_CLIENTS_TABLE missing' }, { status: 500 });
+
+    if (normalizedData.email) {
+      const duplicateCheck = await ddbDocClient.send(new ScanCommand({
+        TableName: clientsTable,
+        FilterExpression: 'userId = :uid AND firstName = :firstName AND lastName = :lastName AND email = :email',
+        ExpressionAttributeValues: {
+          ':uid': session.user.id,
+          ':firstName': normalizedData.firstName,
+          ':lastName': normalizedData.lastName,
+          ':email': normalizedData.email
+        }
+      } as any));
+
+      if (duplicateCheck.Items && duplicateCheck.Items.length > 0) {
+        return NextResponse.json(
+          { error: 'A client with this name and email already exists' },
+          { status: 409 }
+        );
+      }
     }
 
     // Ensure maritalStatus has a default value if missing (required by schema)
@@ -197,9 +299,7 @@ export async function POST(req: NextRequest) {
 
     console.log('[Clients API POST] Final client data:', JSON.stringify(clientData, null, 2));
 
-    // Create client in DynamoDB
-    const clientsTable = process.env.DDB_CLIENTS_TABLE;
-    if (!clientsTable) return NextResponse.json({ error: 'Server not configured: DDB_CLIENTS_TABLE missing' }, { status: 500 });
+    // Create client in DynamoDB (clientsTable already declared above)
 
     const clientId = uuidv4();
     const now = new Date().toISOString();

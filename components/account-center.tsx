@@ -28,6 +28,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -98,6 +99,7 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
   const [selectedClientForEmail, setSelectedClientForEmail] = useState<Client | null>(null);
   const [emailSubject, setEmailSubject] = useState('Your Financial Planning Report - Perpetual Wealth Partners');
   const [emailMessage, setEmailMessage] = useState('Please find attached your comprehensive financial planning report. If you have any questions, please don\'t hesitate to contact us.');
+  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   
   const { toast } = useToast();
 
@@ -941,6 +943,81 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
     }
   };
 
+  const handleClientSelect = (clientId: string, checked: boolean) => {
+    setSelectedClients(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(clientId);
+      } else {
+        newSet.delete(clientId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedClients(new Set(filteredClients.map(client => client.id)));
+    } else {
+      setSelectedClients(new Set());
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const selectedIds = Array.from(selectedClients);
+    if (selectedIds.length === 0) return;
+
+    const confirmed = window.confirm(`Are you sure you want to delete ${selectedIds.length} client(s)? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      console.log('=== BULK DELETE CLIENTS STARTED ===');
+      console.log('Selected client IDs:', selectedIds);
+
+      const response = await fetch(`/api/clients?ids=${selectedIds.join(',')}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Bulk delete response status:', response.status);
+      const responseData = await response.json();
+      console.log('Bulk delete response:', responseData);
+
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to delete clients');
+      }
+
+      // Dispatch events for each deleted client
+      selectedIds.forEach(id => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('client-deleted', { detail: { id } }));
+        }
+      });
+
+      toast({
+        title: "Success",
+        description: `Successfully deleted ${responseData.deletedCount || selectedIds.length} client(s)`,
+      });
+
+      // Clear selection and refresh data
+      setSelectedClients(new Set());
+      await loadData();
+
+      console.log('=== BULK DELETE CLIENTS COMPLETE ===');
+
+    } catch (error: any) {
+      console.error('=== BULK DELETE CLIENTS ERROR ===', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete clients",
+        variant: "destructive"
+      });
+    }
+  };
+
   const filteredClients = clients.filter(client =>
     `${client.firstName} ${client.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -1040,6 +1117,45 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                   </Button>
                 </div>
 
+                {/* Select All checkbox */}
+                {filteredClients.length > 0 && (
+                  <div className="flex items-center gap-2 p-2 border-b border-border">
+                    <Checkbox
+                      checked={selectedClients.size === filteredClients.length && filteredClients.length > 0}
+                      onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                      className="border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      Select all {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+
+                {/* Bulk actions */}
+                {selectedClients.size > 0 && (
+                  <div className="flex items-center justify-between p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={selectedClients.size === filteredClients.length && filteredClients.length > 0}
+                        onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                        className="border-destructive data-[state=checked]:bg-destructive data-[state=checked]:border-destructive"
+                      />
+                      <span className="text-sm font-medium text-destructive">
+                        {selectedClients.size} client{selectedClients.size !== 1 ? 's' : ''} selected
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={handleBulkDelete}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Selected
+                    </Button>
+                  </div>
+                )}
+
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {loading ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -1085,16 +1201,24 @@ export function AccountCenterDrawer({ open, onOpenChange }: Props) {
                       <Card key={client.id} className="cursor-pointer hover:bg-accent/10 bg-card border-border">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate text-card-foreground">
-                                {client.firstName} {client.lastName}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {client.email || 'No email'}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Updated {format(new Date(client.updatedAt), 'MMM dd, yyyy')}
-                              </p>
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <Checkbox
+                                checked={selectedClients.has(client.id)}
+                                onCheckedChange={(checked) => handleClientSelect(client.id, checked as boolean)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="mt-0.5 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate text-card-foreground">
+                                  {client.firstName} {client.lastName}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {client.email || 'No email'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Updated {format(new Date(client.updatedAt), 'MMM dd, yyyy')}
+                                </p>
+                              </div>
                             </div>
                             
                             <div className="flex flex-col gap-1 ml-2">
