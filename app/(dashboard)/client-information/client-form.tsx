@@ -242,7 +242,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       const data = form.getValues();
       console.log('Form data keys:', Object.keys(data));
       console.log('assetLiabilityPairs in form data:', data.assetLiabilityPairs);
-      console.log('pairFields length:', pairFields.length);
       console.log('Form data sample:', {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -591,9 +590,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     
     if (shouldReset) {
       console.log('Form reset triggered for client:', client?.id);
-      console.log('Client assets before reset:', client?.assets);
-      console.log('Client liabilities before reset:', client?.liabilities);
-      console.log('Current assetLiabilityPairs before reset:', form.getValues('assetLiabilityPairs'));
       
       const resetData = {
         firstName: client.firstName || '',
@@ -747,7 +743,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       };
       
       form.reset(resetData, { keepDefaultValues: true });
-      console.log('Form reset completed. Current assetLiabilityPairs after reset:', form.getValues('assetLiabilityPairs'));
     }
   }, [client, form, clientSlot]);
 
@@ -755,7 +750,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     console.log('onSubmitInternal called for client:', clientSlot);
     console.log('Data keys:', Object.keys(data));
     console.log('Direct getValues assetLiabilityPairs:', form.getValues('assetLiabilityPairs'));
-    console.log('Data assetLiabilityPairs:', data.assetLiabilityPairs);
     console.log('Full data:', JSON.stringify(data, null, 2));
     console.log('Data sample:', {
       firstName: data.firstName,
@@ -982,9 +976,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     name: 'assetLiabilityPairs',
   });
 
-  console.log('useFieldArray pairFields:', pairFields);
-  console.log('Current form values for assetLiabilityPairs:', form.getValues('assetLiabilityPairs'));
-
   const { fields: propertyFields, append: appendProperty, remove: removeProperty } = useFieldArray({
     control: form.control,
     name: 'properties',
@@ -1129,10 +1120,121 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
           form.setValue('employmentIncome', annualIncomeValue, { shouldValidate: false, shouldDirty: false });
         }
       }
+
+      // Auto-save when assetLiabilityPairs change
+      if (name?.startsWith('assetLiabilityPairs')) {
+        // Debounce auto-save to avoid too many API calls
+        const timeoutId = setTimeout(async () => {
+          try {
+            console.log('Auto-saving assetLiabilityPairs changes...');
+            const currentData = form.getValues();
+            
+            // Extract assets and liabilities from assetLiabilityPairs for saving
+            let assetsToSave: any[] = [];
+            let liabilitiesToSave: any[] = [];
+            
+            if (currentData.assetLiabilityPairs && Array.isArray(currentData.assetLiabilityPairs)) {
+              assetsToSave = currentData.assetLiabilityPairs
+                .map((pair: any) => pair?.asset)
+                .filter((asset: any) => 
+                  asset && 
+                  asset.id && 
+                  asset.name && 
+                  asset.type && 
+                  typeof asset.currentValue === 'number' &&
+                  asset.currentValue > 0
+                );
+              
+              liabilitiesToSave = currentData.assetLiabilityPairs
+                .map((pair: any) => pair?.liability)
+                .filter((liability: any) => 
+                  liability && 
+                  liability.id && 
+                  liability.name && 
+                  typeof liability.balance === 'number' && 
+                  typeof liability.monthlyPayment === 'number' && 
+                  typeof liability.interestRate === 'number' && 
+                  typeof liability.loanTerm === 'number' && 
+                  liability.type &&
+                  (liability.balance > 0 || liability.monthlyPayment > 0)
+                );
+            }
+
+            // Prepare client data for saving
+            const clientData: any = {
+              firstName: currentData.firstName,
+              lastName: currentData.lastName,
+              middleName: currentData.middleName,
+              dob: currentData.dob,
+              maritalStatus: currentData.maritalStatus,
+              numberOfDependants: currentData.numberOfDependants,
+              agesOfDependants: currentData.agesOfDependants,
+              email: currentData.email,
+              mobile: currentData.phoneNumber,
+              phoneNumber: currentData.phoneNumber,
+              addressLine1: currentData.addressLine1,
+              addressLine2: currentData.addressLine2,
+              suburb: currentData.suburb,
+              state: currentData.state,
+              postcode: currentData.postcode,
+              ownOrRent: currentData.ownOrRent,
+              annualIncome: currentData.annualIncome,
+              grossSalary: currentData.annualIncome,
+              rentalIncome: currentData.rentalIncome,
+              dividends: currentData.dividends,
+              frankedDividends: currentData.frankedDividends,
+              capitalGains: currentData.capitalGains,
+              otherIncome: currentData.otherIncome,
+              assets: assetsToSave,
+              liabilities: liabilitiesToSave,
+              properties: currentData.properties,
+              currentAge: currentData.currentAge,
+              retirementAge: currentData.retirementAge,
+              currentSuper: currentData.currentSuper,
+              currentSavings: currentData.currentSavings,
+              currentShares: currentData.currentShares,
+              propertyEquity: currentData.propertyEquity,
+              monthlyDebtPayments: currentData.monthlyDebtPayments,
+              monthlyRentalIncome: currentData.monthlyRentalIncome,
+              monthlyExpenses: currentData.monthlyExpenses,
+              employmentIncome: currentData.employmentIncome,
+              investmentIncome: currentData.investmentIncome,
+              workRelatedExpenses: currentData.workRelatedExpenses,
+              vehicleExpenses: currentData.vehicleExpenses,
+              uniformsAndLaundry: currentData.uniformsAndLaundry,
+              homeOfficeExpenses: currentData.homeOfficeExpenses,
+              selfEducationExpenses: currentData.selfEducationExpenses,
+              investmentExpenses: currentData.investmentExpenses,
+              charityDonations: currentData.charityDonations,
+              accountingFees: currentData.accountingFees,
+              rentalExpenses: currentData.rentalExpenses,
+              superContributions: currentData.superContributions,
+              healthInsurance: currentData.healthInsurance,
+              hecs: currentData.hecs,
+              helpDebt: currentData.helpDebt,
+              privateHealthInsurance: currentData.privateHealthInsurance,
+              hecsBalance: currentData.hecsBalance,
+              partnerFirstName: currentData.partnerFirstName,
+              partnerLastName: currentData.partnerLastName,
+              partnerDob: currentData.partnerDob,
+              partnerEmail: currentData.partnerEmail,
+              partnerPhoneNumber: currentData.partnerPhoneNumber,
+            };
+
+            // Save to database
+            await saveClient(clientData);
+            console.log('Auto-saved assetLiabilityPairs changes successfully');
+          } catch (error) {
+            console.error('Auto-save failed:', error);
+          }
+        }, 2000); // 2 second debounce
+
+        return () => clearTimeout(timeoutId);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, saveClient]);
 
   // Run initial calculation when client data changes
   useEffect(() => {
@@ -1171,8 +1273,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     const subscription = form.watch((value, { name }) => {
       // Only sync when assetLiabilityPairs changes
       if (name?.startsWith('assetLiabilityPairs')) {
-        console.log('assetLiabilityPairs changed, field:', name);
-        console.log('Current assetLiabilityPairs:', form.getValues('assetLiabilityPairs'));
         const pairs = form.getValues('assetLiabilityPairs') || [];
         
         // Extract valid assets from pairs, filtering out empty/placeholder objects
