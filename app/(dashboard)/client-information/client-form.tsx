@@ -1433,7 +1433,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               </TabsList>
 
               {/* Personal Information Tab */}
-              <TabsContent value="personal" className="space-y-4 mt-4">
+              <TabsContent value="personal" forceMount className="space-y-4 mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Primary Person Information */}
                   <div className="space-y-4">
@@ -1746,7 +1746,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               </TabsContent>
 
               {/* Financial Position Tab */}
-              <TabsContent value="financial" className="space-y-4 mt-4">
+              <TabsContent value="financial" forceMount className="space-y-4 mt-4">
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Income</h3>
@@ -2349,7 +2349,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               </TabsContent>
 
               {/* Investment Properties Tab */}
-              <TabsContent value="properties" className="space-y-4 mt-4">
+              <TabsContent value="properties" forceMount className="space-y-4 mt-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Investment Properties</h3>
                   <Button
@@ -2552,7 +2552,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               </TabsContent>
 
               {/* Projections Tab */}
-              <TabsContent value="projections" className="space-y-4 mt-4">
+              <TabsContent value="projections" forceMount className="space-y-4 mt-4">
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Current Position</h3>
@@ -2755,7 +2755,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               </TabsContent>
 
               {/* Tax Optimization Tab */}
-              <TabsContent value="tax" className="space-y-4 mt-4">
+              <TabsContent value="tax" forceMount className="space-y-4 mt-4">
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Income</h3>
