@@ -206,6 +206,7 @@ export function useClientStorage(): UseClientStorageReturn {
    * Load a specific client by ID
    */
   const loadClient = useCallback(async (clientId: string): Promise<ClientData | null> => {
+    console.log('[useClientStorage] loadClient called with ID:', clientId);
     if (!clientId) {
       setError('Client ID is required');
       return null;
@@ -215,19 +216,27 @@ export function useClientStorage(): UseClientStorageReturn {
     setError(null);
 
     try {
+      console.log('[useClientStorage] Making API call to:', `/api/clients/${clientId}`);
       const response = await fetch(`/api/clients/${clientId}`, {
         credentials: 'include',
       });
 
+      console.log('[useClientStorage] API response status:', response.status);
+      
       if (!response.ok) {
         if (response.status === 404) {
+          console.log('[useClientStorage] Client not found (404)');
           throw new Error('Client not found');
         }
         const errorData = await response.json().catch(() => ({ error: 'Failed to load client' }));
+        console.log('[useClientStorage] API error:', errorData);
         throw new Error(errorData.error || 'Failed to load client');
       }
 
       const client = await response.json();
+      console.log('[useClientStorage] Client loaded successfully:', `${client.firstName} ${client.lastName}`, 'ID:', client.id);
+      console.log('[useClientStorage] Client assets:', client.assets);
+      console.log('[useClientStorage] Client liabilities:', client.liabilities);
       
       // Convert date strings to Date objects
       if (client.dob) {

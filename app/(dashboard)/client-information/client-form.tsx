@@ -623,6 +623,8 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
             ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type) && 
             (asset.ownerOccupied === undefined || typeof asset.ownerOccupied === 'string' && ['own', 'rent'].includes(asset.ownerOccupied))
           );
+          console.log('Form initialization - client assets:', client?.assets);
+          console.log('Form initialization - valid assets:', validAssets);
           return validAssets.length > 0 ? validAssets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
         })(),
         liabilities: (() => {
@@ -641,6 +643,8 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
             (liability.loanType === undefined || typeof liability.loanType === 'string' && ['fixed', 'split', 'variable'].includes(liability.loanType)) && 
             (liability.paymentFrequency === undefined || typeof liability.paymentFrequency === 'string' && ['W', 'F', 'M'].includes(liability.paymentFrequency))
           );
+          console.log('Form initialization - client liabilities:', client?.liabilities);
+          console.log('Form initialization - valid liabilities:', validLiabilities);
           return validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
         })(),
         // Initialize pairs from filtered assets/liabilities
@@ -681,6 +685,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               liability: liabilities[i] || { id: `liability-fallback-${i}`, name: `Liability ${i + 1}`, balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 30, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }
             });
           }
+          console.log('Form initialization - created assetLiabilityPairs:', pairs);
           return pairs;
         })(),
         properties: client.properties || [],
@@ -870,6 +875,9 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
             (liability.balance > 0 || liability.monthlyPayment > 0) // Only save liabilities with balance or payment
           );
       }
+      
+      console.log('Assets to save:', assetsToSave);
+      console.log('Liabilities to save:', liabilitiesToSave);
       
       if (assetsToSave && Array.isArray(assetsToSave)) clientData.assets = assetsToSave;
       if (liabilitiesToSave && Array.isArray(liabilitiesToSave)) clientData.liabilities = liabilitiesToSave;

@@ -166,18 +166,18 @@ export function ClientPage({ activeTab }: { activeTab?: string } = {}) {
   const clientFormRefA = React.useRef<ClientFormRef>(null);
   const clientFormRefB = React.useRef<ClientFormRef>(null);
 
-  useEffect(() => {
-    if (!user && !loading) {
-      router.push('/auth/login');
-    }
-  }, [user, loading, router]);
-
-  // Load client from query parameter
+  // Load client from query parameter - run on mount and when searchParams change
   useEffect(() => {
     const loadClientId = searchParams?.get('load');
-    const slot = searchParams?.get('slot') as 'A' | 'B' | null;
     
-    if (loadClientId && user && !isLoadingClient) {
+    console.log('ClientPage useEffect triggered');
+    console.log('searchParams available:', !!searchParams);
+    console.log('loadClientId from searchParams:', loadClientId);
+    console.log('user available:', !!user);
+    console.log('isLoadingClient:', isLoadingClient);
+    
+    if (loadClientId && user && !loading && !isLoadingClient) {
+      console.log('Starting client load process for ID:', loadClientId);
       setIsLoadingClient(true);
       
       // Check if this client has a remembered slot
@@ -185,13 +185,20 @@ export function ClientPage({ activeTab }: { activeTab?: string } = {}) {
       const rememberedSlot = clientSlotMapping[loadClientId] as 'A' | 'B' | undefined;
       
       // Determine target slot: URL param takes precedence, then remembered slot, then default to A
+      const slot = searchParams?.get('slot') as 'A' | 'B' | null;
       let targetSlot = slot || rememberedSlot || 'A';
+      
+      console.log('Target slot determined:', targetSlot);
+      console.log('Client slot mapping:', clientSlotMapping);
       
       // Check if target slot is occupied
       const currentClientInSlot = targetSlot === 'A' ? financialStore.clientA : financialStore.clientB;
       const isSlotOccupied = currentClientInSlot && 
         (currentClientInSlot.firstName || currentClientInSlot.lastName) && 
         currentClientInSlot.id !== loadClientId; // Allow loading into same slot if it's the same client
+      
+      console.log('Is target slot occupied:', isSlotOccupied);
+      console.log('Current client in slot:', currentClientInSlot ? `${currentClientInSlot.firstName} ${currentClientInSlot.lastName}` : 'none');
       
       if (isSlotOccupied && !slot) {
         // If remembered slot is occupied and no explicit slot was requested, try the other slot
@@ -211,7 +218,9 @@ export function ClientPage({ activeTab }: { activeTab?: string } = {}) {
       
       loadClient(loadClientId)
         .then((client) => {
+          console.log('loadClient returned:', client);
           if (client) {
+            console.log('Client loaded successfully:', `${client.firstName} ${client.lastName}`);
             financialStore.setClientData(targetSlot, {
               ...client,
               dateOfBirth: client.dob ? (typeof client.dob === 'string' ? new Date(client.dob) : client.dob) : undefined,
@@ -234,6 +243,8 @@ export function ClientPage({ activeTab }: { activeTab?: string } = {}) {
               title: 'Client loaded',
               description: `Loaded ${client.firstName} ${client.lastName} into Client ${targetSlot}${slotMessage}`
             });
+          } else {
+            console.log('loadClient returned null/undefined');
           }
         })
         .catch((error) => {
@@ -248,7 +259,7 @@ export function ClientPage({ activeTab }: { activeTab?: string } = {}) {
           setIsLoadingClient(false);
         });
     }
-  }, [searchParams, user, loadClient, financialStore, router, toast, isLoadingClient]);
+  }, [searchParams, user, loading, loadClient, financialStore, router, toast, isLoadingClient]);
 
   // Helper function to create empty client data
   const getEmptyClientData = () => ({
