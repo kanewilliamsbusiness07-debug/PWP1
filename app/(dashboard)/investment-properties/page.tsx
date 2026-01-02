@@ -50,6 +50,10 @@ interface ServiceabilityResult {
   annualTaxBenefit: number;
   monthlyTaxBenefit: number;
   netMonthlyPaymentAfterTax: number;
+  retirementMaxBorrowingCapacity?: number;
+  retirementMonthlyServiceCapacity?: number;
+  retirementLoanToValueRatio?: number;
+  retirementDebtToIncomeRatio?: number;
 }
 
 interface PropertyAnalysis {
@@ -157,7 +161,19 @@ export default function InvestmentPropertiesPage() {
   const calculatePropertyAnalysis = (property: Property): PropertyAnalysis => {
     const monthlyLoanPayment = calculateLoanPayment(property.loanAmount, property.interestRate, property.loanTerm);
     const monthlyRent = (property.weeklyRent * 52) / 12;
-    const monthlyCashFlow = monthlyRent - monthlyLoanPayment - (property.annualExpenses / 12);
+
+    // Estimate additional yearly property costs
+    const annualRent = monthlyRent * 12;
+    const councilRates = property.currentValue * 0.0075; // 0.75% of property value
+    const insurance = property.currentValue * 0.004; // 0.4% of property value
+    const maintenance = property.currentValue * 0.015; // 1.5% of property value
+    const propertyManagement = annualRent * 0.09; // 9% of annual rent
+    const strataFees = 1500; // Estimated annual strata fees
+
+    // Total annual expenses including estimated costs
+    const totalAnnualExpenses = property.annualExpenses + councilRates + insurance + maintenance + propertyManagement + strataFees;
+
+    const monthlyCashFlow = monthlyRent - monthlyLoanPayment - (totalAnnualExpenses / 12);
     const annualCashFlow = monthlyCashFlow * 12;
     const rentalYield = (monthlyRent * 12) / property.currentValue * 100;
     const isNegativelyGeared = monthlyCashFlow < 0;
@@ -190,6 +206,12 @@ export default function InvestmentPropertiesPage() {
                           financialStore.results?.clientB?.monthlyDeficitSurplus ?? 
                           0;
 
+    // Get retirement passive income from financial projections
+    const retirementAnnualIncome = financialStore.results?.clientA?.projectedAnnualPassiveIncome ??
+                                   financialStore.results?.clientB?.projectedAnnualPassiveIncome ?? 
+                                   0;
+    const retirementMonthlySurplus = retirementAnnualIncome / 12;
+
     // Get interest rate from shared assumptions (using super return as proxy for loan interest rate)
     const interestRate = financialStore.sharedAssumptions?.superReturn ?? 6.5;
 
@@ -201,6 +223,7 @@ export default function InvestmentPropertiesPage() {
     // So Property Value = Loan Amount / 0.8 = Loan Amount * 1.25
     // But we need to determine what loan amount we can afford based on surplus
 
+    // CURRENT SERVICEABILITY
     // Use monthly surplus as the available amount for loan payments
     const availableMonthlyPayment = Math.max(0, monthlySurplus);
 
@@ -229,7 +252,21 @@ export default function InvestmentPropertiesPage() {
     // Ensure we don't exceed our payment capacity
     const monthlyLoanPayment = calculateLoanPayment(loanAmount, interestRate, loanTerm);
 
-    // Negative gearing analysis
+    // RETIREMENT SERVICEABILITY
+    const retirementAvailableMonthlyPayment = Math.max(0, retirementMonthlySurplus);
+    let retirementMaxLoanAmount = 0;
+    if (retirementAvailableMonthlyPayment > 0) {
+      const monthlyRate = interestRate / 100 / 12;
+      const numPayments = loanTerm * 12;
+      retirementMaxLoanAmount = retirementAvailableMonthlyPayment * ((1 - Math.pow(1 + monthlyRate, -numPayments)) / monthlyRate);
+    }
+    const retirementMaxPropertyValue = retirementMaxLoanAmount / 0.8;
+    const retirementMaxPropertyWithDeposit = deposit / 0.2;
+    const retirementTargetPropertyPrice = Math.min(retirementMaxPropertyValue, retirementMaxPropertyWithDeposit);
+    const retirementLoanAmount = retirementTargetPropertyPrice * 0.8;
+    const retirementMonthlyLoanPayment = calculateLoanPayment(retirementLoanAmount, interestRate, loanTerm);
+
+    // Negative gearing analysis (using current serviceability)
     const expectedRent = (targetPropertyPrice * 0.004); // 0.4% of property value per week
     const annualRent = expectedRent * 52;
     const annualPropertyExpenses = targetPropertyPrice * 0.02; // 2% of property value
@@ -254,7 +291,12 @@ export default function InvestmentPropertiesPage() {
       negativeGearingAmount,
       annualTaxBenefit,
       monthlyTaxBenefit,
-      netMonthlyPaymentAfterTax
+      netMonthlyPaymentAfterTax,
+      // Retirement serviceability
+      retirementMaxBorrowingCapacity: retirementTargetPropertyPrice,
+      retirementMonthlyServiceCapacity: retirementAvailableMonthlyPayment,
+      retirementLoanToValueRatio: 80,
+      retirementDebtToIncomeRatio: retirementAnnualIncome > 0 ? ((existingDebtPayments + retirementMonthlyLoanPayment) / (retirementAnnualIncome / 12)) * 100 : 0,
     };
   };
 
@@ -458,6 +500,55 @@ export default function InvestmentPropertiesPage() {
                     )}
                   </div>
 
+                  {/* Current vs Retirement Serviceability Comparison */}
+                  <div className="mt-6">
+                    <h4 className="font-semibold mb-4">Serviceability Comparison</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border border-gray-200">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            <th className="border border-gray-200 px-4 py-2 text-left">Metric</th>
+                            <th className="border border-gray-200 px-4 py-2 text-center">Current</th>
+                            <th className="border border-gray-200 px-4 py-2 text-center">Retirement</th>
+                            <th className="border border-gray-200 px-4 py-2 text-center">Difference</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="border border-gray-200 px-4 py-2 font-medium">Max Borrowing Capacity</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">${clientAServiceability.maxBorrowingCapacity.toLocaleString()}</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">${(clientAServiceability.retirementMaxBorrowingCapacity || 0).toLocaleString()}</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">
+                              <span className={`font-semibold ${(clientAServiceability.retirementMaxBorrowingCapacity || 0) >= clientAServiceability.maxBorrowingCapacity ? 'text-green-600' : 'text-red-600'}`}>
+                                ${((clientAServiceability.retirementMaxBorrowingCapacity || 0) - clientAServiceability.maxBorrowingCapacity).toLocaleString()}
+                              </span>
+                            </td>
+                          </tr>
+                          <tr className="bg-gray-50">
+                            <td className="border border-gray-200 px-4 py-2 font-medium">Monthly Service Capacity</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">${clientAServiceability.monthlyServiceCapacity.toLocaleString()}</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">${(clientAServiceability.retirementMonthlyServiceCapacity || 0).toLocaleString()}</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">
+                              <span className={`font-semibold ${(clientAServiceability.retirementMonthlyServiceCapacity || 0) >= clientAServiceability.monthlyServiceCapacity ? 'text-green-600' : 'text-red-600'}`}>
+                                ${((clientAServiceability.retirementMonthlyServiceCapacity || 0) - clientAServiceability.monthlyServiceCapacity).toLocaleString()}
+                              </span>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="border border-gray-200 px-4 py-2 font-medium">Debt-to-Income Ratio</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">{clientAServiceability.debtToIncomeRatio.toFixed(1)}%</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">{(clientAServiceability.retirementDebtToIncomeRatio || 0).toFixed(1)}%</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">
+                              <span className={`font-semibold ${(clientAServiceability.retirementDebtToIncomeRatio || 0) <= clientAServiceability.debtToIncomeRatio ? 'text-green-600' : 'text-red-600'}`}>
+                                {((clientAServiceability.retirementDebtToIncomeRatio || 0) - clientAServiceability.debtToIncomeRatio).toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
                   {/* Negative Gearing Analysis */}
                   {clientAServiceability.isNegativelyGeared && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -585,6 +676,55 @@ export default function InvestmentPropertiesPage() {
                         <span className="font-semibold">Breakeven monthly rent: ${clientBServiceability.breakevenMonthlyRent?.toLocaleString() ?? 0}</span>
                       </div>
                     )}
+                  </div>
+
+                  {/* Current vs Retirement Serviceability Comparison */}
+                  <div className="mt-6">
+                    <h4 className="font-semibold mb-4">Serviceability Comparison</h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border border-gray-200">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            <th className="border border-gray-200 px-4 py-2 text-left">Metric</th>
+                            <th className="border border-gray-200 px-4 py-2 text-center">Current</th>
+                            <th className="border border-gray-200 px-4 py-2 text-center">Retirement</th>
+                            <th className="border border-gray-200 px-4 py-2 text-center">Difference</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="border border-gray-200 px-4 py-2 font-medium">Max Borrowing Capacity</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">${clientBServiceability.maxBorrowingCapacity.toLocaleString()}</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">${(clientBServiceability.retirementMaxBorrowingCapacity || 0).toLocaleString()}</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">
+                              <span className={`font-semibold ${(clientBServiceability.retirementMaxBorrowingCapacity || 0) >= clientBServiceability.maxBorrowingCapacity ? 'text-green-600' : 'text-red-600'}`}>
+                                ${((clientBServiceability.retirementMaxBorrowingCapacity || 0) - clientBServiceability.maxBorrowingCapacity).toLocaleString()}
+                              </span>
+                            </td>
+                          </tr>
+                          <tr className="bg-gray-50">
+                            <td className="border border-gray-200 px-4 py-2 font-medium">Monthly Service Capacity</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">${clientBServiceability.monthlyServiceCapacity.toLocaleString()}</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">${(clientBServiceability.retirementMonthlyServiceCapacity || 0).toLocaleString()}</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">
+                              <span className={`font-semibold ${(clientBServiceability.retirementMonthlyServiceCapacity || 0) >= clientBServiceability.monthlyServiceCapacity ? 'text-green-600' : 'text-red-600'}`}>
+                                ${((clientBServiceability.retirementMonthlyServiceCapacity || 0) - clientBServiceability.monthlyServiceCapacity).toLocaleString()}
+                              </span>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="border border-gray-200 px-4 py-2 font-medium">Debt-to-Income Ratio</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">{clientBServiceability.debtToIncomeRatio.toFixed(1)}%</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">{(clientBServiceability.retirementDebtToIncomeRatio || 0).toFixed(1)}%</td>
+                            <td className="border border-gray-200 px-4 py-2 text-center">
+                              <span className={`font-semibold ${(clientBServiceability.retirementDebtToIncomeRatio || 0) <= clientBServiceability.debtToIncomeRatio ? 'text-green-600' : 'text-red-600'}`}>
+                                {((clientBServiceability.retirementDebtToIncomeRatio || 0) - clientBServiceability.debtToIncomeRatio).toFixed(1)}%
+                              </span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
 
                   {/* Negative Gearing Analysis */}

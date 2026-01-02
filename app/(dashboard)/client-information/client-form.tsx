@@ -1373,12 +1373,9 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       const currentProperties = form.getValues('properties') || [];
       const liabilities = form.getValues('liabilities') || [];
 
-      // Filter for property assets that are NOT owner-occupied (investment properties only)
+      // Filter for property assets - include both owner-occupied and investment properties
       const propertyAssets = assets.filter((asset: any) => {
-        if (asset.type !== 'property') return false;
-        // Skip owner-occupied properties (first asset with ownerOccupied === 'own')
-        if (asset.ownerOccupied === 'own') return false;
-        return true;
+        return asset.type === 'property';
       });
 
       // Update existing linked properties with new asset/liability data
@@ -1483,7 +1480,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
 
         const propertyData = {
           address: asset.name || '',
-          purchasePrice: Number(asset.currentValue) || 0,
+          purchasePrice: 0, // Don't autofill purchase price
           currentValue: Number(asset.currentValue) || 0,
           loanAmount: matchingMortgage ? Number(matchingMortgage.balance) || 0 : 0,
           interestRate: matchingMortgage ? Number(matchingMortgage.interestRate) || 0 : 0,

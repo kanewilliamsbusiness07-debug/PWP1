@@ -371,7 +371,7 @@ export default function ProjectionsPage() {
                     </div>
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Combined Property Portfolio</p>
-                        <p className="text-xl font-bold text-purple-600">{formatCurrency(combinedProjection?.futurePropertyEquity)}</p>
+                        <p className="text-xl font-bold text-purple-600">{formatCurrency(((combinedProjection?.futurePropertyValue || 0) + (combinedProjection?.futurePropertyAssets || 0)))}</p>
                     </div>
                   </div>
 

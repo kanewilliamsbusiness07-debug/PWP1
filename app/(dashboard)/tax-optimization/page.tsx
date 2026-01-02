@@ -150,6 +150,7 @@ const calculateLifetimeTax = (client: any, sharedAssumptions?: any) => {
   // Get growth rates from assumptions
   const salaryGrowthRate = sharedAssumptions?.salaryGrowthRate ?? 3.0;
   const rentGrowthRate = sharedAssumptions?.rentGrowthRate ?? 3.0;
+  const inflationRate = sharedAssumptions?.inflationRate ?? 2.5;
 
   // Get deductions (assuming they stay constant for simplicity)
   const workRelatedExpenses = client.workRelatedExpenses ?? 0;
@@ -182,8 +183,11 @@ const calculateLifetimeTax = (client: any, sharedAssumptions?: any) => {
     // Calculate taxable income
     const taxableIncomeThisYear = Math.max(0, totalIncomeThisYear - totalDeductions);
 
-    // Calculate tax for this year
-    const taxBreakdown = calculateTotalTax(taxableIncomeThisYear);
+    // Adjust tax brackets for inflation (tax brackets are indexed annually)
+    const inflationAdjustedIncome = taxableIncomeThisYear / Math.pow(1 + inflationRate / 100, year);
+    
+    // Calculate tax for this year using inflation-adjusted income
+    const taxBreakdown = calculateTotalTax(inflationAdjustedIncome);
     totalLifetimeTax += taxBreakdown.totalTax;
   }
 
