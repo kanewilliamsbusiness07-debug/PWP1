@@ -129,6 +129,71 @@ const calculateOptimizationStrategies = (client: any) => {
   return strategies;
 };
 
+// Calculate lifetime tax from now until retirement
+const calculateLifetimeTax = (client: any, sharedAssumptions?: any) => {
+  if (!client) return null;
+
+  const currentAge = client.currentAge || 0;
+  const retirementAge = client.retirementAge || 65;
+  const yearsToRetirement = Math.max(0, retirementAge - currentAge);
+
+  if (yearsToRetirement <= 0) return { totalLifetimeTax: 0, yearsToRetirement: 0 };
+
+  // Get current income sources
+  const currentSalary = client.annualIncome ?? client.grossSalary ?? 0;
+  const currentRentalIncome = client.rentalIncome ?? 0;
+  const currentDividends = client.dividends ?? 0;
+  const currentFrankedDividends = client.frankedDividends ?? 0;
+  const currentCapitalGains = client.capitalGains ?? 0;
+  const currentOtherIncome = client.otherIncome ?? 0;
+
+  // Get growth rates from assumptions
+  const salaryGrowthRate = sharedAssumptions?.salaryGrowthRate ?? 3.0;
+  const rentGrowthRate = sharedAssumptions?.rentGrowthRate ?? 3.0;
+
+  // Get deductions (assuming they stay constant for simplicity)
+  const workRelatedExpenses = client.workRelatedExpenses ?? 0;
+  const vehicleExpenses = client.vehicleExpenses ?? 0;
+  const uniformsAndLaundry = client.uniformsAndLaundry ?? 0;
+  const homeOfficeExpenses = client.homeOfficeExpenses ?? 0;
+  const selfEducationExpenses = client.selfEducationExpenses ?? 0;
+  const investmentExpenses = client.investmentExpenses ?? 0;
+  const charityDonations = client.charityDonations ?? 0;
+  const accountingFees = client.accountingFees ?? 0;
+  const rentalExpenses = client.rentalExpenses ?? 0;
+  const superContributions = client.superContributions ?? 0;
+
+  const totalDeductions = workRelatedExpenses + vehicleExpenses + uniformsAndLaundry + homeOfficeExpenses +
+                         selfEducationExpenses + investmentExpenses + charityDonations + accountingFees +
+                         rentalExpenses + superContributions;
+
+  let totalLifetimeTax = 0;
+
+  // Calculate tax for each year until retirement
+  for (let year = 0; year < yearsToRetirement; year++) {
+    // Calculate income for this year with growth
+    const salaryThisYear = currentSalary * Math.pow(1 + salaryGrowthRate / 100, year);
+    const rentalIncomeThisYear = currentRentalIncome * Math.pow(1 + rentGrowthRate / 100, year);
+
+    // Other income sources (dividends, capital gains) assumed to stay constant
+    const totalIncomeThisYear = salaryThisYear + rentalIncomeThisYear + currentDividends +
+                               currentFrankedDividends + currentCapitalGains + currentOtherIncome;
+
+    // Calculate taxable income
+    const taxableIncomeThisYear = Math.max(0, totalIncomeThisYear - totalDeductions);
+
+    // Calculate tax for this year
+    const taxBreakdown = calculateTotalTax(taxableIncomeThisYear);
+    totalLifetimeTax += taxBreakdown.totalTax;
+  }
+
+  return {
+    totalLifetimeTax,
+    yearsToRetirement,
+    averageAnnualTax: yearsToRetirement > 0 ? totalLifetimeTax / yearsToRetirement : 0
+  };
+};
+
 export default function TaxOptimizationPage() {
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -148,6 +213,13 @@ export default function TaxOptimizationPage() {
   // Calculate tax for each client (memoized to prevent infinite loops)
   const clientATax = useMemo(() => calculateTax(clientA), [clientA]);
   const clientBTax = useMemo(() => calculateTax(clientB), [clientB]);
+
+  // Get shared assumptions from store
+  const sharedAssumptions = useFinancialStore((state) => state.sharedAssumptions);
+
+  // Calculate lifetime tax for each client
+  const clientALifetimeTax = useMemo(() => calculateLifetimeTax(clientA, sharedAssumptions), [clientA, sharedAssumptions]);
+  const clientBLifetimeTax = useMemo(() => calculateLifetimeTax(clientB, sharedAssumptions), [clientB, sharedAssumptions]);
 
   // Calculate optimization strategies
   const clientAOptimizations = useMemo(() => calculateOptimizationStrategies(clientA), [clientA]);
@@ -280,6 +352,52 @@ export default function TaxOptimizationPage() {
                 </CardContent>
               </Card>
 
+              {/* Combined Lifetime Tax Projection */}
+              {(clientALifetimeTax || clientBLifetimeTax) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calculator className="h-5 w-5" />
+                      Lifetime Tax Projection
+                    </CardTitle>
+                    <CardDescription>
+                      Total tax payable from now until retirement, accounting for income growth
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Total Lifetime Tax</p>
+                        <p className="text-2xl font-bold text-red-600">
+                          ${((clientALifetimeTax?.totalLifetimeTax ?? 0) + (clientBLifetimeTax?.totalLifetimeTax ?? 0)).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Years Until Retirement</p>
+                        <p className="text-2xl font-bold">
+                          {Math.max(clientALifetimeTax?.yearsToRetirement ?? 0, clientBLifetimeTax?.yearsToRetirement ?? 0)} years
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Average Annual Tax</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          ${(((clientALifetimeTax?.averageAnnualTax ?? 0) + (clientBLifetimeTax?.averageAnnualTax ?? 0))).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <p>This projection assumes:</p>
+                      <ul className="list-disc list-inside mt-2 space-y-1">
+                        <li>Salary grows at {sharedAssumptions?.salaryGrowthRate ?? 3.0}% per year</li>
+                        <li>Rental income grows at {sharedAssumptions?.rentGrowthRate ?? 3.0}% per year</li>
+                        <li>Other income sources remain constant</li>
+                        <li>Deductions remain at current levels</li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Combined Optimization Strategies */}
               {((clientAOptimizations?.length ?? 0) > 0 || (clientBOptimizations?.length ?? 0) > 0) && (
                 <Card>
@@ -397,6 +515,52 @@ export default function TaxOptimizationPage() {
                 </CardContent>
               </Card>
 
+              {/* Client A Lifetime Tax Projection */}
+              {clientALifetimeTax && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calculator className="h-5 w-5" />
+                      Lifetime Tax Projection
+                    </CardTitle>
+                    <CardDescription>
+                      Total tax payable from now until retirement, accounting for income growth
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Total Lifetime Tax</p>
+                        <p className="text-2xl font-bold text-red-600">
+                          ${clientALifetimeTax.totalLifetimeTax.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Years Until Retirement</p>
+                        <p className="text-2xl font-bold">
+                          {clientALifetimeTax.yearsToRetirement} years
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Average Annual Tax</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          ${clientALifetimeTax.averageAnnualTax.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <p>This projection assumes:</p>
+                      <ul className="list-disc list-inside mt-2 space-y-1">
+                        <li>Salary grows at {sharedAssumptions?.salaryGrowthRate ?? 3.0}% per year</li>
+                        <li>Rental income grows at {sharedAssumptions?.rentGrowthRate ?? 3.0}% per year</li>
+                        <li>Other income sources remain constant</li>
+                        <li>Deductions remain at current levels</li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Client A Optimization Strategies */}
               {clientAOptimizations && clientAOptimizations.length > 0 && (
                 <Card>
@@ -513,6 +677,52 @@ export default function TaxOptimizationPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Client B Lifetime Tax Projection */}
+              {clientBLifetimeTax && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calculator className="h-5 w-5" />
+                      Lifetime Tax Projection
+                    </CardTitle>
+                    <CardDescription>
+                      Total tax payable from now until retirement, accounting for income growth
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Total Lifetime Tax</p>
+                        <p className="text-2xl font-bold text-red-600">
+                          ${clientBLifetimeTax.totalLifetimeTax.toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Years Until Retirement</p>
+                        <p className="text-2xl font-bold">
+                          {clientBLifetimeTax.yearsToRetirement} years
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-muted-foreground">Average Annual Tax</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          ${clientBLifetimeTax.averageAnnualTax.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <p>This projection assumes:</p>
+                      <ul className="list-disc list-inside mt-2 space-y-1">
+                        <li>Salary grows at {sharedAssumptions?.salaryGrowthRate ?? 3.0}% per year</li>
+                        <li>Rental income grows at {sharedAssumptions?.rentGrowthRate ?? 3.0}% per year</li>
+                        <li>Other income sources remain constant</li>
+                        <li>Deductions remain at current levels</li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Client B Optimization Strategies */}
               {clientBOptimizations && clientBOptimizations.length > 0 && (

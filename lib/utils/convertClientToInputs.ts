@@ -43,8 +43,8 @@ export function convertClientToInputs(client: any, sharedAssumptions: any): Fina
 
   // Investment properties
   const investmentProperties: InvestmentProperty[] = [];
-  if (Array.isArray(client.investmentProperties)) {
-    client.investmentProperties.forEach((p: any) => {
+  if (Array.isArray(client.properties)) {
+    client.properties.forEach((p: any) => {
       investmentProperties.push({
         address: p.address || '',
         purchasePrice: Number(p.purchasePrice || p.purchase_price || 0),

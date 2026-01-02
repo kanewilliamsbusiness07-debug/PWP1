@@ -185,17 +185,48 @@ export default function InvestmentPropertiesPage() {
     const existingDebtPayments = client.monthlyDebtPayments ?? 0;
     const cashSavings = client.currentSavings ?? client.savingsValue ?? 0;
 
-    // Assume target property price based on income (simplified calculation)
-    const targetPropertyPrice = annualIncome * 4; // 4x annual income rule
-    const deposit = Math.min(cashSavings, targetPropertyPrice * 0.2); // 20% deposit
-    const loanAmount = targetPropertyPrice - deposit;
+    // Get monthly surplus from financial projections results
+    const monthlySurplus = financialStore.results?.clientA?.monthlyDeficitSurplus ?? 
+                          financialStore.results?.clientB?.monthlyDeficitSurplus ?? 
+                          0;
 
-    // Serviceability calculation (simplified)
-    const maxMonthlyPayment = (annualIncome / 12) * 0.3; // 30% of gross income
-    const availableForNewLoan = Math.max(0, maxMonthlyPayment - existingDebtPayments);
+    // Get interest rate from shared assumptions (using super return as proxy for loan interest rate)
+    const interestRate = financialStore.sharedAssumptions?.superReturn ?? 6.5;
 
-    const interestRate = 6.5;
-    const loanTerm = 30;
+    // Use 50% of savings for down payment
+    const deposit = cashSavings * 0.5;
+
+    // Calculate target property price based on 80% LVR
+    // LVR = Loan Amount / Property Value = 80% = 0.8
+    // So Property Value = Loan Amount / 0.8 = Loan Amount * 1.25
+    // But we need to determine what loan amount we can afford based on surplus
+
+    // Use monthly surplus as the available amount for loan payments
+    const availableMonthlyPayment = Math.max(0, monthlySurplus);
+
+    // Calculate maximum loan amount based on available payment and interest rate
+    const loanTerm = 30; // 30 years
+    let maxLoanAmount = 0;
+    if (availableMonthlyPayment > 0) {
+      // Use loan payment formula to solve for principal
+      const monthlyRate = interestRate / 100 / 12;
+      const numPayments = loanTerm * 12;
+      maxLoanAmount = availableMonthlyPayment * ((1 - Math.pow(1 + monthlyRate, -numPayments)) / monthlyRate);
+    }
+
+    // With 80% LVR, maximum property value = maxLoanAmount / 0.8
+    const maxPropertyValue = maxLoanAmount / 0.8;
+
+    // But we also need to consider the deposit - property value can't exceed what we can afford with deposit
+    const maxPropertyWithDeposit = deposit / 0.2; // 20% deposit needed for 80% LVR
+
+    // Take the minimum of what we can afford based on income vs deposit
+    const targetPropertyPrice = Math.min(maxPropertyValue, maxPropertyWithDeposit);
+
+    // Recalculate loan amount based on final property price and 80% LVR
+    const loanAmount = targetPropertyPrice * 0.8;
+
+    // Ensure we don't exceed our payment capacity
     const monthlyLoanPayment = calculateLoanPayment(loanAmount, interestRate, loanTerm);
 
     // Negative gearing analysis
@@ -209,13 +240,13 @@ export default function InvestmentPropertiesPage() {
     const monthlyTaxBenefit = annualTaxBenefit / 12;
     const netMonthlyPaymentAfterTax = monthlyLoanPayment - monthlyTaxBenefit;
 
-    const canAfford = monthlyLoanPayment <= availableForNewLoan;
+    const canAfford = monthlyLoanPayment <= availableMonthlyPayment;
     const breakevenMonthlyRent = monthlyLoanPayment + (annualPropertyExpenses / 12);
 
     return {
       maxBorrowingCapacity: targetPropertyPrice,
-      monthlyServiceCapacity: availableForNewLoan,
-      loanToValueRatio: (loanAmount / targetPropertyPrice) * 100,
+      monthlyServiceCapacity: availableMonthlyPayment,
+      loanToValueRatio: 80, // Fixed at 80% as required
       debtToIncomeRatio: ((existingDebtPayments + monthlyLoanPayment) / (annualIncome / 12)) * 100,
       canAfford,
       breakevenMonthlyRent,
