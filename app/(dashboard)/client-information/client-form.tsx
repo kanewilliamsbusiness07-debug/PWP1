@@ -503,6 +503,26 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     return `${year}-${month}-${day}`;
   };
 
+  const { fields: assetFields, append: appendAsset, remove: removeAsset } = useFieldArray({
+    control: form.control,
+    name: 'assets',
+  });
+
+  const { fields: liabilityFields, append: appendLiability, remove: removeLiability } = useFieldArray({
+    control: form.control,
+    name: 'liabilities',
+  });
+
+  const { fields: pairFields, append: appendPair, remove: removePair, replace: replacePairs } = useFieldArray({
+    control: form.control,
+    name: 'assetLiabilityPairs',
+  });
+
+  const { fields: propertyFields, append: appendProperty, remove: removeProperty } = useFieldArray({
+    control: form.control,
+    name: 'properties',
+  });
+
   // Load client data when it changes (only reset if client actually changed, not on every render)
   const previousClientIdRef = React.useRef<string | null>(null);
   const previousClientDbIdRef = React.useRef<string | null>(null);
@@ -733,10 +753,15 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       };
       
       form.reset(resetData, { keepDefaultValues: true });
+      
+      // Update useFieldArray fields to match the reset data
+      if (resetData.assetLiabilityPairs) {
+        replacePairs(resetData.assetLiabilityPairs);
+      }
     }
-  }, [client, form, clientSlot]);
+  }, [client, form, clientSlot, replacePairs]);
 
-  const onSubmitInternal = async (data: ClientFormData) => {
+  const onSubmitInternal = async (data: any) => {
     console.log('onSubmitInternal called for client:', clientSlot);
     console.log('Data keys:', Object.keys(data));
     console.log('Direct getValues assetLiabilityPairs:', form.getValues('assetLiabilityPairs'));
@@ -891,7 +916,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       
       // Add properties array
       if (data.properties && Array.isArray(data.properties)) {
-        clientData.properties = data.properties.filter(property => 
+        clientData.properties = data.properties.filter((property: any) => 
           property && 
           property.id && 
           property.address && 
@@ -951,28 +976,10 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
     }
   };
 
-  const { fields: assetFields, append: appendAsset, remove: removeAsset } = useFieldArray({
-    control: form.control,
-    name: 'assets',
-  });
-
-  const { fields: liabilityFields, append: appendLiability, remove: removeLiability } = useFieldArray({
-    control: form.control,
-    name: 'liabilities',
-  });
-
-  const { fields: pairFields, append: appendPair, remove: removePair } = useFieldArray({
-    control: form.control,
-    name: 'assetLiabilityPairs',
-  });
-
-  const { fields: propertyFields, append: appendProperty, remove: removeProperty } = useFieldArray({
-    control: form.control,
-    name: 'properties',
-  });
-
   // Auto-calculate projections fields from other form data
   // IMPORTANT: This effect only handles read-only calculations, NOT property/liability syncing
+  const autoSaveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       // Trigger on relevant field changes
@@ -1113,11 +1120,29 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
 
       // Auto-save when assetLiabilityPairs change
       if (name?.startsWith('assetLiabilityPairs') && client?.id) {
+        // Clear any existing timeout
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+        
         // Debounce auto-save to avoid too many API calls
-        const timeoutId = setTimeout(async () => {
+        autoSaveTimeoutRef.current = setTimeout(async () => {
           try {
+            // Double-check that client still exists before saving
+            if (!client?.id) {
+              console.log('Auto-save cancelled: client no longer exists');
+              return;
+            }
+            
             console.log('Auto-saving assetLiabilityPairs changes...');
             const currentData = form.getValues();
+            
+            // Additional check: verify the client ID in form data matches current client
+            const formClientId = (currentData as any).id;
+            if (formClientId && formClientId !== client.id) {
+              console.log('Auto-save cancelled: client ID mismatch, client may have changed');
+              return;
+            }
             
             // Extract assets and liabilities from assetLiabilityPairs for saving
             let assetsToSave: any[] = [];
@@ -1219,13 +1244,18 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
             console.error('Auto-save failed:', error);
           }
         }, 2000); // 2 second debounce
-
-        return () => clearTimeout(timeoutId);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [form, saveClient]);
+    return () => {
+      subscription.unsubscribe();
+      // Clear any pending auto-save timeout
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+    };
+  }, [form, saveClient, client?.id]);
 
   // Run initial calculation when client data changes
   useEffect(() => {
