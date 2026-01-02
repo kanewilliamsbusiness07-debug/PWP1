@@ -1766,19 +1766,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                     />
                   </div>
                 </div>
-
-                {/* Save & Continue Button */}
-                <div className="flex justify-end pt-4 border-t mt-6">
-                  <Button
-                    type="button"
-                    onClick={handleSaveAndNext}
-                    className="bg-yellow-500 text-white hover:bg-yellow-600"
-                    disabled={isSaving}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {isSaving ? 'Saving...' : 'Save & Continue'}
-                  </Button>
-                </div>
               </div>
             )}
 
@@ -2576,19 +2563,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                     </Card>
                   ))}
                 </div>
-
-                {/* Save & Continue Button */}
-                <div className="flex justify-end pt-4 border-t mt-6">
-                  <Button
-                    type="button"
-                    onClick={handleSaveAndNext}
-                    className="bg-yellow-500 text-white hover:bg-yellow-600"
-                    disabled={isSaving}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {isSaving ? 'Saving...' : 'Save & Continue'}
-                  </Button>
-                </div>
               </div>
             )}
 
@@ -2782,17 +2756,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                       />
                     </div>
                   </div>
-                </div>
-                <div className="flex justify-end pt-4 border-t mt-6">
-                  <Button
-                    type="button"
-                    onClick={handleSaveAndNext}
-                    className="bg-yellow-500 text-white hover:bg-yellow-600"
-                    disabled={isSaving}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {isSaving ? 'Saving...' : 'Save & Continue'}
-                  </Button>
                 </div>
               </div>
             )}
