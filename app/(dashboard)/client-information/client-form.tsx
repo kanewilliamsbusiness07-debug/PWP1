@@ -1424,11 +1424,11 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         <Form {...form}>
           <form id={`client-form-${clientSlot}`} onSubmit={form.handleSubmit(onSubmitInternal)} className="space-y-6">
             {/* Navigation */}
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex justify-between w-full mb-4 gap-2">
               <Button
                 type="button"
                 variant={activeTab === 'personal' ? 'default' : 'outline'}
-                size="sm"
+                className="flex-1"
                 onClick={() => router.push('/client-information/personal')}
               >
                 Personal
@@ -1436,7 +1436,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               <Button
                 type="button"
                 variant={activeTab === 'financial' ? 'default' : 'outline'}
-                size="sm"
+                className="flex-1"
                 onClick={() => router.push('/client-information/financial')}
               >
                 Financial
@@ -1444,7 +1444,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               <Button
                 type="button"
                 variant={activeTab === 'properties' ? 'default' : 'outline'}
-                size="sm"
+                className="flex-1"
                 onClick={() => router.push('/client-information/properties')}
               >
                 Properties
@@ -1452,7 +1452,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               <Button
                 type="button"
                 variant={activeTab === 'projections' ? 'default' : 'outline'}
-                size="sm"
+                className="flex-1"
                 onClick={() => router.push('/client-information/projections')}
               >
                 Projections
@@ -1460,7 +1460,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
               <Button
                 type="button"
                 variant={activeTab === 'tax' ? 'default' : 'outline'}
-                size="sm"
+                className="flex-1"
                 onClick={() => router.push('/client-information/tax')}
               >
                 Tax
@@ -3171,25 +3171,16 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                   </Button>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div>
                 <Button
-                  type="submit"
+                  type="button"
+                  onClick={handleSaveAndNext}
                   className="bg-yellow-500 text-white hover:bg-yellow-600"
                   disabled={isSaving}
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save Changes'}
+                  {isSaving ? 'Saving...' : 'Save & Continue'}
                 </Button>
-                {TAB_ORDER.indexOf(activeTab) < TAB_ORDER.length - 1 && (
-                  <Button
-                    type="button"
-                    onClick={handleSaveAndNext}
-                    className="bg-blue-500 text-white hover:bg-blue-600"
-                    disabled={isSaving}
-                  >
-                    {isSaving ? 'Saving...' : 'Save & Next'}
-                  </Button>
-                )}
               </div>
             </div>
           </form>
