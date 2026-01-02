@@ -1,5 +1,6 @@
 ﻿import { type Metadata } from "next";
 import { redirect } from 'next/navigation';
+import { ClientRedirect } from './client-redirect';
 
 export const metadata: Metadata = {
   title: "Client Information",
@@ -7,6 +8,6 @@ export const metadata: Metadata = {
 };
 
 export default function ClientInformationPage() {
-  redirect('/client-information/personal');
+  return <ClientRedirect />;
 }
  
