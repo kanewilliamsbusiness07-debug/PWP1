@@ -1732,24 +1732,6 @@ export default function SummaryPage() {
             Comprehensive overview for {hasClientA ? clientAName : ''}{hasClientA && hasClientB ? ' & ' : ''}{hasClientB ? clientBName : ''}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={shareReport}>
-            <Share2 className="h-4 w-4 mr-2" />
-            Share
-          </Button>
-          <Button variant="outline" onClick={printReport}>
-            <Printer className="h-4 w-4 mr-2" />
-            Print
-          </Button>
-          <Button 
-            onClick={() => generatePDF(false)}
-            disabled={isGeneratingPDF}
-            className="bg-yellow-500 text-white hover:bg-yellow-600"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
-          </Button>
-        </div>
       </div>
 
       {/* Client Overview - Dual Client within same card */}

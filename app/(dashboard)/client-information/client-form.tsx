@@ -628,9 +628,9 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         postcode: client.postcode || '',
         ownOrRent: (client.ownOrRent as 'OWN' | 'RENT' | 'MORTGAGED' | undefined) || undefined,
         // For new clients, always default to 0. For existing clients, use their value or 0.
-        annualIncome: isNewClient ? 0 : (client.grossSalary || client.grossIncome || client.annualIncome || 0),
-        rentalIncome: client.rentalIncome || 0,
-        dividends: client.dividends || 0,
+        annualIncome: isNewClient ? 0 : (client.annualIncome || client.grossSalary || client.grossIncome || client.employmentIncome || 0),
+        rentalIncome: client.rentalIncome || client.monthlyRentalIncome || 0,
+        dividends: client.dividends || client.investmentIncome || 0,
         frankedDividends: client.frankedDividends || 0,
         capitalGains: client.capitalGains || 0,
         otherIncome: client.otherIncome || 0,
@@ -670,55 +670,103 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
           return validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
         })(),
         // Initialize pairs from filtered assets/liabilities
-        assetLiabilityPairs: (() => {
-          const validAssets = (client?.assets || []).filter(asset => 
-            asset && 
-            typeof asset.id === 'string' && 
-            typeof asset.name === 'string' && 
-            typeof asset.currentValue === 'number' && 
-            typeof asset.type === 'string' && 
-            ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type) && 
-            (asset.ownerOccupied === undefined || typeof asset.ownerOccupied === 'string' && ['own', 'rent'].includes(asset.ownerOccupied))
-          );
-          const validLiabilities = (client?.liabilities || []).filter(liability => 
-            liability && 
-            typeof liability.id === 'string' && 
-            typeof liability.name === 'string' && 
-            typeof liability.balance === 'number' && 
-            typeof liability.monthlyPayment === 'number' && 
-            typeof liability.interestRate === 'number' && 
-            typeof liability.loanTerm === 'number' && 
-            (liability.termRemaining === undefined || typeof liability.termRemaining === 'number') && 
-            typeof liability.type === 'string' && 
-            ['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other'].includes(liability.type) && 
-            (liability.lender === undefined || typeof liability.lender === 'string') && 
-            (liability.loanType === undefined || typeof liability.loanType === 'string' && ['fixed', 'split', 'variable'].includes(liability.loanType)) && 
-            (liability.paymentFrequency === undefined || typeof liability.paymentFrequency === 'string' && ['W', 'F', 'M'].includes(liability.paymentFrequency))
-          );
-          
-          const assets = validAssets.length > 0 ? validAssets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
-          const liabilities = validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
-          
-          const maxLength = Math.max(assets.length, liabilities.length);
-          const pairs = [];
-          for (let i = 0; i < maxLength; i++) {
-            pairs.push({
-              asset: assets[i] || { id: `asset-fallback-${i}`, name: `Asset ${i + 1}`, currentValue: 0, type: 'other' as const },
-              liability: liabilities[i] || { id: `liability-fallback-${i}`, name: `Liability ${i + 1}`, balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 30, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }
-            });
-          }
-          console.log('Form reset - created assetLiabilityPairs from client data:', pairs);
-          return pairs;
-        })(),
+        // Note: assetLiabilityPairs is handled separately with replacePairs to avoid conflicts
+        // assetLiabilityPairs: (() => {
+        //   const validAssets = (client?.assets || []).filter(asset => 
+        //     asset && 
+        //     typeof asset.id === 'string' && 
+        //     typeof asset.name === 'string' && 
+        //     typeof asset.currentValue === 'number' && 
+        //     typeof asset.type === 'string' && 
+        //     ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type) && 
+        //     (asset.ownerOccupied === undefined || typeof asset.ownerOccupied === 'string' && ['own', 'rent'].includes(asset.ownerOccupied))
+        //   );
+        //   const validLiabilities = (client?.liabilities || []).filter(liability => 
+        //     liability && 
+        //     typeof liability.id === 'string' && 
+        //     typeof liability.name === 'string' && 
+        //     typeof liability.balance === 'number' && 
+        //     typeof liability.monthlyPayment === 'number' && 
+        //     typeof liability.interestRate === 'number' && 
+        //     typeof liability.loanTerm === 'number' && 
+        //     (liability.termRemaining === undefined || typeof liability.termRemaining === 'number') && 
+        //     typeof liability.type === 'string' && 
+        //     ['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other'].includes(liability.type) && 
+        //     (liability.lender === undefined || typeof liability.lender === 'string') && 
+        //     (liability.loanType === undefined || typeof liability.loanType === 'string' && ['fixed', 'split', 'variable'].includes(liability.loanType)) && 
+        //     (liability.paymentFrequency === undefined || typeof liability.paymentFrequency === 'string' && ['W', 'F', 'M'].includes(liability.paymentFrequency))
+        //   );
+        //   
+        //   const assets = validAssets.length > 0 ? validAssets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
+        //   const liabilities = validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
+        //   
+        //   const maxLength = Math.max(assets.length, liabilities.length);
+        //   const pairs = [];
+        //   for (let i = 0; i < maxLength; i++) {
+        //     pairs.push({
+        //       asset: assets[i] || { id: `asset-fallback-${i}`, name: `Asset ${i + 1}`, currentValue: 0, type: 'other' as const },
+        //       liability: liabilities[i] || { id: `liability-fallback-${i}`, name: `Liability ${i + 1}`, balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 30, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }
+        //     });
+        //   }
+        //   console.log('Form reset - created assetLiabilityPairs from client data:', pairs);
+        //   return pairs;
+        // })(),
         properties: client.properties || [],
-        currentAge: client.currentAge || 0,
-        retirementAge: client.retirementAge || 0,
-        currentSuper: client.currentSuper || 0,
-        currentSavings: client.currentSavings || 0,
-        currentShares: client.currentShares || 0,
-        propertyEquity: client.propertyEquity || 0,
+        // Calculate auto fields from client data
+        currentAge: (() => {
+          if (client.currentAge && client.currentAge > 0) return client.currentAge;
+          if (dobValue) {
+            const birthDate = dobValue;
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+              age--;
+            }
+            return age > 0 ? age : 0;
+          }
+          return 0;
+        })(),
+        retirementAge: client.retirementAge || 65,
+        currentSuper: (() => {
+          if (client.currentSuper && client.currentSuper > 0) return client.currentSuper;
+          // Calculate from super assets
+          const superAssets = (client?.assets || []).filter((asset: any) => asset.type === 'super');
+          return superAssets.reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+        })(),
+        currentSavings: (() => {
+          if (client.currentSavings && client.currentSavings > 0) return client.currentSavings;
+          // Calculate from savings assets
+          const savingsAssets = (client?.assets || []).filter((asset: any) => asset.type === 'savings');
+          return savingsAssets.reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+        })(),
+        currentShares: (() => {
+          if (client.currentShares && client.currentShares > 0) return client.currentShares;
+          // Calculate from shares assets
+          const sharesAssets = (client?.assets || []).filter((asset: any) => asset.type === 'shares');
+          return sharesAssets.reduce((sum: number, asset: any) => sum + (parseFloat(asset.currentValue) || 0), 0);
+        })(),
+        propertyEquity: (() => {
+          if (client.propertyEquity && client.propertyEquity > 0) return client.propertyEquity;
+          // Calculate from properties
+          const properties = client.properties || [];
+          return properties.reduce((sum: number, property: any) => {
+            const value = parseFloat(property.currentValue) || 0;
+            const loan = parseFloat(property.loanAmount) || 0;
+            return sum + (value - loan);
+          }, 0);
+        })(),
         monthlyDebtPayments: client.monthlyDebtPayments || 0,
-        monthlyRentalIncome: client.monthlyRentalIncome || 0,
+        monthlyRentalIncome: (() => {
+          if (client.monthlyRentalIncome && client.monthlyRentalIncome > 0) return client.monthlyRentalIncome;
+          // Calculate from properties
+          const properties = client.properties || [];
+          return properties.reduce((sum: number, property: any) => {
+            const weeklyRent = parseFloat(property.weeklyRent) || 0;
+            const monthlyRent = (weeklyRent * 52) / 12;
+            return sum + monthlyRent;
+          }, 0);
+        })(),
         monthlyExpenses: client.monthlyExpenses || 0,
         inflationRate: client.inflationRate || 0,
         salaryGrowthRate: client.salaryGrowthRate || 0,
@@ -755,9 +803,45 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       form.reset(resetData, { keepDefaultValues: true });
       
       // Update useFieldArray fields to match the reset data
-      if (resetData.assetLiabilityPairs) {
-        replacePairs(resetData.assetLiabilityPairs);
+      // Create assetLiabilityPairs from client assets and liabilities
+      const validAssets = (client?.assets || []).filter(asset => 
+        asset && 
+        typeof asset.id === 'string' && 
+        typeof asset.name === 'string' && 
+        typeof asset.currentValue === 'number' && 
+        typeof asset.type === 'string' && 
+        ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type) && 
+        (asset.ownerOccupied === undefined || typeof asset.ownerOccupied === 'string' && ['own', 'rent'].includes(asset.ownerOccupied))
+      );
+      const validLiabilities = (client?.liabilities || []).filter(liability => 
+        liability && 
+        typeof liability.id === 'string' && 
+        typeof liability.name === 'string' && 
+        typeof liability.balance === 'number' && 
+        typeof liability.monthlyPayment === 'number' && 
+        typeof liability.interestRate === 'number' && 
+        typeof liability.loanTerm === 'number' && 
+        (liability.termRemaining === undefined || typeof liability.termRemaining === 'number') && 
+        typeof liability.type === 'string' && 
+        ['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other'].includes(liability.type) && 
+        (liability.lender === undefined || typeof liability.lender === 'string') && 
+        (liability.loanType === undefined || typeof liability.loanType === 'string' && ['fixed', 'split', 'variable'].includes(liability.loanType)) && 
+        (liability.paymentFrequency === undefined || typeof liability.paymentFrequency === 'string' && ['W', 'F', 'M'].includes(liability.paymentFrequency))
+      );
+      
+      const assets = validAssets.length > 0 ? validAssets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
+      const liabilities = validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
+      
+      const maxLength = Math.max(assets.length, liabilities.length);
+      const pairs = [];
+      for (let i = 0; i < maxLength; i++) {
+        pairs.push({
+          asset: assets[i] || { id: `asset-fallback-${i}`, name: `Asset ${i + 1}`, currentValue: 0, type: 'other' as const },
+          liability: liabilities[i] || { id: `liability-fallback-${i}`, name: `Liability ${i + 1}`, balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 30, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }
+        });
       }
+      console.log('Form reset - created assetLiabilityPairs from client data:', pairs);
+      replacePairs(pairs);
     }
   }, [client, form, clientSlot, replacePairs]);
 
