@@ -207,9 +207,9 @@ export default function InvestmentPropertiesPage() {
                           0;
 
     // Get retirement passive income from financial projections
-    const retirementAnnualIncome = financialStore.results?.clientA?.projectedAnnualPassiveIncome ??
-                                   financialStore.results?.clientB?.projectedAnnualPassiveIncome ?? 
-                                   0;
+    const retirementAnnualIncome = (financialStore.results?.clientA?.monthlyPassiveIncome ??
+                                   financialStore.results?.clientB?.monthlyPassiveIncome ?? 
+                                   0) * 12;
     const retirementMonthlySurplus = retirementAnnualIncome / 12;
 
     // Get interest rate from shared assumptions (using super return as proxy for loan interest rate)
