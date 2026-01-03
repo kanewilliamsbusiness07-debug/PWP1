@@ -10,22 +10,31 @@ import { v4 as uuidv4 } from 'uuid';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 // POST /api/pdf-generate
 export async function POST(req: NextRequest) {
   try {
+    console.log('PDF generation request received');
+
     const session = (await getServerSession(authOptions)) as Session | null;
     if (!session?.user?.id) {
+      console.error('Unauthorized: No valid session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    console.log('Session validated for user:', session.user.id);
 
     const body = await req.json();
     const { html, clientId, fileName } = body as { html?: string; clientId?: string; fileName?: string };
 
     if (!html || typeof html !== 'string') {
+      console.error('Missing or invalid html content');
       return NextResponse.json({ error: 'Missing html content' }, { status: 400 });
     }
+
+    console.log('HTML content received, length:', html.length);
 
     // If a Lambda function name is configured, invoke it and let it produce the PDF
     const lambdaName = process.env.PDF_GENERATOR_FUNCTION_NAME || process.env.PDF_GENERATOR_LAMBDA;
@@ -47,7 +56,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Fallback: Launch Puppeteer locally
-    const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
     const page = await browser.newPage();
 
     // Set viewport to dashboard width
@@ -90,9 +103,12 @@ export async function POST(req: NextRequest) {
     // Upload PDF to S3
     const uploadsBucket = process.env.AWS_S3_BUCKET || process.env.APP_AWS_S3_BUCKET || process.env.S3_BUCKET;
     if (!uploadsBucket) {
+      console.error('Server not configured: AWS_S3_BUCKET missing');
       await browser.close();
       return NextResponse.json({ error: 'Server not configured: AWS_S3_BUCKET missing' }, { status: 500 });
     }
+
+    console.log('Using S3 bucket:', uploadsBucket);
 
     const time = new Date();
     const date = `${time.getFullYear()}-${String(time.getMonth() + 1).padStart(2, '0')}-${String(time.getDate()).padStart(2, '0')}`;
@@ -131,6 +147,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, s3Key, fileSize: pdfBuffer.length });
   } catch (error: any) {
     console.error('Error generating PDF:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error stack:', error?.stack);
+    console.error('Error message:', error?.message);
+
+    // Return more specific error messages
+    if (error?.message?.includes('chromium')) {
+      return NextResponse.json({ error: 'PDF generation failed: Chromium setup error' }, { status: 500 });
+    }
+    if (error?.message?.includes('puppeteer')) {
+      return NextResponse.json({ error: 'PDF generation failed: Browser launch error' }, { status: 500 });
+    }
+    if (error?.message?.includes('AWS') || error?.message?.includes('S3')) {
+      return NextResponse.json({ error: 'PDF generation failed: Storage error' }, { status: 500 });
+    }
+
+    return NextResponse.json({ error: 'Internal server error', details: error?.message }, { status: 500 });
   }
 }

@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "app/api/pdf-generate/route.ts": {
+      "maxDuration": 30,
+      "memory": 1024
+    }
+  },
+  "regions": ["iad1"]
+}
