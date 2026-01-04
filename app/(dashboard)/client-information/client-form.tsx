@@ -634,41 +634,41 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         frankedDividends: client.frankedDividends || 0,
         capitalGains: client.capitalGains || 0,
         otherIncome: client.otherIncome || 0,
-        // Always have at least one asset (Home) and one liability - use filtered valid data
-        assets: (() => {
-          const validAssets = (client?.assets || []).filter(asset => 
-            asset && 
-            typeof asset.id === 'string' && 
-            typeof asset.name === 'string' && 
-            typeof asset.currentValue === 'number' && 
-            typeof asset.type === 'string' && 
-            ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type) && 
-            (asset.ownerOccupied === undefined || typeof asset.ownerOccupied === 'string' && ['own', 'rent'].includes(asset.ownerOccupied))
-          );
-          console.log('Form initialization - client assets:', client?.assets);
-          console.log('Form initialization - valid assets:', validAssets);
-          return validAssets.length > 0 ? validAssets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
-        })(),
-        liabilities: (() => {
-          const validLiabilities = (client?.liabilities || []).filter(liability => 
-            liability && 
-            typeof liability.id === 'string' && 
-            typeof liability.name === 'string' && 
-            typeof liability.balance === 'number' && 
-            typeof liability.monthlyPayment === 'number' && 
-            typeof liability.interestRate === 'number' && 
-            typeof liability.loanTerm === 'number' && 
-            (liability.termRemaining === undefined || typeof liability.termRemaining === 'number') && 
-            typeof liability.type === 'string' && 
-            ['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other'].includes(liability.type) && 
-            (liability.lender === undefined || typeof liability.lender === 'string') && 
-            (liability.loanType === undefined || typeof liability.loanType === 'string' && ['fixed', 'split', 'variable'].includes(liability.loanType)) && 
-            (liability.paymentFrequency === undefined || typeof liability.paymentFrequency === 'string' && ['W', 'F', 'M'].includes(liability.paymentFrequency))
-          );
-          console.log('Form initialization - client liabilities:', client?.liabilities);
-          console.log('Form initialization - valid liabilities:', validLiabilities);
-          return validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
-        })(),
+        // Don't set assets/liabilities directly - let replacePairs handle assetLiabilityPairs
+        // assets: (() => {
+        //   const validAssets = (client?.assets || []).filter(asset => 
+        //     asset && 
+        //     typeof asset.id === 'string' && 
+        //     typeof asset.name === 'string' && 
+        //     typeof asset.currentValue === 'number' && 
+        //     typeof asset.type === 'string' && 
+        //     ['property', 'vehicle', 'savings', 'shares', 'super', 'other'].includes(asset.type) && 
+        //     (asset.ownerOccupied === undefined || typeof asset.ownerOccupied === 'string' && ['own', 'rent'].includes(asset.ownerOccupied))
+        //   );
+        //   console.log('Form initialization - client assets:', client?.assets);
+        //   console.log('Form initialization - valid assets:', validAssets);
+        //   return validAssets.length > 0 ? validAssets : [{ id: 'asset-home', name: 'Home', currentValue: 0, type: 'property' as const, ownerOccupied: 'own' as const }];
+        // })(),
+        // liabilities: (() => {
+        //   const validLiabilities = (client?.liabilities || []).filter(liability => 
+        //     liability && 
+        //     typeof liability.id === 'string' && 
+        //     typeof liability.name === 'string' && 
+        //     typeof liability.balance === 'number' && 
+        //     typeof liability.monthlyPayment === 'number' && 
+        //     typeof liability.interestRate === 'number' && 
+        //     typeof liability.loanTerm === 'number' && 
+        //     (liability.termRemaining === undefined || typeof liability.termRemaining === 'number') && 
+        //     typeof liability.type === 'string' && 
+        //     ['mortgage', 'personal-loan', 'credit-card', 'hecs', 'other'].includes(liability.type) && 
+        //     (liability.lender === undefined || typeof liability.lender === 'string') && 
+        //     (liability.loanType === undefined || typeof liability.loanType === 'string' && ['fixed', 'split', 'variable'].includes(liability.loanType)) && 
+        //     (liability.paymentFrequency === undefined || typeof liability.paymentFrequency === 'string' && ['W', 'F', 'M'].includes(liability.paymentFrequency))
+        //   );
+        //   console.log('Form initialization - client liabilities:', client?.liabilities);
+        //   console.log('Form initialization - valid liabilities:', validLiabilities);
+        //   return validLiabilities.length > 0 ? validLiabilities : [{ id: 'liability-home', name: 'Home Loan', balance: 0, monthlyPayment: 0, interestRate: 0, loanTerm: 30, termRemaining: 0, type: 'mortgage' as const, lender: '', loanType: 'variable' as const, paymentFrequency: 'M' as const }];
+        // })(),
         // Initialize pairs from filtered assets/liabilities
         // Note: assetLiabilityPairs is handled separately with replacePairs to avoid conflicts
         // assetLiabilityPairs: (() => {
