@@ -129,6 +129,7 @@ export const clientValidationSchema = z.object({
   
   // Contact Information
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  businessEmail: z.string().email('Invalid business email address').optional().or(z.literal('')),
   phoneNumber: z.string().optional().or(z.literal('')),
   // Legacy field - kept for backward compatibility during migration
   mobile: z.string().optional().or(z.literal('')),

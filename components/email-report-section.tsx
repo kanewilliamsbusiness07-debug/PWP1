@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface EmailReportSectionProps {
   clientEmail: string;
+  clientBusinessEmail?: string;
   clientName: string;
   summary: {
     netWorth: number;
@@ -30,6 +31,7 @@ type SendStatus = 'idle' | 'sending' | 'success' | 'error';
 
 export function EmailReportSection({
   clientEmail,
+  clientBusinessEmail,
   clientName,
   summary,
   onGeneratePdf,
@@ -39,6 +41,9 @@ export function EmailReportSection({
   const [comments, setComments] = useState('');
   const [sendStatus, setSendStatus] = useState<SendStatus>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [sendToPersonal, setSendToPersonal] = useState(true);
+  const [sendToBusiness, setSendToBusiness] = useState(false);
+  const [sentToRecipients, setSentToRecipients] = useState<string[]>([]);
   const { toast } = useToast();
 
   const validateEmail = (email: string): boolean => {
@@ -47,17 +52,28 @@ export function EmailReportSection({
   };
 
   const handleSendEmail = useCallback(async () => {
-    // Validation
-    if (!clientEmail) {
+    // Validation - check if at least one recipient is selected
+    const selectedRecipients = [];
+    if (sendToPersonal && clientEmail) {
+      selectedRecipients.push({ email: clientEmail, type: 'personal' });
+    }
+    if (sendToBusiness && clientBusinessEmail) {
+      selectedRecipients.push({ email: clientBusinessEmail, type: 'business' });
+    }
+
+    if (selectedRecipients.length === 0) {
       setSendStatus('error');
-      setErrorMessage('Client email address not found. Please update client information.');
+      setErrorMessage('Please select at least one recipient email address.');
       return;
     }
 
-    if (!validateEmail(clientEmail)) {
-      setSendStatus('error');
-      setErrorMessage('Invalid email address format.');
-      return;
+    // Validate email formats
+    for (const recipient of selectedRecipients) {
+      if (!validateEmail(recipient.email)) {
+        setSendStatus('error');
+        setErrorMessage(`Invalid email address format: ${recipient.email}`);
+        return;
+      }
     }
 
     setSendStatus('sending');
@@ -83,7 +99,7 @@ export function EmailReportSection({
 
       // Step 3: Send email with PDF attachment
       const emailData = {
-        clientEmail,
+        recipients: selectedRecipients,
         clientId,
         clientName,
         subject: `Your Financial Planning Report - ${reportDate}`,
@@ -119,10 +135,12 @@ export function EmailReportSection({
       // Success
       setSendStatus('success');
       setComments(''); // Clear comments after successful send
+      setSentToRecipients(selectedRecipients.map(r => r.email));
 
+      const recipientEmails = selectedRecipients.map(r => r.email).join(', ');
       toast({
         title: 'Email Sent Successfully!',
-        description: `The report has been sent to ${clientEmail}`,
+        description: `The report has been sent to ${recipientEmails}`,
       });
 
       // Auto-hide success message after 5 seconds
@@ -140,12 +158,15 @@ export function EmailReportSection({
     }
   }, [
     clientEmail,
+    clientBusinessEmail,
     clientName,
     comments,
     summary,
     lastGeneratedPdfId,
     clientId,
     onGeneratePdf,
+    sendToPersonal,
+    sendToBusiness,
     toast,
   ]);
 
@@ -180,6 +201,55 @@ export function EmailReportSection({
           )}
         </div>
 
+        {/* Recipient Selection */}
+        <div className="space-y-3">
+          <Label className="text-muted-foreground">Send Report To</Label>
+          <div className="space-y-2">
+            <label className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors">
+              <input
+                type="checkbox"
+                checked={sendToPersonal}
+                onChange={(e) => setSendToPersonal(e.target.checked)}
+                disabled={!clientEmail || sendStatus === 'sending'}
+                className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-foreground font-medium">Client Personal Email</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">{clientEmail || 'No email on file'}</p>
+              </div>
+            </label>
+
+            <label className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted/70 transition-colors">
+              <input
+                type="checkbox"
+                checked={sendToBusiness}
+                onChange={(e) => setSendToBusiness(e.target.checked)}
+                disabled={!clientBusinessEmail || sendStatus === 'sending'}
+                className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-foreground font-medium">Client Business Email</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">{clientBusinessEmail || 'No business email on file'}</p>
+              </div>
+            </label>
+          </div>
+
+          {(!clientEmail && !clientBusinessEmail) && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please add at least one email address in Client Information to enable sending.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
         {/* Optional Comments */}
         <div className="space-y-2">
           <Label htmlFor="email-comments" className="text-muted-foreground">
@@ -206,7 +276,7 @@ export function EmailReportSection({
         {/* Send Button */}
         <Button
           onClick={handleSendEmail}
-          disabled={!clientEmail || sendStatus === 'sending'}
+          disabled={(!sendToPersonal || !clientEmail) && (!sendToBusiness || !clientBusinessEmail) || sendStatus === 'sending'}
           className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white"
           size="lg"
         >
@@ -231,7 +301,7 @@ export function EmailReportSection({
               Email sent successfully!
             </AlertTitle>
             <AlertDescription className="text-emerald-600 dark:text-emerald-400">
-              The report has been sent to {clientEmail}
+              The report has been sent to {sentToRecipients.join(', ')}
             </AlertDescription>
           </Alert>
         )}

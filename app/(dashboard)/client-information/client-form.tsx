@@ -622,6 +622,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         numberOfDependants: client.numberOfDependants || 0,
         agesOfDependants: client.agesOfDependants || '',
         email: client.email || '',
+        businessEmail: client.businessEmail || '',
         phoneNumber: client.mobile || client.phoneNumber || '',
         addressLine1: client.addressLine1 || '',
         addressLine2: client.addressLine2 || '',
@@ -920,6 +921,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       // Add optional fields if they exist and are not empty
       if (data.middleName?.trim()) clientData.middleName = data.middleName.trim();
       if (data.email?.trim()) clientData.email = data.email.trim();
+      if (data.businessEmail?.trim()) clientData.businessEmail = data.businessEmail.trim();
       // Map phoneNumber to mobile (schema expects 'mobile')
       const phoneNumber = data.mobile?.trim() || (data as any).phoneNumber?.trim();
       if (phoneNumber) clientData.mobile = phoneNumber;
@@ -1963,6 +1965,20 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                           <FormLabel>Email</FormLabel>
                           <FormControl>
                             <Input type="email" placeholder="john@example.com" autoComplete="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="businessEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Business Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="john@company.com" autoComplete="email" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

@@ -2462,6 +2462,7 @@ export default function SummaryPage() {
             {/* Email Report Section */}
             <EmailReportSection
               clientEmail={activeClient?.email || ''}
+              clientBusinessEmail={activeClient?.businessEmail || ''}
               clientName={summary.clientName}
               summary={{
                 netWorth: summary.netWorth,

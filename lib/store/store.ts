@@ -89,6 +89,7 @@ interface ClientData {
   dateOfBirth?: Date;
   dob?: Date | string; // Database field name (alias for dateOfBirth)
   email?: string;
+  businessEmail?: string;
   phoneNumber?: string;
   // Legacy field - kept for backward compatibility during migration
   mobile?: string;

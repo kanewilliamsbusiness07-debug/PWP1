@@ -340,7 +340,7 @@ export async function POST(req: NextRequest) {
     }
 
     const {
-      clientEmail,
+      recipients,
       clientId,
       clientName,
       subject,
@@ -351,20 +351,22 @@ export async function POST(req: NextRequest) {
     } = await req.json();
 
     // Validate required fields
-    if (!clientEmail) {
+    if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return NextResponse.json(
-        { error: 'Client email is required' },
+        { error: 'At least one recipient is required' },
         { status: 400 }
       );
     }
 
-    // Validate email format
+    // Validate recipient emails
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(clientEmail)) {
-      return NextResponse.json(
-        { error: 'Invalid email address format' },
-        { status: 400 }
-      );
+    for (const recipient of recipients) {
+      if (!recipient.email || !emailRegex.test(recipient.email)) {
+        return NextResponse.json(
+          { error: `Invalid email address: ${recipient.email}` },
+          { status: 400 }
+        );
+      }
     }
 
     if (!session.user.email) {
@@ -374,8 +376,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Prepare email recipients (client + account holder)
-    const recipients = [clientEmail, session.user.email];
+    // Prepare email recipients (client emails + account holder)
+    const clientEmails = recipients.map(r => r.email);
+    const allRecipients = [...clientEmails, session.user.email];
 
     // Fetch PDF attachment if pdfId is provided (DynamoDB + S3)
     let pdfAttachment = null;
@@ -427,18 +430,18 @@ export async function POST(req: NextRequest) {
 
     // Send email with optional PDF attachment
     await sendEmail(session.user.id, {
-      to: recipients,
+      to: allRecipients,
       subject: subject || `Your Financial Planning Report - ${formattedDate}`,
       html,
       attachments: pdfAttachment ? [pdfAttachment] : undefined,
     });
 
     // Log the email sending for audit purposes
-    console.log(`Financial report email sent to ${clientEmail} by user ${session.user.id}`);
+    console.log(`Financial report email sent to ${clientEmails.join(', ')} by user ${session.user.id}`);
 
     return NextResponse.json({
       success: true,
-      message: `Email sent successfully to ${clientEmail}${pdfAttachment ? ' with PDF attachment' : ''}`,
+      message: `Email sent successfully to ${clientEmails.join(', ')}${pdfAttachment ? ' with PDF attachment' : ''}`,
     });
   } catch (error) {
     console.error('Error sending report email:', error);
