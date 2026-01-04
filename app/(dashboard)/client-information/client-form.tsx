@@ -2580,7 +2580,7 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                   </div>
                 </div>
 
-                {/* Bottom buttons - Add Asset & Liability on left, Previous/Next on right */}
+                {/* Bottom buttons - Add Asset & Liability on left */}
                 <div className="flex justify-between items-center pt-4 border-t mt-6">
                   <Button
                     type="button"
@@ -2596,21 +2596,6 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                     <Plus className="h-4 w-4 mr-2" />
                     Add Asset and Liabilities
                   </Button>
-                  <div>
-                    {TAB_ORDER.indexOf(activeTab) > 0 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          const prevIndex = TAB_ORDER.indexOf(activeTab) - 1;
-                          router.push(`/client-information/${TAB_ORDER[prevIndex]}`);
-                        }}
-                        className="mr-2"
-                      >
-                        Previous
-                      </Button>
-                    )}
-                  </div>
                 </div>
               </div>
             )}
