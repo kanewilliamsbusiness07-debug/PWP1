@@ -1019,8 +1019,14 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       });
       console.log('saveClient returned:', savedClient);
 
+      let saveSuccessCount = 0;
+      let savedClients = [];
+
       if (savedClient) {
         console.log('Client saved successfully:', savedClient.id);
+        saveSuccessCount++;
+        savedClients.push(savedClient);
+
         // Update store with saved client ID
         financialStore.setClientData(clientSlot, {
           ...data,
@@ -1028,23 +1034,162 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
           partnerDateOfBirth: data.partnerDob,
           id: savedClient.id,
         } as any);
-        
+
         // Remember which slot this client was saved in
         if (savedClient.id) {
           const clientSlotMapping = JSON.parse(localStorage.getItem('clientSlotMapping') || '{}');
           clientSlotMapping[savedClient.id] = clientSlot;
           localStorage.setItem('clientSlotMapping', JSON.stringify(clientSlotMapping));
         }
-        
+      }
+
+      // Now save the other client if it exists
+      const otherClientSlot = clientSlot === 'A' ? 'B' : 'A';
+      const otherClient = otherClientSlot === 'A' ? financialStore.clientA : financialStore.clientB;
+      const otherClientId = (otherClient as any)?.id;
+
+      if (otherClient && (otherClient.firstName || otherClient.lastName || otherClientId)) {
+        console.log('Also saving other client:', otherClientSlot, 'with ID:', otherClientId);
+
+        try {
+          // Prepare data for the other client
+          const otherDobString = otherClient.dateOfBirth ? formatDateToString(otherClient.dateOfBirth) : null;
+
+          const otherClientData: any = {
+            firstName: otherClient.firstName?.trim() || '',
+            lastName: otherClient.lastName?.trim() || '',
+            dob: otherDobString,
+            maritalStatus: otherClient.maritalStatus || 'SINGLE',
+            numberOfDependants: otherClient.numberOfDependants || 0,
+          };
+
+          // Add optional fields for other client
+          if (otherClient.middleName?.trim()) otherClientData.middleName = otherClient.middleName.trim();
+          if (otherClient.email?.trim()) otherClientData.email = otherClient.email.trim();
+          const otherPhoneNumber = otherClient.mobile?.trim() || (otherClient as any).phoneNumber?.trim();
+          if (otherPhoneNumber) otherClientData.mobile = otherPhoneNumber;
+          if (otherClient.addressLine1?.trim()) otherClientData.addressLine1 = otherClient.addressLine1.trim();
+          if (otherClient.addressLine2?.trim()) otherClientData.addressLine2 = otherClient.addressLine2.trim();
+          if (otherClient.suburb?.trim()) otherClientData.suburb = otherClient.suburb.trim();
+          if (otherClient.state) otherClientData.state = otherClient.state;
+          if (otherClient.postcode?.trim()) otherClientData.postcode = otherClient.postcode.trim();
+          if (otherClient.ownOrRent) otherClientData.ownOrRent = otherClient.ownOrRent;
+          if (otherClient.agesOfDependants?.trim()) otherClientData.agesOfDependants = otherClient.agesOfDependants.trim();
+
+          // Add financial fields for other client
+          if (otherClient.annualIncome !== undefined && otherClient.annualIncome !== null) otherClientData.annualIncome = Number(otherClient.annualIncome);
+          if (otherClient.annualIncome !== undefined && otherClient.annualIncome !== null) otherClientData.grossSalary = Number(otherClient.annualIncome);
+          if (otherClient.annualIncome !== undefined && otherClient.annualIncome !== null) otherClientData.employmentIncome = Number(otherClient.annualIncome);
+          if (otherClient.rentalIncome !== undefined && otherClient.rentalIncome !== null) otherClientData.rentalIncome = Number(otherClient.rentalIncome);
+          if (otherClient.dividends !== undefined && otherClient.dividends !== null) otherClientData.dividends = Number(otherClient.dividends);
+          if (otherClient.frankedDividends !== undefined && otherClient.frankedDividends !== null) otherClientData.frankedDividends = Number(otherClient.frankedDividends);
+          if (otherClient.capitalGains !== undefined && otherClient.capitalGains !== null) otherClientData.capitalGains = Number(otherClient.capitalGains);
+          if (otherClient.otherIncome !== undefined && otherClient.otherIncome !== null) otherClientData.otherIncome = Number(otherClient.otherIncome);
+          if (otherClient.investmentIncome !== undefined && otherClient.investmentIncome !== null) otherClientData.investmentIncome = Number(otherClient.investmentIncome);
+          if (otherClient.monthlyRentalIncome !== undefined && otherClient.monthlyRentalIncome !== null) otherClientData.monthlyRentalIncome = Number(otherClient.monthlyRentalIncome);
+          if (otherClient.currentAge !== undefined && otherClient.currentAge !== null) otherClientData.currentAge = Number(otherClient.currentAge);
+          if (otherClient.retirementAge !== undefined && otherClient.retirementAge !== null) otherClientData.retirementAge = Number(otherClient.retirementAge);
+          if (otherClient.currentSuper !== undefined && otherClient.currentSuper !== null) otherClientData.currentSuper = Number(otherClient.currentSuper);
+          if (otherClient.currentSavings !== undefined && otherClient.currentSavings !== null) otherClientData.currentSavings = Number(otherClient.currentSavings);
+          if (otherClient.currentShares !== undefined && otherClient.currentShares !== null) otherClientData.currentShares = Number(otherClient.currentShares);
+          if (otherClient.propertyEquity !== undefined && otherClient.propertyEquity !== null) otherClientData.propertyEquity = Number(otherClient.propertyEquity);
+          if (otherClient.monthlyDebtPayments !== undefined && otherClient.monthlyDebtPayments !== null) otherClientData.monthlyDebtPayments = Number(otherClient.monthlyDebtPayments);
+          if (otherClient.monthlyExpenses !== undefined && otherClient.monthlyExpenses !== null) otherClientData.monthlyExpenses = Number(otherClient.monthlyExpenses);
+          if (otherClient.workRelatedExpenses !== undefined && otherClient.workRelatedExpenses !== null) otherClientData.workRelatedExpenses = Number(otherClient.workRelatedExpenses);
+          if (otherClient.vehicleExpenses !== undefined && otherClient.vehicleExpenses !== null) otherClientData.vehicleExpenses = Number(otherClient.vehicleExpenses);
+          if (otherClient.uniformsAndLaundry !== undefined && otherClient.uniformsAndLaundry !== null) otherClientData.uniformsAndLaundry = Number(otherClient.uniformsAndLaundry);
+          if (otherClient.homeOfficeExpenses !== undefined && otherClient.homeOfficeExpenses !== null) otherClientData.homeOfficeExpenses = Number(otherClient.homeOfficeExpenses);
+          if (otherClient.selfEducationExpenses !== undefined && otherClient.selfEducationExpenses !== null) otherClientData.selfEducationExpenses = Number(otherClient.selfEducationExpenses);
+          if (otherClient.investmentExpenses !== undefined && otherClient.investmentExpenses !== null) otherClientData.investmentExpenses = Number(otherClient.investmentExpenses);
+          if (otherClient.charityDonations !== undefined && otherClient.charityDonations !== null) otherClientData.charityDonations = Number(otherClient.charityDonations);
+          if (otherClient.accountingFees !== undefined && otherClient.accountingFees !== null) otherClientData.accountingFees = Number(otherClient.accountingFees);
+          if (otherClient.rentalExpenses !== undefined && otherClient.rentalExpenses !== null) otherClientData.rentalExpenses = Number(otherClient.rentalExpenses);
+          if (otherClient.superContributions !== undefined && otherClient.superContributions !== null) otherClientData.superContributions = Number(otherClient.superContributions);
+          if (otherClient.healthInsurance !== undefined) otherClientData.healthInsurance = Boolean(otherClient.healthInsurance);
+          if (otherClient.hecs !== undefined) otherClientData.hecs = Boolean(otherClient.hecs);
+          if (otherClient.helpDebt !== undefined && otherClient.helpDebt !== null) otherClientData.helpDebt = Number(otherClient.helpDebt);
+          if (otherClient.privateHealthInsurance !== undefined) otherClientData.privateHealthInsurance = Boolean(otherClient.privateHealthInsurance);
+
+          // Add assets and liabilities for other client
+          if (otherClient.assets && Array.isArray(otherClient.assets)) {
+            otherClientData.assets = otherClient.assets.filter((asset: any) =>
+              asset &&
+              asset.id &&
+              asset.name &&
+              asset.type &&
+              typeof asset.currentValue === 'number' &&
+              asset.currentValue > 0
+            );
+          }
+          if (otherClient.liabilities && Array.isArray(otherClient.liabilities)) {
+            otherClientData.liabilities = otherClient.liabilities.filter((liability: any) =>
+              liability &&
+              liability.id &&
+              liability.name &&
+              typeof liability.balance === 'number' &&
+              typeof liability.monthlyPayment === 'number' &&
+              typeof liability.interestRate === 'number' &&
+              typeof liability.loanTerm === 'number' &&
+              liability.type &&
+              (liability.balance > 0 || liability.monthlyPayment > 0)
+            );
+          }
+
+          // Add properties for other client
+          if (otherClient.properties && Array.isArray(otherClient.properties)) {
+            otherClientData.properties = otherClient.properties.filter((property: any) =>
+              property &&
+              property.id &&
+              property.address &&
+              typeof property.purchasePrice === 'number' &&
+              typeof property.currentValue === 'number'
+            );
+          }
+
+          console.log('Saving other client data:', { ...otherClientData, dob: otherDobString ? 'provided' : 'missing' });
+
+          const savedOtherClient = await saveClient({
+            ...otherClientData,
+            id: otherClientId,
+          });
+
+          if (savedOtherClient) {
+            console.log('Other client saved successfully:', savedOtherClient.id);
+            saveSuccessCount++;
+            savedClients.push(savedOtherClient);
+
+            // Update store with saved other client ID
+            financialStore.setClientData(otherClientSlot, {
+              ...otherClient,
+              id: savedOtherClient.id,
+            } as any);
+
+            // Remember which slot this client was saved in
+            if (savedOtherClient.id) {
+              const clientSlotMapping = JSON.parse(localStorage.getItem('clientSlotMapping') || '{}');
+              clientSlotMapping[savedOtherClient.id] = otherClientSlot;
+              localStorage.setItem('clientSlotMapping', JSON.stringify(clientSlotMapping));
+            }
+          } else {
+            console.error('Other client save returned null');
+          }
+        } catch (otherError) {
+          console.error('Error saving other client:', otherError);
+        }
+      }
+
+      // Show appropriate success message
+      if (saveSuccessCount > 0) {
+        const clientNames = savedClients.map(client => `${client.firstName} ${client.lastName}`).join(' and ');
         toast({
-          title: 'Client Saved',
-          description: `${data.firstName} ${data.lastName} has been saved successfully.`,
+          title: 'Clients Saved',
+          description: `${clientNames} ${saveSuccessCount === 1 ? 'has' : 'have'} been saved successfully.`,
         });
       } else {
-        console.error('Client save returned null - check error messages above');
+        console.error('All client saves returned null - check error messages above');
         toast({
           title: 'Error',
-          description: 'Failed to save client. Please check all required fields and try again.',
+          description: 'Failed to save clients. Please check all required fields and try again.',
           variant: 'destructive',
         });
       }
