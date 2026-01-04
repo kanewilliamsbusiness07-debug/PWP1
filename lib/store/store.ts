@@ -222,6 +222,7 @@ interface ClientData {
   propertyGrowthRate?: number;
   withdrawalRate?: number;
   rentGrowthRate?: number;
+  savingsRate?: number;
   
   // Projection Results (calculated on Projections page, used by Summary page)
   projectionResults?: {

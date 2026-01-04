@@ -119,6 +119,8 @@ export interface ClientFormRef {
   deleteClient: () => Promise<boolean>;
 }
 
+const TAB_ORDER = ['personal', 'financial', 'properties', 'projections', 'tax'] as const;
+
 export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ clientSlot, activeTab: initialActiveTab = 'personal' }, ref) => {
   const financialStore = useFinancialStore();
   const { toast } = useToast();
@@ -222,9 +224,9 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         case 'properties':
           return ['properties'];
         case 'projections':
-          return ['projectionAssumptions'];
+          return ['currentAge', 'retirementAge', 'currentSuper', 'currentSavings', 'currentShares', 'propertyEquity', 'monthlyDebtPayments', 'monthlyRentalIncome', 'monthlyExpenses', 'inflationRate', 'salaryGrowthRate', 'superReturn', 'shareReturn', 'propertyGrowthRate', 'withdrawalRate', 'rentGrowthRate', 'savingsRate'];
         case 'tax':
-          return ['taxOptimizations'];
+          return ['employmentIncome', 'investmentIncome', 'workRelatedExpenses', 'vehicleExpenses', 'uniformsAndLaundry', 'homeOfficeExpenses', 'selfEducationExpenses', 'investmentExpenses', 'charityDonations', 'accountingFees', 'rentalExpenses', 'superContributions', 'healthInsurance', 'hecs', 'helpDebt', 'hecsBalance', 'privateHealthInsurance'];
         default:
           return [];
       }
@@ -768,13 +770,14 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
           }, 0);
         })(),
         monthlyExpenses: client.monthlyExpenses || 0,
-        inflationRate: client.inflationRate || 0,
-        salaryGrowthRate: client.salaryGrowthRate || 0,
-        superReturn: client.superReturn || 0,
-        shareReturn: client.shareReturn || 0,
-        propertyGrowthRate: client.propertyGrowthRate || 0,
-        withdrawalRate: client.withdrawalRate || 0,
-        rentGrowthRate: client.rentGrowthRate || 0,
+        inflationRate: client.inflationRate ?? 2.5,
+        salaryGrowthRate: client.salaryGrowthRate ?? 3.0,
+        superReturn: client.superReturn ?? 8.0,
+        shareReturn: client.shareReturn ?? 7.0,
+        propertyGrowthRate: client.propertyGrowthRate ?? 5.0,
+        withdrawalRate: client.withdrawalRate ?? 4.0,
+        rentGrowthRate: client.rentGrowthRate ?? 3.0,
+        savingsRate: client.savingsRate ?? 10.0,
         employmentIncome: client.employmentIncome || 0,
         investmentIncome: client.investmentIncome || 0,
         workRelatedExpenses: client.workRelatedExpenses || 0,
@@ -844,6 +847,8 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
       replacePairs(pairs);
     }
   }, [client, form, clientSlot, replacePairs]);
+
+
 
   const onSubmitInternal = async (data: any) => {
     console.log('onSubmitInternal called for client:', clientSlot);
@@ -3121,6 +3126,172 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
                               />
                             </FormControl>
                             <p className="text-xs text-muted-foreground">Auto-calculated from Weekly Rent (├ù52├╖12)</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Projection Assumptions</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="inflationRate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Inflation Rate (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="2.5"
+                                {...field}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="salaryGrowthRate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Salary Growth Rate (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="3.0"
+                                {...field}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="superReturn"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Super Return (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="8.0"
+                                {...field}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="shareReturn"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Share Return (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="7.0"
+                                {...field}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="propertyGrowthRate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Property Growth Rate (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="5.0"
+                                {...field}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="withdrawalRate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Withdrawal Rate (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="4.0"
+                                {...field}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="rentGrowthRate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Rent Growth Rate (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="3.0"
+                                {...field}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="savingsRate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Savings Rate (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                placeholder="10.0"
+                                {...field}
+                                value={field.value === 0 || field.value === null || field.value === undefined ? '' : field.value}
+                                onChange={(e) => field.onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
