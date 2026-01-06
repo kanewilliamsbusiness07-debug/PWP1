@@ -1034,12 +1034,11 @@ export const ClientForm = React.forwardRef<ClientFormRef, ClientFormProps>(({ cl
         saveSuccessCount++;
         savedClients.push(savedClient);
 
-        // Update store with saved client ID
+        // Update store with saved client data (including processed assets/liabilities)
         financialStore.setClientData(clientSlot, {
-          ...data,
+          ...savedClient,
           dateOfBirth: data.dob,
           partnerDateOfBirth: data.partnerDob,
-          id: savedClient.id,
         } as any);
 
         // Remember which slot this client was saved in
